@@ -23,9 +23,9 @@ const initialPreferences: AlgorithmPreference[] = [
   { id: 'brand-carhartt', kind: 'liked_brand', label: 'Carhartt WIP', source: 'learned', locked: false },
   { id: 'brand-nike', kind: 'liked_brand', label: 'Nike', source: 'manual', locked: true },
   { id: 'exclude-the-north-face', kind: 'excluded_brand', label: 'The North Face', source: 'manual', locked: true },
-  { id: 'color-black', kind: 'color', label: 'Black', source: 'learned', locked: false },
+  { id: 'color-black', kind: 'color', label: 'Noir', source: 'learned', locked: false },
   { id: 'style-streetwear', kind: 'style', label: 'Streetwear', source: 'learned', locked: false },
-  { id: 'budget-80', kind: 'budget', label: 'Under €80', source: 'manual', locked: true },
+  { id: 'budget-80', kind: 'budget', label: 'Moins de 80 €', source: 'manual', locked: true },
   { id: 'size-m', kind: 'size', label: 'M', source: 'manual', locked: true },
 ];
 
