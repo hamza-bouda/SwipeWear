@@ -20,8 +20,13 @@ export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const rootNav = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
-  const { isAuthenticated, email, logout } = useAuth();
+  const { isAuthenticated, email, logout, deleteAccount } = useAuth();
   const { gender } = usePreferences();
+
+  const resetToOnboarding = () =>
+    (rootNav ?? navigation).dispatch(
+      CommonActions.reset({ index: 0, routes: [{ name: 'Onboarding' }] }),
+    );
 
   const handleLogout = () => {
     Alert.alert('Se déconnecter', 'Confirmer la déconnexion ?', [
@@ -29,11 +34,9 @@ export function ProfileScreen() {
       {
         text: 'Se déconnecter',
         style: 'destructive',
-        onPress: () => {
-          logout();
-          (rootNav ?? navigation).dispatch(
-            CommonActions.reset({ index: 0, routes: [{ name: 'Onboarding' }] }),
-          );
+        onPress: async () => {
+          await logout();
+          resetToOnboarding();
         },
       },
     ]);
@@ -48,11 +51,19 @@ export function ProfileScreen() {
         {
           text: 'Supprimer',
           style: 'destructive',
-          onPress: () => {
-            logout();
-            navigation.dispatch(
-              CommonActions.reset({ index: 0, routes: [{ name: 'Onboarding' }] }),
-            );
+          onPress: async () => {
+            try {
+              // This used to call logout() only: the account, the profile and
+              // the event log stayed on the server while the screen claimed
+              // they were deleted for good.
+              await deleteAccount();
+              resetToOnboarding();
+            } catch {
+              Alert.alert(
+                'Suppression impossible',
+                'Ton compte n\'a pas pu être supprimé. Réessaie quand tu es connecté à internet.',
+              );
+            }
           },
         },
       ],
@@ -65,8 +76,8 @@ export function ProfileScreen() {
         <Text style={styles.title}>Profil</Text>
       </View>
 
-      {isAuthenticated ? (
-        <View style={styles.body}>
+      <View style={styles.body}>
+        {isAuthenticated ? (
           <View style={styles.accountCard}>
             <View style={styles.avatarWrap}>
               <Ionicons name="person" size={24} color={colors.accent} />
@@ -76,53 +87,61 @@ export function ProfileScreen() {
               <Text style={styles.accountSub}>Compte actif</Text>
             </View>
           </View>
-
-          <View style={styles.menuSection}>
-            <Text style={styles.menuLabel}>PERSONNALISATION</Text>
-            <View style={styles.menuCard}>
-              <Button
-                title="Mon algorithme"
-                onPress={() => (rootNav ?? navigation).navigate('Algorithm' as never)}
-              />
-              <Button
-                title={`Je cherche : ${GENDER_LABELS[gender ?? 'unisex']}`}
-                variant="outline"
-                onPress={() => (rootNav ?? navigation).navigate('GenderLanguage' as never)}
-                style={styles.settingButton}
-              />
+        ) : (
+          <View style={styles.accountCard}>
+            <View style={styles.avatarWrapGuest}>
+              <Ionicons name="person-outline" size={24} color={colors.disabled} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.email}>Non connecté</Text>
+              <Text style={styles.accountSub}>
+                Connecte-toi pour retrouver tes pièces sur tous tes appareils
+              </Text>
             </View>
           </View>
+        )}
 
-          <View style={styles.menuSection}>
-            <Text style={styles.menuLabel}>COMPTE</Text>
-            <View style={styles.menuCard}>
-              <Button title="Se déconnecter" onPress={handleLogout} variant="outline" />
-              <Button
-                title="Supprimer le compte"
-                onPress={handleDeleteAccount}
-                variant="ghost"
-                style={styles.deleteButton}
-              />
-            </View>
-          </View>
-        </View>
-      ) : (
-        <View style={styles.body}>
-          <View style={styles.guestCard}>
-            <View style={styles.guestIconWrap}>
-              <Ionicons name="person-outline" size={32} color={colors.disabled} />
-            </View>
-            <Text style={styles.guestTitle}>Non connecté</Text>
-            <Text style={styles.guestSub}>
-              Connecte-toi pour sauvegarder tes préférences sur tous tes appareils
-            </Text>
+        {/* Personalisation used to be rendered only for signed-in users, so a
+            visitor browsing without an account had no way to change the gender
+            or the algorithm — while the first screen promised exactly that. */}
+        <View style={styles.menuSection}>
+          <Text style={styles.menuLabel}>PERSONNALISATION</Text>
+          <View style={styles.menuCard}>
             <Button
-              title="Se connecter"
-              onPress={() => (rootNav ?? navigation).navigate('Login' as never)}
+              title="Mon algorithme"
+              onPress={() => (rootNav ?? navigation).navigate('Algorithm' as never)}
+            />
+            <Button
+              title={`Je cherche : ${GENDER_LABELS[gender ?? 'unisex']}`}
+              variant="outline"
+              onPress={() => (rootNav ?? navigation).navigate('GenderLanguage' as never)}
+              style={styles.settingButton}
             />
           </View>
         </View>
-      )}
+
+        <View style={styles.menuSection}>
+          <Text style={styles.menuLabel}>COMPTE</Text>
+          <View style={styles.menuCard}>
+            {isAuthenticated ? (
+              <>
+                <Button title="Se déconnecter" onPress={handleLogout} variant="outline" />
+                <Button
+                  title="Supprimer le compte"
+                  onPress={handleDeleteAccount}
+                  variant="ghost"
+                  style={styles.deleteButton}
+                />
+              </>
+            ) : (
+              <Button
+                title="Se connecter"
+                onPress={() => (rootNav ?? navigation).navigate('Login' as never)}
+              />
+            )}
+          </View>
+        </View>
+      </View>
     </View>
   );
 }
@@ -162,6 +181,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarWrapGuest: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   email: {
     ...typography.bodyBold,
     color: colors.textPrimary,
@@ -192,29 +221,5 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     opacity: 0.55,
-  },
-  guestCard: {
-    alignItems: 'center',
-    paddingVertical: spacing.xxl,
-    gap: spacing.md,
-  },
-  guestIconWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  guestTitle: {
-    ...typography.h2,
-    color: colors.textPrimary,
-  },
-  guestSub: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
   },
 });
