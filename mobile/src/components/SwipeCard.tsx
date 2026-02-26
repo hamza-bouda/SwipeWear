@@ -59,7 +59,17 @@ export function SwipeCard({ product, onTap, onSave }: SwipeCardProps) {
           ) : null}
           <View style={styles.priceRow}>
             <Text style={styles.price}>{product.price} {product.currency}</Text>
-            <Pressable onPress={onSave} style={styles.saveButton} accessibilityRole="button" accessibilityLabel="Sauvegarder la pièce">
+            <Pressable
+              onPress={onSave}
+              style={styles.saveButton}
+              accessibilityRole="button"
+              accessibilityLabel="Sauvegarder la pièce"
+              // The deck excludes this button from its web drag handler. It
+              // did so by matching the aria-label, which ties gesture
+              // behaviour to wording — rename the button and it silently
+              // becomes draggable instead of tappable.
+              {...({ dataSet: { swipeAction: 'save' } } as object)}
+            >
               <Ionicons name="heart-outline" size={20} color={colors.textInverse} />
             </Pressable>
           </View>
