@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from contracts.events import EventType
 from contracts.pipeline import RankedItem
+from contracts.product import Gender
 from contracts.profile import EditablePreferences, HardConstraints
 
 
@@ -77,6 +78,7 @@ class OnboardingStylesRequest(BaseModel):
     liked_brands: list[str] = Field(default_factory=list)
     sizes: list[str] = Field(default_factory=list)
     max_price_eur: float | None = None
+    gender: Gender | None = None
 
 
 class OnboardingImagesRequest(BaseModel):

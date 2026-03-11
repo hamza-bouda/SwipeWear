@@ -64,8 +64,12 @@ export function ProductDetailScreen({ navigation, route }: Props) {
   const cond = conditionLabel[product.condition] ?? { text: product.condition, variant: 'default' as const };
 
   const handleBuy = () => {
-    const url = `https://www.ebay.com/itm/${product.id}`;
-    Linking.openURL(url);
+    // The URL used to be built as ebay.com/itm/<product.id>, but product.id is
+    // our internal key ("ebay-v1|127396173312|428490506"), not an eBay item
+    // number — every Buy tap landed on a 404. The API returns the seller's
+    // real listing URL, affiliate-wrapped when that is switched on.
+    if (!product.url) return;
+    Linking.openURL(product.url);
   };
 
   const handleViewOffers = () => {
@@ -129,7 +133,13 @@ export function ProductDetailScreen({ navigation, route }: Props) {
 
       <View style={styles.footer}>
         <Button title="Voir les offres" onPress={handleViewOffers} />
-        <Button title="Buy" variant="outline" onPress={handleBuy} style={styles.buyButton} />
+        <Button
+          title="Acheter"
+          variant="outline"
+          onPress={handleBuy}
+          disabled={!product.url}
+          style={styles.buyButton}
+        />
       </View>
     </View>
   );

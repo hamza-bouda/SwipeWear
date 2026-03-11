@@ -236,6 +236,10 @@ class RecoOrchestrator:
         if any_fallback and not ranked_feed.fallback_used:
             ranked_feed = ranked_feed.model_copy(update={"fallback_used": True})
 
+        # Retrieval deliberately over-fetches so ranking and MMR have room to
+        # choose; the caller still asked for n_results. Nothing truncated
+        # before, which went unnoticed only while the pool happened to equal
+        # the page size — a request for 20 was answered with 100.
         explanation_by_product = {
             explanation.product_id: explanation for explanation in explanations
         }
@@ -244,7 +248,7 @@ class RecoOrchestrator:
                 item.model_copy(update={
                     "explanation": explanation_by_product.get(item.product.id),
                 })
-                for item in ranked_feed.items
+                for item in ranked_feed.items[:request.n_results]
             ],
         })
         trace = annotate_budgets(RequestTrace(

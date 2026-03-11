@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { Product } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { apiGet, apiPost } from './client';
-import { MOCK_PRODUCTS } from '../data/mockProducts';
 
 interface ApiFeedItem {
   product: {
@@ -45,6 +44,9 @@ function mapApiProduct(item: ApiFeedItem): Product {
     size: p.size_raw,
     imageUrls: p.image_urls,
     source: p.source,
+    // Dropped before, which is why the detail screen had to invent a URL from
+    // the product id and always landed on a 404.
+    url: p.affiliate_url ?? undefined,
     recommendationReason: item.explanation?.sentence ?? undefined,
   };
 }
@@ -72,14 +74,14 @@ export function useFeed() {
         token: authToken,
         params: { n_results: '30' },
       });
-      if (data.items.length > 0) {
-        setProducts(data.items.map(mapApiProduct));
-      } else {
-        setProducts(MOCK_PRODUCTS);
-      }
+      // No mock substitution. Falling back to fabricated products made a
+      // failed request indistinguishable from a working feed: the user browses
+      // items that do not exist, cannot buy any of them, and nothing reports a
+      // problem. An empty deck and a visible error are the honest answers.
+      setProducts(data.items.map(mapApiProduct));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Feed unavailable');
-      setProducts(MOCK_PRODUCTS);
+      setError(e instanceof Error ? e.message : 'Feed indisponible');
+      setProducts([]);
     } finally {
       setLoading(false);
     }

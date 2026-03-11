@@ -70,6 +70,7 @@ def _make_db_row(
         title=f"Product {product_id}",
         brand="Nike",
         model="AF1",
+        gender="men",
         price=45.0,
         currency="EUR",
         condition="good",
@@ -417,6 +418,7 @@ def _make_fallback_row(product_id: str = "p1", **overrides) -> tuple:
         size_eu="M",
         brand="Nike",
         model="AF1",
+        gender="men",
         embedding_version="fashionsiglip-v1",
         listing_url=None,
     )

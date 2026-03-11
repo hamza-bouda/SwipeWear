@@ -12,6 +12,8 @@ import Slider from '@react-native-community/slider';
 import { Button } from '../components';
 import { colors, typography, spacing, borderRadius } from '../theme';
 import { RootStackParamList } from '../navigation/types';
+import { useSubmitOnboarding } from '../api';
+import { usePreferences } from '../context/PreferencesContext';
 
 const AVAILABLE_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const MIN_BUDGET = 10;
@@ -28,6 +30,9 @@ export function ConstraintsScreen({ navigation, route }: Props) {
   const [selectedSizes, setSelectedSizes] = useState<Set<string>>(new Set());
   const [maxBudget, setMaxBudget] = useState(MAX_BUDGET);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const submitOnboarding = useSubmitOnboarding();
+  const { gender } = usePreferences();
 
   const toggleSize = (size: string) => {
     setSelectedSizes((prev) => {
@@ -44,23 +49,37 @@ export function ConstraintsScreen({ navigation, route }: Props) {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      // Stub API call — will connect to real backend when KAN-33/34 are done
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      navigation.replace('Main');
-    } finally {
+      // This was a setTimeout pretending to be a request, so every choice made
+      // during onboarding — styles, sizes, budget — was discarded on the way to
+      // the feed, and the first deck ignored all of it.
+      await submitOnboarding({
+        style_ids: selectedStyles ?? [],
+        sizes: Array.from(selectedSizes),
+        max_price_eur: maxBudget,
+        gender,
+      });
+    } catch (e) {
+      // A profile that failed to save is worth saying out loud: the feed would
+      // otherwise open with none of the preferences the user just set.
+      setError(
+        e instanceof Error ? e.message : 'Impossible d\'enregistrer tes préférences',
+      );
       setLoading(false);
+      return;
     }
+    setLoading(false);
+    navigation.replace('Main');
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Building your profile...</Text>
+        <Text style={styles.loadingText}>Création de ton profil…</Text>
         <Text style={styles.loadingSubtext}>
           {onboardingRoute === 'images'
-            ? 'Analyzing your inspiration images'
-            : 'Matching your style preferences'}
+            ? "Analyse de tes images d'inspiration"
+            : 'On accorde tes préférences de style'}
         </Text>
       </View>
     );
@@ -69,13 +88,13 @@ export function ConstraintsScreen({ navigation, route }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Almost there!</Text>
-        <Text style={styles.subtitle}>Set your size and budget preferences</Text>
+        <Text style={styles.title}>Presque fini !</Text>
+        <Text style={styles.subtitle}>Indique tes tailles et ton budget</Text>
       </View>
 
       <View style={styles.content}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your sizes</Text>
+          <Text style={styles.sectionTitle}>Tes tailles</Text>
           <View style={styles.sizeGrid}>
             {AVAILABLE_SIZES.map((size) => {
               const isSelected = selectedSizes.has(size);
@@ -97,9 +116,9 @@ export function ConstraintsScreen({ navigation, route }: Props) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Maximum budget</Text>
+          <Text style={styles.sectionTitle}>Budget maximum</Text>
           <Text style={styles.budgetValue}>
-            {maxBudget >= MAX_BUDGET ? 'No limit' : `${maxBudget} €`}
+            {maxBudget >= MAX_BUDGET ? 'Sans limite' : `${maxBudget} €`}
           </Text>
           <Slider
             style={styles.slider}
@@ -114,13 +133,14 @@ export function ConstraintsScreen({ navigation, route }: Props) {
           />
           <View style={styles.sliderLabels}>
             <Text style={styles.sliderLabel}>{MIN_BUDGET} €</Text>
-            <Text style={styles.sliderLabel}>No limit</Text>
+            <Text style={styles.sliderLabel}>Sans limite</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.footer}>
-        <Button title="Start discovering" onPress={handleSubmit} />
+        {error && <Text style={styles.error}>{error}</Text>}
+        <Button title="Commencer à swiper" onPress={handleSubmit} />
       </View>
     </View>
   );
@@ -197,6 +217,12 @@ const styles = StyleSheet.create({
   sliderLabel: {
     ...typography.caption,
     color: colors.textSecondary,
+  },
+  error: {
+    ...typography.caption,
+    color: colors.error,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
   },
   footer: {
     padding: spacing.lg,

@@ -31,6 +31,7 @@ import psycopg2  # noqa: E402
 
 from contracts.product import ProductCondition, ProductRecord, ProductSource  # noqa: E402
 from embeddings.indexer import index_batch  # noqa: E402
+from embeddings.interfaces import EMBEDDING_VERSION  # noqa: E402
 
 _LOG = logging.getLogger("swipewear.scripts.run_indexer")
 
@@ -49,6 +50,39 @@ WHERE image_urls IS NOT NULL
   {needs_reindex}
 ORDER BY created_at DESC
 {limit}"""
+
+
+_RECONCILE_SQL = """\
+UPDATE products AS p
+   SET needs_reindex = FALSE
+  FROM product_embeddings AS e
+ WHERE e.product_id = p.id
+   AND e.embedding_version = %(version)s
+   AND p.embedding_version = %(version)s
+   AND p.needs_reindex = TRUE"""
+
+
+def _reconcile_flags(conn, version: str) -> int:
+    """Clear needs_reindex on products that already carry a current embedding.
+
+    A full run costs hours, so re-encoding work already done is the expensive
+    failure. The flag is global mutable state — mark_stale_products rewrites it
+    across the whole table — and it only takes one process using a different
+    embedding version to flag the entire catalogue as stale.
+
+    Both versions are matched against the current one, so a genuine version
+    bump still leaves older embeddings correctly marked for reindexing.
+    """
+    with conn.cursor() as cur:
+        cur.execute(_RECONCILE_SQL, {"version": version})
+        repaired = cur.rowcount
+    conn.commit()
+    if repaired:
+        _LOG.warning(
+            "Cleared needs_reindex on %d product(s) that already had a "
+            "current %s embedding", repaired, version,
+        )
+    return repaired
 
 
 def _db_url() -> str:
@@ -97,6 +131,8 @@ def main() -> int:
 
     conn = psycopg2.connect(_db_url())
     try:
+        if not args.all:
+            _reconcile_flags(conn, EMBEDDING_VERSION)
         records = _load_products(conn, reindex_all=args.all, limit=args.limit)
     finally:
         conn.close()

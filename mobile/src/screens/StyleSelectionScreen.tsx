@@ -62,8 +62,8 @@ export function StyleSelectionScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Choose your styles</Text>
-        <Text style={styles.subtitle}>Select the styles that speak to you</Text>
+        <Text style={styles.title}>Choisis tes styles</Text>
+        <Text style={styles.subtitle}>Sélectionne ceux qui te ressemblent</Text>
       </View>
       <FlatList
         data={styleArchetypes}
@@ -76,7 +76,9 @@ export function StyleSelectionScreen({ navigation }: Props) {
       />
       <View style={styles.footer}>
         <Button
-          title={`Continue (${selected.size})`}
+          title={
+            selected.size === 0 ? 'Continuer' : `Continuer (${selected.size})`
+          }
           onPress={() =>
             navigation.navigate('Constraints', {
               route: 'styles',
@@ -131,6 +133,10 @@ const styles = StyleSheet.create({
   cardImage: {
     width: '100%',
     height: '100%',
+    // Seller photos are fetched over the network and a delisted item 404s.
+    // The neutral fill keeps the tile readable — the label sits on top of it —
+    // instead of leaving a hole in the grid.
+    backgroundColor: '#EFEFEF',
   },
   cardOverlay: {
     position: 'absolute',
