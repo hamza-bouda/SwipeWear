@@ -11,7 +11,7 @@ from api.db import close_pool, get_conn, init_pool, put_conn
 from api.errors import unhandled_exception_handler
 from api.routers import (
     alerts, auth, billing, debug, events, feed,
-    ladder, notifications, onboarding, profile, watcher_admin,
+    ladder, notifications, onboarding, profile, saves, watcher_admin,
 )
 
 
@@ -48,6 +48,7 @@ app.include_router(notifications.router)
 app.include_router(feed.router)
 app.include_router(ladder.router)
 app.include_router(events.router)
+app.include_router(saves.router)
 app.include_router(profile.router)
 app.include_router(onboarding.router)
 app.include_router(watcher_admin.router)
