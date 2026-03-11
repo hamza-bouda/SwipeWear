@@ -24,27 +24,33 @@ DEFAULT_MIN_SIMILARITY = float(os.getenv("LADDER_MIN_SIMILARITY", "0.70"))
 DEFAULT_MAX_RESULTS = 15
 LATENCY_BUDGET_MS = 800
 
+# Only columns that exist in the products table (see backend/migrations/).
+# ProductRecord's remaining fields (model, currency, enriched_attrs,
+# schema_version) carry contract defaults and are not stored.
 _PRODUCT_COLUMNS = [
     "id", "source", "source_record_id", "title", "brand", "model",
-    "price", "currency", "condition", "size_raw", "size_eu",
-    "category", "image_urls", "affiliate_url", "available",
-    "enriched_attrs", "schema_version", "embedding_version",
+    "price", "condition", "size_raw", "size_eu",
+    "category", "image_urls", "available", "embedding_version",
+    "listing_url",
 ]
 
 _FETCH_EMBEDDING_SQL = """\
-SELECT embedding FROM products WHERE id = %(product_id)s LIMIT 1"""
+SELECT embedding FROM product_embeddings WHERE product_id = %(product_id)s LIMIT 1"""
 
 _FETCH_PRODUCT_SQL = """\
-SELECT {columns} FROM products WHERE id = %(product_id)s LIMIT 1"""
+SELECT {columns} FROM products AS p WHERE p.id = %(product_id)s LIMIT 1"""
 
+# Vectors live in product_embeddings, not products — the JOIN is what makes
+# the pgvector HNSW index reachable from a product query.
 _LADDER_QUERY = """\
 SELECT {columns},
-       1 - (embedding <=> %(style_vector)s) AS similarity_score
-FROM products
-WHERE available = true
-  AND id != %(source_id)s
-  AND 1 - (embedding <=> %(style_vector)s) >= %(min_similarity)s
-ORDER BY embedding <=> %(style_vector)s
+       1 - (e.embedding <=> %(style_vector)s::vector) AS similarity_score
+FROM products AS p
+JOIN product_embeddings AS e ON e.product_id = p.id
+WHERE p.available = true
+  AND p.id != %(source_id)s
+  AND 1 - (e.embedding <=> %(style_vector)s::vector) >= %(min_similarity)s
+ORDER BY e.embedding <=> %(style_vector)s::vector
 LIMIT %(k)s"""
 
 
@@ -52,6 +58,11 @@ def _row_to_product(row: tuple, columns: list[str]) -> ProductRecord:
     row_dict = dict(zip(columns, row))
     row_dict["source"] = ProductSource(row_dict["source"])
     row_dict["condition"] = ProductCondition(row_dict["condition"])
+    # The column holds the raw seller URL; affiliate deep links are derived
+    # from it at serve time, so the contract field is filled from it here.
+    row_dict["affiliate_url"] = row_dict.pop("listing_url", None)
+    row_dict["price"] = float(row_dict["price"])
+    row_dict["image_urls"] = list(row_dict["image_urls"] or [])
     return ProductRecord(**row_dict)
 
 
@@ -82,7 +93,7 @@ def build_price_ladder(
 
     with conn.cursor() as cur:
         cur.execute(_FETCH_PRODUCT_SQL.format(
-            columns=", ".join(_PRODUCT_COLUMNS),
+            columns=", ".join(f"p.{c}" for c in _PRODUCT_COLUMNS),
         ), {"product_id": product_id})
         source_row = cur.fetchone()
 
@@ -112,7 +123,9 @@ def build_price_ladder(
 
     with conn.cursor() as cur:
         cur.execute(
-            _LADDER_QUERY.format(columns=", ".join(_PRODUCT_COLUMNS)),
+            _LADDER_QUERY.format(
+                columns=", ".join(f"p.{c}" for c in _PRODUCT_COLUMNS)
+            ),
             {
                 "style_vector": style_vector,
                 "source_id": product_id,

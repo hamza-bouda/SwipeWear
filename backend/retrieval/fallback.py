@@ -21,7 +21,7 @@ _LOG = logging.getLogger("swipewear.retrieval.fallback")
 _DB_COLUMNS = [
     "id", "source", "source_record_id", "title", "price",
     "condition", "category", "image_urls", "size_raw", "size_eu",
-    "brand", "embedding_version",
+    "brand", "model", "embedding_version", "listing_url",
 ]
 
 _FALLBACK_QUERY = """\
@@ -67,6 +67,9 @@ class FallbackRetriever:
             row_dict["condition"] = ProductCondition(row_dict["condition"])
             row_dict["price"] = float(row_dict["price"])
             row_dict["image_urls"] = list(row_dict["image_urls"] or [])
+            # The column holds the raw seller URL; affiliate deep links are
+            # derived from it at serve time.
+            row_dict["affiliate_url"] = row_dict.pop("listing_url", None)
             product = ProductRecord(**row_dict)
             candidates.append(CandidateItem(
                 product=product,
