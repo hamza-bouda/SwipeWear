@@ -103,7 +103,16 @@ class RecoOrchestrator:
         t0 = time.perf_counter()
         try:
             candidate_set = self._retriever.retrieve(request)
-            traces.append(ModuleTrace(module="retrieve", latency_ms=_elapsed_ms(t0), version="v1"))
+            # A retriever may degrade internally (vector KO → recent products)
+            # without raising: propagate its flag or the feed would report
+            # itself as healthy while carrying zero similarity signal.
+            any_fallback = any_fallback or candidate_set.fallback_used
+            traces.append(ModuleTrace(
+                module="retrieve",
+                latency_ms=_elapsed_ms(t0),
+                version="v1",
+                fallback_used=candidate_set.fallback_used,
+            ))
         except Exception as exc:
             # blueprint §12: retriever KO → empty set flagged as fallback
             elapsed = _elapsed_ms(t0)
