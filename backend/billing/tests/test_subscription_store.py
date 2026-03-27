@@ -41,7 +41,10 @@ class TestIsPremium:
         from unittest.mock import patch
         uid = uuid4()
         conn = _mock_conn()
-        with patch("billing.subscription_store.get_subscription", return_value=self._sub("trialing")):
+        with patch(
+            "billing.subscription_store.get_subscription",
+            return_value=self._sub("trialing"),
+        ):
             assert is_user_premium(conn, uid)
 
     def test_cancelled_not_yet_expired_is_premium(self):
@@ -49,7 +52,10 @@ class TestIsPremium:
         uid = uuid4()
         conn = _mock_conn()
         future = datetime.now(timezone.utc) + timedelta(days=3)
-        with patch("billing.subscription_store.get_subscription", return_value=self._sub("cancelled", future)):
+        with patch(
+            "billing.subscription_store.get_subscription",
+            return_value=self._sub("cancelled", future),
+        ):
             assert is_user_premium(conn, uid)
 
     def test_cancelled_and_expired_is_not_premium(self):
@@ -57,21 +63,30 @@ class TestIsPremium:
         uid = uuid4()
         conn = _mock_conn()
         past = datetime.now(timezone.utc) - timedelta(days=1)
-        with patch("billing.subscription_store.get_subscription", return_value=self._sub("cancelled", past)):
+        with patch(
+            "billing.subscription_store.get_subscription",
+            return_value=self._sub("cancelled", past),
+        ):
             assert not is_user_premium(conn, uid)
 
     def test_expired_status_is_not_premium(self):
         from unittest.mock import patch
         uid = uuid4()
         conn = _mock_conn()
-        with patch("billing.subscription_store.get_subscription", return_value=self._sub("expired")):
+        with patch(
+            "billing.subscription_store.get_subscription",
+            return_value=self._sub("expired"),
+        ):
             assert not is_user_premium(conn, uid)
 
     def test_refunded_is_not_premium(self):
         from unittest.mock import patch
         uid = uuid4()
         conn = _mock_conn()
-        with patch("billing.subscription_store.get_subscription", return_value=self._sub("refunded")):
+        with patch(
+            "billing.subscription_store.get_subscription",
+            return_value=self._sub("refunded"),
+        ):
             assert not is_user_premium(conn, uid)
 
     def test_no_subscription_is_not_premium(self):

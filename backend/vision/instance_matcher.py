@@ -23,7 +23,6 @@ from pydantic import BaseModel
 
 from vision.config import (
     DINOV2_EXACT_THRESHOLD,
-    DINOV2_IMAGE_SIZE,
     DINOV2_MODEL_NAME,
     FASHION_SIMILAR_THRESHOLD,
 )

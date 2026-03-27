@@ -19,7 +19,7 @@ from uuid import UUID
 from alerts.alert_store import fetch_active_specific_item_alerts
 from billing.subscription_store import is_user_premium
 from notifications.dispatcher import enqueue_match_notification
-from vision.instance_matcher import MatchResult, MatchTier, match
+from vision.interfaces import MatchResult, MatchTier, match
 
 _LOG = logging.getLogger("swipewear.ingestion.alert_runner")
 

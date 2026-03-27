@@ -14,12 +14,12 @@ from pathlib import Path
 # Ensure backend/ is on sys.path when run directly.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import logging
-import os
+import logging  # noqa: E402
+import os  # noqa: E402
 
-import psycopg2
+import psycopg2  # noqa: E402
 
-from notifications.notification_store import flush_due_notifications
+from notifications.notification_store import flush_due_notifications  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 _LOG = logging.getLogger("notifications.cron")

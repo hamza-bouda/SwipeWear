@@ -44,7 +44,9 @@ def verify_signature(authorization_header: str | None) -> None:
         raise WebhookParseError("Invalid Authorization header")
 
 
-def parse_event(payload: dict[str, Any]) -> tuple[UUID, SubscriptionStatus, str | None, datetime | None] | None:
+def parse_event(
+    payload: dict[str, Any],
+) -> tuple[UUID, SubscriptionStatus, str | None, datetime | None] | None:
     """Parse a RevenueCat webhook payload.
 
     Returns (user_id, status, rc_customer_id, expires_at) or None if the event

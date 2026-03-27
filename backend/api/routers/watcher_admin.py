@@ -9,7 +9,7 @@ add admin-role middleware before production exposure.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from api.db import get_conn, put_conn
 

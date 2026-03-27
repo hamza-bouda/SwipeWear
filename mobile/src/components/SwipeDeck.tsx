@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { View, StyleSheet, Dimensions, Platform } from 'react-native';
+import { View, StyleSheet, Dimensions, Platform, Pressable, Text } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -12,7 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Product } from '../types';
 import { SwipeCard } from './SwipeCard';
-import { spacing, colors } from '../theme';
+import { spacing, colors, borderRadius } from '../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
@@ -28,6 +29,7 @@ interface SwipeDeckProps {
   onTap: (product: Product) => void;
   onSave: (product: Product) => void;
   onDeckEmpty: () => void;
+  onAlert?: (product: Product) => void;
 }
 
 export function SwipeDeck({
@@ -37,6 +39,7 @@ export function SwipeDeck({
   onTap,
   onSave,
   onDeckEmpty,
+  onAlert,
 }: SwipeDeckProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const indexRef = useRef(0);
@@ -49,8 +52,8 @@ export function SwipeDeck({
   const productsRef = useRef(products);
   productsRef.current = products;
 
-  const callbacksRef = useRef({ onSwipeRight, onSwipeLeft, onTap, onDeckEmpty, onSave });
-  callbacksRef.current = { onSwipeRight, onSwipeLeft, onTap, onDeckEmpty, onSave };
+  const callbacksRef = useRef({ onSwipeRight, onSwipeLeft, onTap, onDeckEmpty, onSave, onAlert });
+  callbacksRef.current = { onSwipeRight, onSwipeLeft, onTap, onDeckEmpty, onSave, onAlert };
 
   const handleSwipeComplete = useCallback((direction: SwipeDirection) => {
     translateX.value = 0;
@@ -80,8 +83,6 @@ export function SwipeDeck({
     (direction: SwipeDirection) => {
       const toX = direction === 'right' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
       translateX.value = withTiming(toX, { duration: 300 }, (finished) => {
-        // Do NOT mutate shared values here: cancelling the running animation
-        // from its own completion callback recurses infinitely on web.
         if (finished) {
           runOnJS(handleSwipeComplete)(direction);
         }
@@ -130,8 +131,6 @@ export function SwipeDeck({
     [animateOut, resetPosition],
   );
 
-  // ── Web: raw DOM pointer events (RNGH web is unreliable across re-renders).
-  // Callback ref: attaches the moment the card node mounts, detaches on unmount.
   const webCleanup = useRef<(() => void) | null>(null);
 
   const setGestureNode = useCallback(
@@ -156,6 +155,8 @@ export function SwipeDeck({
 
       const onDown = (e: PointerEvent) => {
         if (isAnimating.current) return;
+        const target = e.target as HTMLElement;
+        if (target.closest('[data-swipe-action]') || target.closest('[aria-label="Save item"]')) return;
         dragging = true;
         startX = e.clientX;
         startY = e.clientY;
@@ -221,7 +222,6 @@ export function SwipeDeck({
     [handleDrag, handleRelease, handleTapOnCard, resetPosition],
   );
 
-  // ── Native: react-native-gesture-handler ──
   const gesture = useMemo(() => {
     const pan = Gesture.Pan()
       .activeOffsetX([-10, 10])
@@ -292,6 +292,25 @@ export function SwipeDeck({
     ),
   }));
 
+  const handlePressLeft = useCallback(() => {
+    if (isAnimating.current || currentIndex >= productsRef.current.length) return;
+    isAnimating.current = true;
+    animateOut('left');
+  }, [animateOut, currentIndex]);
+
+  const handlePressRight = useCallback(() => {
+    if (isAnimating.current || currentIndex >= productsRef.current.length) return;
+    isAnimating.current = true;
+    animateOut('right');
+  }, [animateOut, currentIndex]);
+
+  const handlePressAlert = useCallback(() => {
+    const product = productsRef.current[indexRef.current];
+    if (product && callbacksRef.current.onAlert) {
+      callbacksRef.current.onAlert(product);
+    }
+  }, []);
+
   if (currentIndex >= products.length) return null;
 
   const topProduct = products[currentIndex];
@@ -304,34 +323,69 @@ export function SwipeDeck({
         onSave={() => callbacksRef.current.onSave(topProduct)}
       />
       <Animated.View style={[styles.label, styles.likeLabel, rightLabelStyle]}>
-        <Animated.Text style={styles.labelText}>LIKE</Animated.Text>
+        <Text style={styles.labelText}>LIKE</Text>
       </Animated.View>
       <Animated.View style={[styles.label, styles.nopeLabel, leftLabelStyle]}>
-        <Animated.Text style={styles.labelText}>NOPE</Animated.Text>
+        <Text style={styles.labelText}>NOPE</Text>
       </Animated.View>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      {nextProduct && (
-        <Animated.View
-          key="next"
-          style={[styles.cardWrapper, nextCardStyle, { zIndex: 1 }]}
-        >
-          <SwipeCard product={nextProduct} />
-        </Animated.View>
-      )}
-      <Animated.View
-        key="top"
-        style={[styles.cardWrapper, topCardStyle, { zIndex: 2 }]}
-      >
-        {Platform.OS === 'web' ? (
-          cardContent
-        ) : (
-          <GestureDetector gesture={gesture}>{cardContent}</GestureDetector>
+      <View style={styles.deckArea}>
+        {nextProduct && (
+          <Animated.View
+            key="next"
+            style={[styles.cardWrapper, nextCardStyle, { zIndex: 1 }]}
+          >
+            <SwipeCard product={nextProduct} />
+          </Animated.View>
         )}
-      </Animated.View>
+        <Animated.View
+          key="top"
+          style={[styles.cardWrapper, topCardStyle, { zIndex: 2 }]}
+        >
+          {Platform.OS === 'web' ? (
+            cardContent
+          ) : (
+            <GestureDetector gesture={gesture}>{cardContent}</GestureDetector>
+          )}
+        </Animated.View>
+      </View>
+
+      <View style={styles.actionRow} data-swipe-action>
+        <Pressable
+          style={[styles.actionBtn, styles.actionReject]}
+          onPress={handlePressLeft}
+          accessibilityRole="button"
+          accessibilityLabel="Passer"
+          // @ts-ignore — web only
+          data-swipe-action="true"
+        >
+          <Ionicons name="close" size={22} color={colors.textSecondary} />
+        </Pressable>
+        <Pressable
+          style={[styles.actionBtn, styles.actionAlert]}
+          onPress={handlePressAlert}
+          accessibilityRole="button"
+          accessibilityLabel="Créer une alerte"
+          // @ts-ignore — web only
+          data-swipe-action="true"
+        >
+          <Ionicons name="notifications" size={22} color={colors.gold} />
+        </Pressable>
+        <Pressable
+          style={[styles.actionBtn, styles.actionLike]}
+          onPress={handlePressRight}
+          accessibilityRole="button"
+          accessibilityLabel="J'aime"
+          // @ts-ignore — web only
+          data-swipe-action="true"
+        >
+          <Ionicons name="heart" size={22} color={colors.accentText} />
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -339,6 +393,12 @@ export function SwipeDeck({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deckArea: {
+    flex: 1,
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -350,7 +410,7 @@ const styles = StyleSheet.create({
     top: spacing.xl,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderWidth: 3,
+    borderWidth: 2.5,
     borderRadius: 8,
   },
   likeLabel: {
@@ -362,8 +422,41 @@ const styles = StyleSheet.create({
     borderColor: colors.error,
   },
   labelText: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
     color: colors.textInverse,
+    letterSpacing: 2,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+    paddingVertical: spacing.md,
+    paddingBottom: spacing.lg,
+  },
+  actionBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 99,
+  },
+  actionReject: {
+    width: 56,
+    height: 56,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  actionAlert: {
+    width: 64,
+    height: 64,
+    backgroundColor: colors.goldBg,
+    borderWidth: 1.5,
+    borderColor: colors.gold,
+  },
+  actionLike: {
+    width: 56,
+    height: 56,
+    backgroundColor: colors.accent,
   },
 });

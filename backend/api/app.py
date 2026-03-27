@@ -7,7 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.db import close_pool, init_pool
 from api.errors import unhandled_exception_handler
-from api.routers import alerts, auth, billing, debug, events, feed, ladder, notifications, onboarding, profile, watcher_admin
+from api.routers import (
+    alerts, auth, billing, debug, events, feed,
+    ladder, notifications, onboarding, profile, watcher_admin,
+)
 
 
 @asynccontextmanager

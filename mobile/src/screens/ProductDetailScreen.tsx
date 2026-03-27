@@ -18,6 +18,7 @@ import { Badge, Button } from '../components';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
 import { Product } from '../types';
 import { useSaves } from '../context/SavesContext';
+import { usePostEvent } from '../api';
 
 const { width } = Dimensions.get('window');
 
@@ -27,14 +28,15 @@ interface Props {
 }
 
 export function ProductDetailScreen({ navigation, route }: Props) {
-  const { productId } = route.params;
-  const product = MOCK_PRODUCTS.find((p) => p.id === productId);
+  const { productId, product: passedProduct } = route.params;
+  const product: Product | undefined = passedProduct ?? MOCK_PRODUCTS.find((p) => p.id === productId);
   const { isSaved, toggleSave } = useSaves();
+  const postEvent = usePostEvent();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   useEffect(() => {
-    console.log('open', productId);
-  }, [productId]);
+    postEvent(productId, 'open');
+  }, [productId, postEvent]);
 
   if (!product) {
     return (
@@ -72,7 +74,7 @@ export function ProductDetailScreen({ navigation, route }: Props) {
 
   const handleSave = () => {
     toggleSave(product);
-    console.log(saved ? 'unsave' : 'save', product.id);
+    postEvent(product.id, 'save');
   };
 
   return (

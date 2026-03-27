@@ -58,7 +58,7 @@ class TestCountMissedDeals:
 
 
 class TestFlushDueNotificationsMissedDeal:
-    """flush_due_notifications() should record missed deal and skip send when product unavailable."""
+    """flush_due_notifications() records missed deal and skips send when product unavailable."""
 
     def _queue_row(self):
         from uuid import uuid4
@@ -82,7 +82,9 @@ class TestFlushDueNotificationsMissedDeal:
         cur.fetchall.return_value = [row]
 
         with (
-            patch("notifications.notification_store._is_product_available", return_value=False) as mock_avail,
+            patch(
+                "notifications.notification_store._is_product_available", return_value=False
+            ) as mock_avail,
             patch("notifications.notification_store._record_missed_deal") as mock_missed,
             patch("notifications.notification_store._mark_sent") as mock_mark,
             patch("notifications.notification_store.send_batch") as mock_send,
@@ -109,7 +111,10 @@ class TestFlushDueNotificationsMissedDeal:
         with (
             patch("notifications.notification_store._is_product_available", return_value=True),
             patch("notifications.notification_store._record_missed_deal") as mock_missed,
-            patch("notifications.notification_store.get_device_tokens", return_value=["ExponentPushToken[x]"]),
+            patch(
+                "notifications.notification_store.get_device_tokens",
+                return_value=["ExponentPushToken[x]"],
+            ),
             patch("notifications.notification_store.send_batch", return_value=[mock_receipt]),
             patch("notifications.notification_store._mark_sent"),
             patch("notifications.notification_store._log_receipts"),
