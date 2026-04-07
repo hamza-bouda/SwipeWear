@@ -17,6 +17,7 @@ from alerts.alert_store import (
 )
 from api.auth import get_current_user_id
 from api.db import get_conn, put_conn
+from billing.subscription_store import is_user_premium
 from contracts.alerts import FREE_ALERT_LIMIT, Alert, AlertConstraints, AlertStatus, AlertType
 
 _LOG = logging.getLogger("swipewear.api.alerts")
@@ -75,10 +76,10 @@ def create_alert_endpoint(
     try:
         conn = get_conn()
         active = count_active_alerts(conn, user_id)
-        if active >= FREE_ALERT_LIMIT:
+        if active >= FREE_ALERT_LIMIT and not is_user_premium(conn, user_id):
             raise HTTPException(
                 status_code=403,
-                detail=f"Free tier limited to {FREE_ALERT_LIMIT} active alerts. Pause or delete one to continue.",
+                detail=f"Free tier limited to {FREE_ALERT_LIMIT} active alerts. Upgrade to Premium for unlimited alerts.",
             )
         alert = Alert(
             user_id=user_id,
@@ -133,10 +134,15 @@ def patch_alert_endpoint(
             if body.status == AlertStatus.active:
                 active = count_active_alerts(conn, user_id)
                 current = get_alert(conn, alert_id, user_id)
-                if current and current.status != AlertStatus.active and active >= FREE_ALERT_LIMIT:
+                if (
+                    current
+                    and current.status != AlertStatus.active
+                    and active >= FREE_ALERT_LIMIT
+                    and not is_user_premium(conn, user_id)
+                ):
                     raise HTTPException(
                         status_code=403,
-                        detail=f"Free tier limited to {FREE_ALERT_LIMIT} active alerts.",
+                        detail=f"Free tier limited to {FREE_ALERT_LIMIT} active alerts. Upgrade to Premium.",
                     )
             ok = set_alert_status(conn, alert_id, user_id, body.status)
             if not ok:
