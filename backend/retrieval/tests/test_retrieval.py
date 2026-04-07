@@ -290,7 +290,8 @@ class TestVectorRetrieverQuery:
         conn = _mock_conn([])
         retriever = VectorRetriever(lambda: conn)
         profile = _profile_with_vector()
-        retriever.retrieve(profile, k=50)
+        with patch("retrieval.retriever.get_disabled_watcher_sources", return_value=[]):
+            retriever.retrieve(profile, k=50)
         cursor = conn.cursor.return_value
         cursor.execute.assert_called_once()
         sql, params = cursor.execute.call_args[0]

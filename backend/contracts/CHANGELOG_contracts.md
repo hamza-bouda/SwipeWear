@@ -1,5 +1,10 @@
 # Contracts Changelog
 
+## v2.0 — 2026-07-23 — Hamza Bouda (KAN-72)
+- `contracts/product.py`: added `ProductSource.vinted = "vinted"`.
+  Non-breaking — new enum value; existing sources (ebay, awin, cj, etsy) unaffected.
+  Required for the isolated Vinted watcher which writes products with source='vinted'.
+
 ## v1.9 — 2026-07-23 — Hamza Bouda (KAN-70)
 - `contracts/alerts.py`: added `Alert.reference_dinov2_embedding: list[float] | None` (default None).
   Non-breaking — new optional field; existing alerts unaffected.
