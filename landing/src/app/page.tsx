@@ -74,7 +74,7 @@ export default function Home() {
       </div>
 
       {/* ─── Navbar ─── */}
-      <nav className="fixed top-0 inset-x-0 z-50 glass">
+      <nav aria-label="Navigation principale" className="fixed top-0 inset-x-0 z-50 glass">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-4 sm:px-6 py-3.5">
           <motion.span
             initial={{ opacity: 0, x: -20 }}
