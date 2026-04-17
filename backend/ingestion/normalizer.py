@@ -97,6 +97,26 @@ def _normalize_condition(raw: str | None) -> ProductCondition:
 
 # ── Category mapping ──────────────────────────────────────────────────────────
 # eBay France category IDs → 5 internal MVP categories.
+_ETSY_CAT_MAP: dict[str, str] = {
+    "Jeans": "jeans",
+    "Pants & Capris": "jeans",
+    "Shorts": "jeans",
+    "Coats & Jackets": "vestes",
+    "Jackets": "vestes",
+    "Hoodies & Sweatshirts": "tee-shirts",
+    "T-Shirts": "tee-shirts",
+    "Tops & Tees": "tee-shirts",
+    "Blouses": "tee-shirts",
+    "Shoes": "sneakers",
+    "Sneakers & Athletic Shoes": "sneakers",
+    "Boots": "sneakers",
+    "Bags & Purses": "accessoires",
+    "Hats & Caps": "accessoires",
+    "Belts & Suspenders": "accessoires",
+    "Scarves & Wraps": "accessoires",
+    "Jewelry": "accessoires",
+}
+
 _EBAY_CAT_MAP: dict[str, str] = {
     # Sneakers / chaussures (eBay FR)
     "15709": "sneakers",    # Chaussures homme
@@ -136,10 +156,13 @@ def _normalize_category(cat_id: str | None, category: str | None, title: str) ->
     # 1. Known eBay category ID
     if cat_id and cat_id in _EBAY_CAT_MAP:
         return _EBAY_CAT_MAP[cat_id]
-    # 2. Already an internal category value
+    # 2. Etsy taxonomy name
+    if category and category in _ETSY_CAT_MAP:
+        return _ETSY_CAT_MAP[category]
+    # 3. Already an internal category value
     if category and category.lower() in _VALID_CATEGORIES:
         return category.lower()
-    # 3. Title keyword fallback
+    # 4. Title keyword fallback
     title_lower = title.lower()
     for keywords, cat in _CATEGORY_KEYWORDS:
         if any(kw in title_lower for kw in keywords):
