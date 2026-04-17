@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   },
   rowPrice: {
     ...typography.h3,
-    color: colors.accent,
+    color: colors.accentDark,
   },
   rowArrow: {
     ...typography.caption,

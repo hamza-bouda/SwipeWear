@@ -14,7 +14,7 @@ interface BadgeProps {
 
 const variantColors: Record<BadgeVariant, { bg: string; text: string }> = {
   default: { bg: colors.surface, text: colors.textPrimary },
-  success: { bg: '#E8F5E9', text: colors.success },
+  success: { bg: '#FEF9C3', text: '#A16207' },
   warning: { bg: '#FFF3E0', text: colors.warning },
   error: { bg: '#FFEBEE', text: colors.error },
 };
