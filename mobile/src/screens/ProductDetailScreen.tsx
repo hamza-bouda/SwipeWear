@@ -89,7 +89,7 @@ export function ProductDetailScreen({ navigation, route }: Props) {
               setActiveImageIndex(index);
             }}
             renderItem={({ item }) => (
-              <Image source={{ uri: item }} style={styles.image} />
+              <Image source={{ uri: item }} style={styles.image} accessibilityIgnoresInvertColors />
             )}
             keyExtractor={(_, i) => i.toString()}
           />
@@ -103,10 +103,10 @@ export function ProductDetailScreen({ navigation, route }: Props) {
               ))}
             </View>
           )}
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="Go back">
             <Text style={styles.backText}>←</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.heartButton} onPress={handleSave}>
+          <TouchableOpacity style={styles.heartButton} onPress={handleSave} accessibilityRole="button" accessibilityLabel={saved ? 'Remove from saves' : 'Save item'}>
             <Text style={styles.heartText}>{saved ? '❤️' : '🤍'}</Text>
           </TouchableOpacity>
         </View>

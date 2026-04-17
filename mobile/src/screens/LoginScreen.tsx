@@ -84,6 +84,8 @@ export function LoginScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            accessibilityLabel="Email"
+            textContentType="emailAddress"
           />
           <TextInput
             style={styles.input}
@@ -92,6 +94,8 @@ export function LoginScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            accessibilityLabel="Password"
+            textContentType="password"
           />
 
           <Button
@@ -124,6 +128,8 @@ export function LoginScreen() {
         <TouchableOpacity
           style={styles.switchMode}
           onPress={() => setMode(mode === 'login' ? 'register' : 'login')}
+          accessibilityRole="button"
+          accessibilityLabel={mode === 'login' ? 'Switch to sign up' : 'Switch to log in'}
         >
           <Text style={styles.switchText}>
             {mode === 'login'
@@ -132,7 +138,7 @@ export function LoginScreen() {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+        <TouchableOpacity style={styles.skipButton} onPress={handleSkip} accessibilityRole="button" accessibilityLabel="Skip login">
           <Text style={styles.skipText}>Skip for now</Text>
         </TouchableOpacity>
       </View>

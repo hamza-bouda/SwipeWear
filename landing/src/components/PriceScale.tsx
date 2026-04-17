@@ -11,7 +11,7 @@ const prices = [
 
 export function PriceScale() {
   return (
-    <section className="relative py-28 sm:py-36 px-4 bg-neutral-50/50">
+    <section aria-labelledby="price-scale-heading" className="relative py-28 sm:py-36 px-4 bg-neutral-50/50">
       {/* Background accents */}
       <div className="absolute top-0 left-1/4 w-72 h-72 bg-yellow-400/[0.03] rounded-full blur-[100px] pointer-events-none" />
 
@@ -26,7 +26,7 @@ export function PriceScale() {
           <span className="inline-block text-[11px] font-mono tracking-[0.3em] text-black/25 uppercase mb-5 bg-black/[0.02] px-4 py-1.5 rounded-full border border-black/[0.04]">
             Echelle de prix
           </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-[3.2rem] font-black text-black leading-tight">
+          <h2 id="price-scale-heading" className="text-3xl sm:text-4xl lg:text-[3.2rem] font-black text-black leading-tight">
             Tu likes une piece ?{" "}
             <span className="relative inline-block">
               <span className="relative z-10">On te trouve le meilleur prix.</span>

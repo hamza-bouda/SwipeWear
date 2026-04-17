@@ -87,7 +87,7 @@ function SwipeCard({
         <div className="relative w-full h-[70%]">
           <Image
             src={card.image}
-            alt={card.title}
+            alt={`${card.brand} ${card.title} — ${card.price}`}
             fill
             className="object-cover"
             sizes="240px"
