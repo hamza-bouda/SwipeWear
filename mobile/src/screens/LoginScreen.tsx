@@ -69,7 +69,7 @@ export function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.content}>
-        <Text style={styles.logo}>SwipeWear</Text>
+        <Text style={styles.logo}>Swipe<Text style={styles.logoAccent}>Wear</Text></Text>
         <Text style={styles.subtitle}>
           {mode === 'login' ? 'Welcome back' : 'Create your account'}
         </Text>
@@ -155,6 +155,9 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.xs,
+  },
+  logoAccent: {
+    color: colors.accentDark,
   },
   subtitle: {
     ...typography.body,

@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   price: {
     ...typography.h3,
-    color: colors.textInverse,
+    color: colors.accent,
   },
   saveButton: {
     width: 40,

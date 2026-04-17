@@ -18,7 +18,7 @@ export function OnboardingScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>SwipeWear</Text>
+        <Text style={styles.title}>Swipe<Text style={styles.titleAccent}>Wear</Text></Text>
         <Text style={styles.subtitle}>
           Discover second-hand fashion pieces picked for your style
         </Text>
@@ -71,6 +71,9 @@ const styles = StyleSheet.create({
     color: colors.textInverse,
     fontSize: 36,
     marginBottom: spacing.md,
+  },
+  titleAccent: {
+    color: colors.accent,
   },
   subtitle: {
     ...typography.body,
