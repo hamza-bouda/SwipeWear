@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
@@ -9,6 +10,11 @@ from contracts.profile import UserPreferenceProfile
 
 
 SCHEMA_VERSION = 1
+
+
+class MatchConfidence(str, Enum):
+    exact = "exact"
+    similar = "similar"
 
 
 # ── RecoRequest — pipeline entry point ───────────────────────────────────────
@@ -41,11 +47,27 @@ class CandidateSet(BaseModel):
 # ── RankedFeed — ranking+policy output → explainer input ─────────────────────
 
 class PriceLadderEntry(BaseModel):
+    product_id: str
     url: str
     price_eur: float
     source: str
+    condition: str
     is_new: bool = False
     affiliate_url: str | None = None
+    confidence: MatchConfidence = MatchConfidence.similar
+    similarity_score: float = 0.0
+    image_url: str | None = None
+    title: str | None = None
+
+
+class PriceLadder(BaseModel):
+    source_product_id: str
+    entries: list[PriceLadderEntry] = Field(default_factory=list)
+    min_price_eur: float | None = None
+    max_price_eur: float | None = None
+    savings_pct: float | None = None
+    latency_ms: float = 0.0
+    schema_version: int = SCHEMA_VERSION
 
 
 class RankedItem(BaseModel):
