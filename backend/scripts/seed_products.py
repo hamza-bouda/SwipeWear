@@ -196,10 +196,8 @@ def _price_for_category(category: str, condition: str) -> float:
 
 
 def _image_url(category: str, idx: int) -> str:
-    seeds = _IMAGE_SEEDS.get(category, ["fashion"])
-    seed = seeds[idx % len(seeds)]
-    w, h = 400, 600
-    return f"https://source.unsplash.com/{w}x{h}/?{seed},{category}"
+    seed_id = (hash(category) + idx) % 1000 + 100
+    return f"https://picsum.photos/seed/{seed_id}/400/600"
 
 
 def generate_products(count: int) -> list[dict]:
