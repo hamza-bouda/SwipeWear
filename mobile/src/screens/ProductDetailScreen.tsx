@@ -66,6 +66,10 @@ export function ProductDetailScreen({ navigation, route }: Props) {
     Linking.openURL(url);
   };
 
+  const handleViewOffers = () => {
+    navigation.navigate('PriceLadder', { productId: product.id });
+  };
+
   const handleSave = () => {
     toggleSave(product);
     console.log(saved ? 'unsave' : 'save', product.id);
@@ -122,7 +126,8 @@ export function ProductDetailScreen({ navigation, route }: Props) {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Button title="Buy" onPress={handleBuy} />
+        <Button title="Voir les offres" onPress={handleViewOffers} />
+        <Button title="Buy" variant="outline" onPress={handleBuy} style={styles.buyButton} />
       </View>
     </View>
   );
@@ -219,6 +224,9 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
+  },
+  buyButton: {
+    marginTop: spacing.sm,
   },
   soldBanner: {
     backgroundColor: colors.error,
