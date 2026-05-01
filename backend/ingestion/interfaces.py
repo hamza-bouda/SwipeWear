@@ -3,6 +3,13 @@ from __future__ import annotations
 from typing import Any, Protocol
 
 
+from ingestion.affiliate import (  # noqa: F401
+    ClickContext,
+    build_affiliate_url,
+    is_monetized,
+)
+
+
 class Source(Protocol):
     """Isolation interface for a product data source (eBay, Awin, CJ…).
 
