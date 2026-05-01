@@ -5,6 +5,7 @@ export type RootStackParamList = {
   Constraints: { route: 'styles' | 'images'; selectedStyles?: string[]; imageUris?: string[] };
   Main: undefined;
   ProductDetail: { productId: string };
+  PriceLadder: { productId: string };
   Login: undefined;
 };
 
