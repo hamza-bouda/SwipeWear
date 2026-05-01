@@ -32,7 +32,7 @@ class RetrieverAdapter:
             result = self._vector.retrieve(
                 request.user_profile, k=request.n_results,
             )
-            if not result.candidates and not request.user_profile.is_cold_start:
+            if not result.candidates:
                 _LOG.info("Vector retriever returned 0 candidates, trying fallback")
                 return self._fallback.retrieve(
                     request.user_profile, k=request.n_results,

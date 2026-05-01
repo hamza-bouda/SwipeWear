@@ -14,15 +14,21 @@ from contracts.pipeline import CandidateItem, CandidateSet
 from contracts.product import ProductCondition, ProductRecord, ProductSource
 from contracts.profile import UserPreferenceProfile
 from retrieval.filters import apply_hard_filters
-from retrieval.retriever import VectorRetriever, _PRODUCT_COLUMNS
+from retrieval.retriever import VectorRetriever
 
 _LOG = logging.getLogger("swipewear.retrieval.fallback")
+
+_DB_COLUMNS = [
+    "id", "source", "source_record_id", "title", "price",
+    "condition", "category", "image_urls", "size_raw", "size_eu",
+    "brand", "embedding_version",
+]
 
 _FALLBACK_QUERY = """\
 SELECT {columns}
 FROM products
 {where}
-ORDER BY indexed_at DESC
+ORDER BY created_at DESC
 LIMIT %(k)s"""
 
 
@@ -44,7 +50,7 @@ class FallbackRetriever:
 
         filter_result = apply_hard_filters(profile)
         query = _FALLBACK_QUERY.format(
-            columns=", ".join(_PRODUCT_COLUMNS),
+            columns=", ".join(_DB_COLUMNS),
             where=filter_result.where_sql,
         )
         params: dict[str, object] = {**filter_result.params, "k": k}
@@ -56,9 +62,11 @@ class FallbackRetriever:
 
         candidates: list[CandidateItem] = []
         for rank, row in enumerate(rows, start=1):
-            row_dict = dict(zip(_PRODUCT_COLUMNS, row))
+            row_dict = dict(zip(_DB_COLUMNS, row))
             row_dict["source"] = ProductSource(row_dict["source"])
             row_dict["condition"] = ProductCondition(row_dict["condition"])
+            row_dict["price"] = float(row_dict["price"])
+            row_dict["image_urls"] = list(row_dict["image_urls"] or [])
             product = ProductRecord(**row_dict)
             candidates.append(CandidateItem(
                 product=product,
