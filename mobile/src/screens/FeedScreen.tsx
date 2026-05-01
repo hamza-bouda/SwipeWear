@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BottomSheet from '@gorhom/bottom-sheet';
@@ -7,7 +7,7 @@ import { SwipeDeck, RejectSheet, Button } from '../components';
 import type { RejectReason } from '../components';
 import { trackEvent } from '../analytics';
 import { Product } from '../types';
-import { MOCK_PRODUCTS } from '../data/mockProducts';
+import { useFeed } from '../api';
 import { colors, typography, spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { useSaves } from '../context/SavesContext';
@@ -15,7 +15,8 @@ import { useSaves } from '../context/SavesContext';
 export function FeedScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { toggleSave } = useSaves();
-  const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
+  const { products: feedProducts, loading, reload } = useFeed();
+  const [products, setProducts] = useState<Product[]>([]);
   const [deckEmpty, setDeckEmpty] = useState(false);
   const bottomSheetRef = useRef<BottomSheet>(null);
   const pendingProductRef = useRef<Product | null>(null);
@@ -23,6 +24,13 @@ export function FeedScreen() {
   useEffect(() => {
     trackEvent({ name: 'session_started' });
   }, []);
+
+  useEffect(() => {
+    if (feedProducts.length > 0) {
+      setProducts(feedProducts);
+      setDeckEmpty(false);
+    }
+  }, [feedProducts]);
 
   const handleSwipeRight = useCallback((product: Product) => {
     trackEvent({ name: 'swipe', properties: { type: 'swipe_right', product_id: product.id } });
@@ -57,9 +65,8 @@ export function FeedScreen() {
   }, []);
 
   const handleReload = useCallback(() => {
-    setProducts([...MOCK_PRODUCTS]);
-    setDeckEmpty(false);
-  }, []);
+    reload();
+  }, [reload]);
 
   return (
     <View style={styles.container}>
@@ -67,7 +74,11 @@ export function FeedScreen() {
         <Text style={styles.logo}>SwipeWear</Text>
       </View>
 
-      {deckEmpty ? (
+      {loading ? (
+        <View style={styles.emptyState}>
+          <ActivityIndicator size="large" color={colors.textPrimary} />
+        </View>
+      ) : deckEmpty ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>All caught up!</Text>
           <Text style={styles.emptySubtitle}>
