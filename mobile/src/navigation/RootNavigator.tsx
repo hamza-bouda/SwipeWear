@@ -1,6 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { OnboardingScreen } from '../screens';
+import { OnboardingScreen, ProductDetailScreen } from '../screens';
 import { MainTabs } from './MainTabs';
 import { RootStackParamList } from './types';
 
@@ -14,6 +14,7 @@ export function RootNavigator() {
     >
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Main" component={MainTabs} />
+      <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
     </Stack.Navigator>
   );
 }
