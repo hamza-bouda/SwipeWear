@@ -1,10 +1,11 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { SwipeDeck, RejectSheet, Button } from '../components';
 import type { RejectReason } from '../components';
+import { trackEvent } from '../analytics';
 import { Product } from '../types';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
 import { colors, typography, spacing } from '../theme';
@@ -19,8 +20,12 @@ export function FeedScreen() {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const pendingProductRef = useRef<Product | null>(null);
 
+  useEffect(() => {
+    trackEvent({ name: 'session_started' });
+  }, []);
+
   const handleSwipeRight = useCallback((product: Product) => {
-    console.log('swipe_right', product.id);
+    trackEvent({ name: 'swipe', properties: { type: 'swipe_right', product_id: product.id } });
   }, []);
 
   const handleSwipeLeft = useCallback((product: Product) => {
@@ -31,20 +36,20 @@ export function FeedScreen() {
   const handleRejectSelect = useCallback((reason: RejectReason) => {
     const product = pendingProductRef.current;
     if (product) {
-      console.log(reason, product.id);
+      trackEvent({ name: 'swipe', properties: { type: reason, product_id: product.id } });
       pendingProductRef.current = null;
     }
     bottomSheetRef.current?.close();
   }, []);
 
   const handleTap = useCallback((product: Product) => {
-    console.log('open', product.id);
+    trackEvent({ name: 'product_opened', properties: { product_id: product.id } });
     navigation.navigate('ProductDetail', { productId: product.id });
   }, [navigation]);
 
   const handleSave = useCallback((product: Product) => {
+    trackEvent({ name: 'save', properties: { product_id: product.id } });
     toggleSave(product);
-    console.log('save', product.id);
   }, [toggleSave]);
 
   const handleDeckEmpty = useCallback(() => {
