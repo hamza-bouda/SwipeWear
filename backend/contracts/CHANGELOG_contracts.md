@@ -3,6 +3,18 @@
 All breaking changes to shared schemas must be recorded here.
 Increment `schema_version` in `contracts/interfaces.py` for breaking changes.
 
+## v1.4 — 2026-07-20 — Hamza Bouda (KAN-19)
+- Pipeline contracts moved to `contracts/pipeline.py`.
+- RecoRequest (new): user_profile, n_results, session_intent, request_id.
+- CandidateSet: added hard_filters_applied, fallback_used, removed user_id.
+- RankedFeed (replaces FeedResult): items, diversity_applied, fallback_used.
+- RankedItem: added price_ladder (list[PriceLadderEntry]) — échelle de prix F07.
+- PriceLadderEntry (new): url, price_eur, source, is_new, affiliate_url.
+- Explanation (new): product_id, reasons, evidence_refs, grounded, editable_tags, sentence.
+- ModuleTrace moved to pipeline.py (was inline in interfaces.py).
+- interfaces.py now re-exports all pipeline types from pipeline.py.
+- Removed SchemaVersion enum — each model carries schema_version: int directly.
+
 ## v1.3 — 2026-07-20 — Hamza Bouda (KAN-18)
 - InteractionEvent moved to `contracts/events.py` (canonical definition).
 - Added EventType enum: swipe_right, swipe_left_style, swipe_left_price, save, open, edit_preference.
