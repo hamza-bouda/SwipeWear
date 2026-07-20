@@ -1,0 +1,1002 @@
+[
+  {
+    "id": "golden-001",
+    "source": "ebay",
+    "source_record_id": "src-golden-001",
+    "title": "Nike Air Max 90 blanc",
+    "brand": "Nike",
+    "price": 59.99,
+    "currency": "EUR",
+    "condition": "new",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "sneakers",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-001.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-002",
+    "source": "awin",
+    "source_record_id": "src-golden-002",
+    "title": "Adidas Forum Low bleu",
+    "brand": "Adidas",
+    "price": 45.0,
+    "currency": "EUR",
+    "condition": "like_new",
+    "size_raw": "L",
+    "size_eu": "L",
+    "category": "sneakers",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-002.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-003",
+    "source": "ebay",
+    "source_record_id": "src-golden-003",
+    "title": "New Balance 574 gris",
+    "brand": "New Balance",
+    "price": 79.99,
+    "currency": "EUR",
+    "condition": "good",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "sneakers",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-003.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-004",
+    "source": "awin",
+    "source_record_id": "src-golden-004",
+    "title": "Puma Suede Classic rouge",
+    "brand": "Puma",
+    "price": 89.99,
+    "currency": "EUR",
+    "condition": "new",
+    "size_raw": "42",
+    "size_eu": "42",
+    "category": "sneakers",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-004.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-005",
+    "source": "ebay",
+    "source_record_id": "src-golden-005",
+    "title": "Nike Cortez beige",
+    "brand": "Nike",
+    "price": 34.99,
+    "currency": "EUR",
+    "condition": "like_new",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "sneakers",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-005.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-006",
+    "source": "awin",
+    "source_record_id": "src-golden-006",
+    "title": "Vans Old Skool noir",
+    "brand": "Vans",
+    "price": 65.0,
+    "currency": "EUR",
+    "condition": "good",
+    "size_raw": "L",
+    "size_eu": "L",
+    "category": "sneakers",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-006.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-007",
+    "source": "ebay",
+    "source_record_id": "src-golden-007",
+    "title": "Jordan 1 Retro High blanc",
+    "brand": "Jordan",
+    "price": 150.0,
+    "currency": "EUR",
+    "condition": "good",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "sneakers",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-007.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-008",
+    "source": "awin",
+    "source_record_id": "src-golden-008",
+    "title": "Reebok Classic cuir",
+    "brand": "Reebok",
+    "price": 49.99,
+    "currency": "EUR",
+    "condition": "fair",
+    "size_raw": "42",
+    "size_eu": "42",
+    "category": "sneakers",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-008.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-009",
+    "source": "ebay",
+    "source_record_id": "src-golden-009",
+    "title": "Adidas Superstar blanc",
+    "brand": "Adidas",
+    "price": 99.99,
+    "currency": "EUR",
+    "condition": "new",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "sneakers",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-009.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-010",
+    "source": "awin",
+    "source_record_id": "src-golden-010",
+    "title": "Converse Chuck Taylor",
+    "brand": "Converse",
+    "price": 25.0,
+    "currency": "EUR",
+    "condition": "like_new",
+    "size_raw": "L",
+    "size_eu": "L",
+    "category": "sneakers",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-010.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-011",
+    "source": "ebay",
+    "source_record_id": "src-golden-011",
+    "title": "Levis Trucker denim",
+    "brand": "Levis",
+    "price": 90.0,
+    "currency": "EUR",
+    "condition": "new",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "vestes",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-011.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-012",
+    "source": "awin",
+    "source_record_id": "src-golden-012",
+    "title": "Carhartt WIP Detroit",
+    "brand": "Carhartt",
+    "price": 55.0,
+    "currency": "EUR",
+    "condition": "like_new",
+    "size_raw": "L",
+    "size_eu": "L",
+    "category": "vestes",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-012.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-013",
+    "source": "ebay",
+    "source_record_id": "src-golden-013",
+    "title": "The North Face fleece",
+    "brand": "The North Face",
+    "price": 110.0,
+    "currency": "EUR",
+    "condition": "good",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "vestes",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-013.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-014",
+    "source": "awin",
+    "source_record_id": "src-golden-014",
+    "title": "Dickies Eisenhower beige",
+    "brand": "Dickies",
+    "price": 40.0,
+    "currency": "EUR",
+    "condition": "new",
+    "size_raw": "42",
+    "size_eu": "42",
+    "category": "vestes",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-014.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-015",
+    "source": "ebay",
+    "source_record_id": "src-golden-015",
+    "title": "Patagonia Synchilla gris",
+    "brand": "Patagonia",
+    "price": 75.0,
+    "currency": "EUR",
+    "condition": "like_new",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "vestes",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-015.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-016",
+    "source": "awin",
+    "source_record_id": "src-golden-016",
+    "title": "Columbia Omni-Heat rouge",
+    "brand": "Columbia",
+    "price": 95.0,
+    "currency": "EUR",
+    "condition": "good",
+    "size_raw": "L",
+    "size_eu": "L",
+    "category": "vestes",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-016.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-017",
+    "source": "ebay",
+    "source_record_id": "src-golden-017",
+    "title": "Arcteryx Atom SL noir",
+    "brand": "Arcteryx",
+    "price": 130.0,
+    "currency": "EUR",
+    "condition": "good",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "vestes",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-017.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-018",
+    "source": "awin",
+    "source_record_id": "src-golden-018",
+    "title": "Stone Island overshirt",
+    "brand": "Stone Island",
+    "price": 65.0,
+    "currency": "EUR",
+    "condition": "fair",
+    "size_raw": "42",
+    "size_eu": "42",
+    "category": "vestes",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-018.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-019",
+    "source": "ebay",
+    "source_record_id": "src-golden-019",
+    "title": "Uniqlo Blouson bomber",
+    "brand": "Uniqlo",
+    "price": 50.0,
+    "currency": "EUR",
+    "condition": "new",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "vestes",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-019.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-020",
+    "source": "awin",
+    "source_record_id": "src-golden-020",
+    "title": "Tommy Hilfiger parka",
+    "brand": "Tommy Hilfiger",
+    "price": 85.0,
+    "currency": "EUR",
+    "condition": "like_new",
+    "size_raw": "L",
+    "size_eu": "L",
+    "category": "vestes",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-020.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-021",
+    "source": "ebay",
+    "source_record_id": "src-golden-021",
+    "title": "Levis 501 Original bleu",
+    "brand": "Levis",
+    "price": 44.99,
+    "currency": "EUR",
+    "condition": "good",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "jeans",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-021.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-022",
+    "source": "awin",
+    "source_record_id": "src-golden-022",
+    "title": "Wrangler Texas slim",
+    "brand": "Wrangler",
+    "price": 35.0,
+    "currency": "EUR",
+    "condition": "new",
+    "size_raw": "L",
+    "size_eu": "L",
+    "category": "jeans",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-022.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-023",
+    "source": "ebay",
+    "source_record_id": "src-golden-023",
+    "title": "Lee Cooper straight bleu",
+    "brand": "Lee Cooper",
+    "price": 69.99,
+    "currency": "EUR",
+    "condition": "like_new",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "jeans",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-023.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-024",
+    "source": "awin",
+    "source_record_id": "src-golden-024",
+    "title": "Calvin Klein slim fit",
+    "brand": "Calvin Klein",
+    "price": 54.99,
+    "currency": "EUR",
+    "condition": "good",
+    "size_raw": "42",
+    "size_eu": "42",
+    "category": "jeans",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-024.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-025",
+    "source": "ebay",
+    "source_record_id": "src-golden-025",
+    "title": "G-Star Raw 3301 noir",
+    "brand": "G-Star",
+    "price": 80.0,
+    "currency": "EUR",
+    "condition": "new",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "jeans",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-025.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-026",
+    "source": "awin",
+    "source_record_id": "src-golden-026",
+    "title": "Nudie Jeans Thin Finn",
+    "brand": "Nudie",
+    "price": 49.0,
+    "currency": "EUR",
+    "condition": "like_new",
+    "size_raw": "L",
+    "size_eu": "L",
+    "category": "jeans",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-026.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-027",
+    "source": "ebay",
+    "source_record_id": "src-golden-027",
+    "title": "Acne Studios North bleu",
+    "brand": "Acne Studios",
+    "price": 125.0,
+    "currency": "EUR",
+    "condition": "good",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "jeans",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-027.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-028",
+    "source": "awin",
+    "source_record_id": "src-golden-028",
+    "title": "Edwin ED-55 noir",
+    "brand": "Edwin",
+    "price": 39.99,
+    "currency": "EUR",
+    "condition": "fair",
+    "size_raw": "42",
+    "size_eu": "42",
+    "category": "jeans",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-028.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-029",
+    "source": "ebay",
+    "source_record_id": "src-golden-029",
+    "title": "Diesel D-Staq taper",
+    "brand": "Diesel",
+    "price": 89.99,
+    "currency": "EUR",
+    "condition": "new",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "jeans",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-029.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-030",
+    "source": "awin",
+    "source_record_id": "src-golden-030",
+    "title": "APC Petit New Standard",
+    "brand": "APC",
+    "price": 59.0,
+    "currency": "EUR",
+    "condition": "like_new",
+    "size_raw": "L",
+    "size_eu": "L",
+    "category": "jeans",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-030.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-031",
+    "source": "ebay",
+    "source_record_id": "src-golden-031",
+    "title": "Nike Essentials tee blanc",
+    "brand": "Nike",
+    "price": 24.99,
+    "currency": "EUR",
+    "condition": "good",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "tee-shirts",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-031.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-032",
+    "source": "awin",
+    "source_record_id": "src-golden-032",
+    "title": "Adidas Trefoil tee noir",
+    "brand": "Adidas",
+    "price": 19.0,
+    "currency": "EUR",
+    "condition": "like_new",
+    "size_raw": "L",
+    "size_eu": "L",
+    "category": "tee-shirts",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-032.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-033",
+    "source": "ebay",
+    "source_record_id": "src-golden-033",
+    "title": "Champion Basic crew gris",
+    "brand": "Champion",
+    "price": 37.0,
+    "currency": "EUR",
+    "condition": "new",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "tee-shirts",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-033.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-034",
+    "source": "awin",
+    "source_record_id": "src-golden-034",
+    "title": "Carhartt Pocket tee kaki",
+    "brand": "Carhartt",
+    "price": 29.0,
+    "currency": "EUR",
+    "condition": "good",
+    "size_raw": "42",
+    "size_eu": "42",
+    "category": "tee-shirts",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-034.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-035",
+    "source": "ebay",
+    "source_record_id": "src-golden-035",
+    "title": "Ralph Lauren polo vert",
+    "brand": "Ralph Lauren",
+    "price": 44.0,
+    "currency": "EUR",
+    "condition": "like_new",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "tee-shirts",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-035.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-036",
+    "source": "awin",
+    "source_record_id": "src-golden-036",
+    "title": "Lacoste polo blanc",
+    "brand": "Lacoste",
+    "price": 39.0,
+    "currency": "EUR",
+    "condition": "new",
+    "size_raw": "L",
+    "size_eu": "L",
+    "category": "tee-shirts",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-036.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-037",
+    "source": "ebay",
+    "source_record_id": "src-golden-037",
+    "title": "Stone Island tee ghost",
+    "brand": "Stone Island",
+    "price": 55.0,
+    "currency": "EUR",
+    "condition": "good",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "tee-shirts",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-037.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-038",
+    "source": "awin",
+    "source_record_id": "src-golden-038",
+    "title": "Supreme Box Logo tee",
+    "brand": "Supreme",
+    "price": 19.99,
+    "currency": "EUR",
+    "condition": "fair",
+    "size_raw": "42",
+    "size_eu": "42",
+    "category": "tee-shirts",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-038.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-039",
+    "source": "ebay",
+    "source_record_id": "src-golden-039",
+    "title": "Palace Tri-Ferg tee",
+    "brand": "Palace",
+    "price": 64.99,
+    "currency": "EUR",
+    "condition": "like_new",
+    "size_raw": "M",
+    "size_eu": "M",
+    "category": "tee-shirts",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-039.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-040",
+    "source": "awin",
+    "source_record_id": "src-golden-040",
+    "title": "Stussy Basic tee blanc",
+    "brand": "Stussy",
+    "price": 29.0,
+    "currency": "EUR",
+    "condition": "new",
+    "size_raw": "L",
+    "size_eu": "L",
+    "category": "tee-shirts",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-040.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-041",
+    "source": "ebay",
+    "source_record_id": "src-golden-041",
+    "title": "Herschel Little America sac",
+    "brand": "Herschel",
+    "price": 15.0,
+    "currency": "EUR",
+    "condition": "good",
+    "size_raw": null,
+    "size_eu": null,
+    "category": "accessoires",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-041.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-042",
+    "source": "awin",
+    "source_record_id": "src-golden-042",
+    "title": "New Era 59FIFTY casquette",
+    "brand": "New Era",
+    "price": 22.0,
+    "currency": "EUR",
+    "condition": "like_new",
+    "size_raw": null,
+    "size_eu": null,
+    "category": "accessoires",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-042.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-043",
+    "source": "ebay",
+    "source_record_id": "src-golden-043",
+    "title": "Nike Swoosh beanie",
+    "brand": "Nike",
+    "price": 36.0,
+    "currency": "EUR",
+    "condition": "new",
+    "size_raw": null,
+    "size_eu": null,
+    "category": "accessoires",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-043.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-044",
+    "source": "awin",
+    "source_record_id": "src-golden-044",
+    "title": "Adidas ceinture webbing",
+    "brand": "Adidas",
+    "price": 45.0,
+    "currency": "EUR",
+    "condition": "good",
+    "size_raw": null,
+    "size_eu": null,
+    "category": "accessoires",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-044.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-045",
+    "source": "ebay",
+    "source_record_id": "src-golden-045",
+    "title": "Carhartt WIP bonnet",
+    "brand": "Carhartt",
+    "price": 56.0,
+    "currency": "EUR",
+    "condition": "like_new",
+    "size_raw": null,
+    "size_eu": null,
+    "category": "accessoires",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-045.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-046",
+    "source": "awin",
+    "source_record_id": "src-golden-046",
+    "title": "APC portefeuille cuir",
+    "brand": "APC",
+    "price": 67.0,
+    "currency": "EUR",
+    "condition": "new",
+    "size_raw": null,
+    "size_eu": null,
+    "category": "accessoires",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-046.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-047",
+    "source": "ebay",
+    "source_record_id": "src-golden-047",
+    "title": "Vans sac a dos Old Skool",
+    "brand": "Vans",
+    "price": 77.0,
+    "currency": "EUR",
+    "condition": "good",
+    "size_raw": null,
+    "size_eu": null,
+    "category": "accessoires",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-047.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-048",
+    "source": "awin",
+    "source_record_id": "src-golden-048",
+    "title": "Casquette generique",
+    "brand": "Unknown",
+    "price": 19.99,
+    "currency": "EUR",
+    "condition": "fair",
+    "size_raw": null,
+    "size_eu": null,
+    "category": "accessoires",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-048.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-049",
+    "source": "ebay",
+    "source_record_id": "src-golden-049",
+    "title": "Tommy Hilfiger sacoche",
+    "brand": "Tommy Hilfiger",
+    "price": 88.0,
+    "currency": "EUR",
+    "condition": "like_new",
+    "size_raw": null,
+    "size_eu": null,
+    "category": "accessoires",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-049.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  },
+  {
+    "id": "golden-050",
+    "source": "awin",
+    "source_record_id": "src-golden-050",
+    "title": "Sac de voyage premium",
+    "brand": "Unknown",
+    "price": 135.0,
+    "currency": "EUR",
+    "condition": "new",
+    "size_raw": null,
+    "size_eu": null,
+    "category": "accessoires",
+    "image_urls": [
+      "https://img.swipewear.dev/golden-050.jpg"
+    ],
+    "affiliate_url": null,
+    "available": true,
+    "schema_version": 1,
+    "embedding_version": null
+  }
+]
