@@ -1,0 +1,116 @@
+# CLAUDE.md — Règles pour les agents IA sur SwipeWear
+
+> Ce fichier est lu automatiquement par les agents IA (Claude Code, etc.) au début de chaque session.
+> **À copier à la racine du repo de code dès sa création (ticket KAN-15).**
+> Il s'applique aussi aux humains : ce sont les règles de travail du projet.
+
+---
+
+## 1. Sources de vérité — dans cet ordre
+
+Avant d'écrire du code ou de répondre, l'agent DOIT s'appuyer sur ces sources, jamais sur sa mémoire :
+
+1. **Les contrats du code** (`contracts/`) — si un schéma existe dans le code, c'est LUI qui fait foi, pas la documentation.
+2. **Jira** (projet KAN, https://hamza-bouda.atlassian.net) — l'état du travail : quoi faire, dans quel ordre, qui fait quoi. Le backlog Jira prime sur le fichier `Backlog/PRODUCT_BACKLOG.md` (qui est un miroir).
+3. **Le blueprint** — `SwipeWear_AI_Brain_Professional_Blueprint_v3.pdf` : l'architecture du cerveau IA (modules, contrats, fallbacks, règles anti-spaghetti).
+4. **La documentation** (`Documentation/01-09_*.md`) — la vision produit, le marché, les gates, les risques.
+
+**Règle anti-hallucination n°1 : si une information n'est dans aucune de ces sources, l'agent le DIT et pose la question. Il n'invente jamais** un champ de schéma, un seuil, un endpoint, un nom de module ou une décision produit.
+
+---
+
+## 2. Décisions déjà prises — NE PAS remettre en question sans ticket
+
+Ces décisions sont validées (tests IA GO 6/6 du 2026-07-16, blueprint §13). Un agent ne les change pas de sa propre initiative ; s'il pense qu'il faut changer, il crée un ticket dans l'epic E14 (Icebox) et le signale.
+
+| Sujet | Décision figée |
+|---|---|
+| Embeddings mode | Marqo-FashionSigLIP (OpenCLIP), vecteurs 512, L2-normalisés, version `fashionsiglip-v1` |
+| Analyse de scènes | Qwen3-VL-2B-Instruct quantisé, derrière l'adapter `SceneAnalyzer` — soumis au bench KAN-30 |
+| Matching "même pièce" | DINOv2 base, seuil ~0.80 (marge validée : 0.956 vs 0.508 vs 0.074) |
+| Parsing titres | GLiNER, labels : marque / modèle / taille / couleur / état |
+| Base de données | PostgreSQL + pgvector (index HNSW, distance cosinus) |
+| Backend | FastAPI + Pydantic. Frontend : React Native / Expo |
+| Inférence | CPU uniquement au MVP — aucun code qui exige un GPU |
+| Ranking | Score Python transparent d'abord ; LightGBM SEULEMENT après de vraies données (gelé) |
+| Diversité | MMR + epsilon-greedy ; bandits contextuels gelés (E14) |
+| Tracking d'expériences | Git + JSON/CSV ; MLflow gelé (E14) |
+| Sources produits | eBay Browse API (occasion) + Awin ou CJ (neuf). Vinted = watcher isolé, gelé, kill-switch obligatoire |
+| Monétisation | Affiliation (EPN, Awin/CJ) + Premium 4,99 €/mois = priorité d'alertes |
+| Gates business | Gate 1 : 300 waitlist ET 50K vues → débloque E6-E9. Gate 2 : ≥30 % beta créent ≥2 alertes → débloque E12-E13 |
+
+---
+
+## 3. Règles d'architecture — NON NÉGOCIABLES (blueprint §11)
+
+Toute PR qui viole une de ces règles est refusée, qu'elle vienne d'un humain ou d'un agent.
+
+1. **Contracts first.** On définit ou modifie le schéma dans `contracts/` AVANT d'implémenter. Tout changement de contrat = une ligne dans `CHANGELOG_contracts.md` + incrément de `schema_version` si cassant.
+2. **Pas d'imports privés.** Un module importe les `interfaces.py` et les `contracts/` d'un autre module — JAMAIS ses fichiers internes. Structure : `contracts/ ingestion/ vision/ embeddings/ preferences/ retrieval/ ranking/ policy/ explainability/ evaluation/ orchestration/`.
+3. **Pas de lecture DB cachée.** Le ranker (et tout module de calcul) reçoit un profil complet et un CandidateSet complet en paramètres. Il ne fait aucune requête lui-même.
+4. **Un seul orchestrateur.** `orchestration/` séquence les appels et ne contient AUCUNE logique métier, modèle ou ranking.
+5. **Tout output est versionné.** Chaque embedding, profil, rapport porte : schema_version, model, embedding_version, vector_dim.
+6. **L'event log est la source de vérité.** Toute modification du profil passe par un `InteractionEvent`. Jamais d'écriture directe du profil qui contournerait l'event log.
+7. **Chaque module a un fallback** (blueprint §12) : Qwen KO → embedding seul + confirmation tags ; retriever KO → produits récents filtrés ; ranker KO → tri par similarité ; policy KO → liste brute ; explainer KO → tags éditables. Un nouvel appel modèle sans fallback = PR refusée.
+8. **Le golden scenario protège tout.** Ne JAMAIS modifier les fixtures (`evaluation/fixtures/`) pour faire passer un test. Si le golden échoue, c'est le code qu'on corrige — ou une discussion d'équipe si le nouveau comportement est voulu.
+9. **Budgets de latence** (cibles CPU) : hard_filter 20 ms · retrieve 100 ms · rank 50 ms · diversify 30 ms · explain 30 ms · total feed 300 ms · embedding image < 350 ms · GLiNER < 300 ms/titre · échelle de prix < 800 ms.
+
+---
+
+## 4. Travail en parallèle sans conflit — les lanes
+
+Deux lanes indépendantes (blueprint §10). Chaque ticket Jira porte son label de lane.
+
+| Lane | Label Jira | Modules possédés |
+|---|---|---|
+| **Product Intelligence** | `PI` | `ingestion/`, `vision/`, `embeddings/`, `retrieval/` |
+| **Personnalisation** | `PERSO` | `preferences/`, `ranking/`, `policy/`, `explainability/` |
+| **Commun** | `COMMUN` | `contracts/`, `orchestration/`, `evaluation/`, API, app mobile, infra |
+
+Règles de non-conflit :
+- Un agent (ou un dev) travaille dans les modules de SA lane. Il ne modifie pas les modules de l'autre lane.
+- **`contracts/` est une zone protégée** : toute modification exige l'accord des deux lanes (mention explicite dans la PR + review de l'autre personne). C'est le seul point de couplage autorisé — c'est pour ça qu'on le protège.
+- Besoin d'un changement dans l'autre lane ? On crée un ticket Jira (ou un commentaire sur le ticket concerné), on ne modifie pas soi-même.
+- Les deux lanes développent contre les **mêmes fixtures** (`evaluation/fixtures/`) — c'est ce qui garantit que l'assemblage fonctionne.
+
+---
+
+## 5. Workflow Git + Jira
+
+- **Une branche par ticket** : `KAN-<num>-description-courte` (ex. `KAN-23-connector-ebay`). Jamais de commit direct sur `main`.
+- **Messages de commit** : commencer par la clé Jira — `KAN-23: connector eBay avec rate limiting`. Pas de co-auteur IA dans les commits.
+- **Une PR = un ticket.** Petites PRs (< ~400 lignes d'écart idéalement). La PR référence le ticket, la CI (lint + tests + golden scenario) doit être verte avant merge.
+- **Review croisée** : le code d'une lane est relu par l'autre personne quand il touche `contracts/` ou l'orchestrateur ; sinon self-merge autorisé si la CI est verte (équipe de 2, on reste pragmatique).
+- **Cycle de vie Jira** : prendre le ticket (s'assigner) → `En cours` → PR ouverte (lier la PR) → mergé → `Terminé`. Un agent qui commence un travail met le ticket `En cours` ; s'il découvre du travail hors périmètre, il crée un NOUVEAU ticket au lieu de gonfler le sien.
+- **Rebase plutôt que merge** depuis `main` pour garder un historique lisible.
+
+## 6. Definition of Done d'un ticket
+
+Un ticket n'est `Terminé` que si :
+
+1. Tous les critères d'acceptation du ticket sont cochés.
+2. Les tests du module passent + le golden scenario passe.
+3. Le lint passe (y compris la règle anti-imports privés).
+4. Les contrats modifiés sont documentés dans `CHANGELOG_contracts.md`.
+5. Le budget de latence du module est respecté (vérifié dans la trace).
+6. Aucun secret en dur (les clés vont dans `.env`, jamais dans le code ni les commits).
+
+## 7. Règles spécifiques aux agents IA
+
+- **Toujours lire le ticket Jira avant de coder.** Les critères d'acceptation sont le cahier des charges — pas d'ajout de features non demandées.
+- **Ne jamais inventer un état d'avancement.** Pour savoir si un module existe, lire le code ; pour savoir si un ticket est fait, lire Jira. Ne pas supposer.
+- **En cas de contradiction entre sources** (ex. la doc dit X, le code dit Y) : le code fait foi, ET l'agent signale la contradiction pour que la doc soit corrigée.
+- **Marquer l'incertitude.** Un agent qui n'est pas sûr d'un seuil, d'un format ou d'une décision écrit explicitement « à confirmer » et pose la question — il ne choisit pas silencieusement.
+- **Pas d'installation de dépendances non listées** sans le signaler : toute nouvelle dépendance est mentionnée dans la PR avec sa justification.
+- **Respecter les gels** : ne pas implémenter E12/E13 (alertes, Premium) ni les items Icebox tant que les gates ne sont pas atteintes, même si « c'est facile ».
+- **Mettre à jour les miroirs** : après une décision qui change le backlog, mettre à jour Jira (source de vérité) puis, si demandé, `Backlog/PRODUCT_BACKLOG.md`.
+- **Langue** : documentation et tickets en français ; code, noms de variables et messages de commit en anglais.
+
+## 8. Ce qu'un agent ne fait JAMAIS sans demander
+
+- Modifier `contracts/` ou les fixtures du golden scenario.
+- Pousser sur `main`, forcer un push, ou fusionner une PR dont la CI est rouge.
+- Supprimer ou renommer un module.
+- Changer un modèle IA, un seuil validé ou un prix (4,99 €).
+- Activer le watcher Vinted ou toute collecte de données non autorisée.
+- Committer une clé d'API, un token ou un identifiant d'affiliation.
