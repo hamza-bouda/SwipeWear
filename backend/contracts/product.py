@@ -48,6 +48,9 @@ class ProductRecord(BaseModel):
     affiliate_url: str | None = None
     available: bool = True
 
+    # ── Enrichment ────────────────────────────────────────────────────────────
+    enriched_attrs: dict[str, str] = Field(default_factory=dict)
+
     # ── Versioning ────────────────────────────────────────────────────────────
     schema_version: int = SCHEMA_VERSION
     embedding_version: str | None = None
