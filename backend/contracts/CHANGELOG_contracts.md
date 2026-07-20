@@ -3,6 +3,15 @@
 All breaking changes to shared schemas must be recorded here.
 Increment `schema_version` in `contracts/interfaces.py` for breaking changes.
 
+## v1.2 — 2026-07-20 — Hamza Bouda (KAN-17)
+- UserPreferenceProfile moved to `contracts/profile.py` (canonical 3-layer definition).
+- Layer 1 HardConstraints: added `excluded_conditions`.
+- Layer 2 EditablePreferences (new): `liked_brands`, `rejected_brands`, `locked_attributes`.
+- Layer 3 StyleVectors (new): `positive` + `negative` vectors, `embedding_version`, `vector_dim`.
+- Removed `StyleVector` (single vector) — replaced by `StyleVectors` (pos + neg).
+- Added `is_cold_start` property.
+- `interfaces.py` now re-exports all profile types from profile.py.
+
 ## v1.1 — 2026-07-20 — Hamza Bouda (KAN-16)
 - ProductRecord moved to `contracts/product.py` (canonical definition).
 - Added fields: `source_record_id`, `size_raw`, `size_eu`, `category`, `available`.
