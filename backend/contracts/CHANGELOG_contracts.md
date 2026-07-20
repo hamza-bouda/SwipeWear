@@ -3,6 +3,11 @@
 All breaking changes to shared schemas must be recorded here.
 Increment `schema_version` in `contracts/interfaces.py` for breaking changes.
 
+## v1.5 — 2026-07-20 — Hamza Bouda (KAN-25)
+- ProductRecord: added `enriched_attrs: dict[str, str]` (default `{}`).
+  Non-breaking — optional field; existing records and tests unaffected.
+  Populated by `ingestion/enricher.py::TitleEnricher` with GLiNER entity labels.
+
 ## v1.4 — 2026-07-20 — Hamza Bouda (KAN-19)
 - Pipeline contracts moved to `contracts/pipeline.py`.
 - RecoRequest (new): user_profile, n_results, session_intent, request_id.
