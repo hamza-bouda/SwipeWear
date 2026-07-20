@@ -3,6 +3,15 @@
 All breaking changes to shared schemas must be recorded here.
 Increment `schema_version` in `contracts/interfaces.py` for breaking changes.
 
+## v1.3 — 2026-07-20 — Hamza Bouda (KAN-18)
+- InteractionEvent moved to `contracts/events.py` (canonical definition).
+- Added EventType enum: swipe_right, swipe_left_style, swipe_left_price, save, open, edit_preference.
+- Replaced SwipeDirection + action field with EventType + payload (free-form JSONB).
+- Removed session_id field (not needed at contract level).
+- Added `preferences/_event_replay.py`: in-memory replay_events_in_memory().
+- SQL migration: `migrations/001_interaction_events.sql`.
+- `interfaces.py` re-exports EventType, InteractionEvent from events.py.
+
 ## v1.2 — 2026-07-20 — Hamza Bouda (KAN-17)
 - UserPreferenceProfile moved to `contracts/profile.py` (canonical 3-layer definition).
 - Layer 1 HardConstraints: added `excluded_conditions`.
