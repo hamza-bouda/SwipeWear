@@ -11,6 +11,7 @@ dependencies = [
     "fastapi>=0.110",
     "uvicorn[standard]>=0.29",
     "requests>=2.31",
+    "numpy>=1.24",
 ]
 
 [project.optional-dependencies]
@@ -22,6 +23,8 @@ dev = [
 ]
 ai = [
     "gliner>=0.2",
+    "open-clip-torch>=2.20",
+    "Pillow>=9.0",
 ]
 
 [tool.setuptools.packages.find]
