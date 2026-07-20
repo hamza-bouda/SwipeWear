@@ -67,32 +67,10 @@ class UserPreferenceProfile(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Product catalogue
+# Product catalogue — canonical schema lives in contracts/product.py (KAN-16)
 # ---------------------------------------------------------------------------
 
-class ProductCondition(str, Enum):
-    new = "new"
-    like_new = "like_new"
-    good = "good"
-    fair = "fair"
-
-
-class ProductRecord(BaseModel):
-    schema_version: SchemaVersion = SchemaVersion.v1
-    product_id: str
-    source: str
-    title: str
-    brand: str | None = None
-    model: str | None = None
-    size: str | None = None
-    color: str | None = None
-    condition: ProductCondition | None = None
-    price_eur: float
-    url: str
-    affiliate_url: str | None = None
-    image_urls: list[str] = Field(default_factory=list)
-    embedding_version: str | None = None
-    embedding: list[float] | None = None
+from contracts.product import ProductCondition, ProductRecord, ProductSource  # noqa: E402, F401
 
 
 # ---------------------------------------------------------------------------
