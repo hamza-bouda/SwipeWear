@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-20T12:00:00+00:00",
+  "pipeline_version": "v0-price-sort",
+  "description": "Top-10 deterministe: hard_filter(size in [M,42], price<=120, condition!=fair) puis tri prix croissant",
+  "top10": [
+    {
+      "rank": 1,
+      "product_id": "golden-041",
+      "baseline_score": 0.875
+    },
+    {
+      "rank": 2,
+      "product_id": "golden-042",
+      "baseline_score": 0.8167
+    },
+    {
+      "rank": 3,
+      "product_id": "golden-031",
+      "baseline_score": 0.7917
+    },
+    {
+      "rank": 4,
+      "product_id": "golden-034",
+      "baseline_score": 0.7583
+    },
+    {
+      "rank": 5,
+      "product_id": "golden-005",
+      "baseline_score": 0.7084
+    },
+    {
+      "rank": 6,
+      "product_id": "golden-043",
+      "baseline_score": 0.7
+    },
+    {
+      "rank": 7,
+      "product_id": "golden-033",
+      "baseline_score": 0.6917
+    },
+    {
+      "rank": 8,
+      "product_id": "golden-014",
+      "baseline_score": 0.6667
+    },
+    {
+      "rank": 9,
+      "product_id": "golden-035",
+      "baseline_score": 0.6333
+    },
+    {
+      "rank": 10,
+      "product_id": "golden-021",
+      "baseline_score": 0.6251
+    }
+  ]
+}
