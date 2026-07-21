@@ -15,6 +15,7 @@ BACKEND = Path(__file__).parent
 MODULES = [
     "contracts", "ingestion", "vision", "embeddings", "preferences",
     "retrieval", "ranking", "policy", "explainability", "evaluation", "orchestration",
+    "api",
 ]
 MODULE_SET = set(MODULES)
 

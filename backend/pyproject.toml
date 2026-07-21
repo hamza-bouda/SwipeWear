@@ -21,6 +21,7 @@ dev = [
     "flake8>=7.0",
     "mypy>=1.9",
     "Pillow>=9.0",
+    "httpx2>=0.1",
 ]
 ai = [
     "gliner>=0.2",
@@ -49,4 +50,5 @@ testpaths = [
     "explainability/tests",
     "evaluation/tests",
     "orchestration/tests",
+    "api/tests",
 ]
