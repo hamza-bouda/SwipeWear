@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from api.errors import unhandled_exception_handler
-from api.routers import auth, events, feed, onboarding, profile
+from api.routers import auth, events, feed, ladder, onboarding, profile
 
 app = FastAPI(
     title="SwipeWear API",
@@ -15,6 +15,7 @@ app.add_exception_handler(Exception, unhandled_exception_handler)
 
 app.include_router(auth.router)
 app.include_router(feed.router)
+app.include_router(ladder.router)
 app.include_router(events.router)
 app.include_router(profile.router)
 app.include_router(onboarding.router)
