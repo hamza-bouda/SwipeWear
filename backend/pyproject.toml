@@ -12,6 +12,7 @@ dependencies = [
     "uvicorn[standard]>=0.29",
     "requests>=2.31",
     "numpy>=1.24",
+    "psycopg2-binary>=2.9",
 ]
 
 [project.optional-dependencies]
@@ -19,7 +20,6 @@ dev = [
     "pytest>=8.0",
     "flake8>=7.0",
     "mypy>=1.9",
-    "psycopg2-binary>=2.9",
 ]
 ai = [
     "gliner>=0.2",
