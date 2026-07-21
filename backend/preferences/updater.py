@@ -10,13 +10,15 @@ swipe_left_price must never touch the style vectors: mixing a price
 complaint into taste evidence would poison the profile with an unrelated
 signal (this is the AC's "critical test").
 
-Note (brand weight / session intent -- a confirmer): the AC asks for
-swipe_right to also carry "poids de marque et intent de session", but
-neither InteractionEvent nor EditablePreferences has a dedicated field for
-either. Implemented here as a best-effort interpretation -- brand from
-event.payload["brand"] is added to liked_brands, and an optional
-event.payload["session_intent_weight"] multiplies alpha -- pending
-confirmation with the team.
+Note (brand weight): swipe_right's "poids de marque" is implemented as a
+weighted entry in editable_preferences.locked_attributes (attribute="brand"),
+incremented by the same alpha as the style vector update -- not as a plain
+liked_brands append, since only locked_attributes actually carries a weight.
+
+Session intent is NOT handled here: contracts/pipeline.py::RecoRequest
+already has a `session_intent` field (a style tag like "casual"/"sport",
+set per feed request) -- that's a retrieval/ranking-time bias, unrelated
+to processing a single InteractionEvent, so it has no place in this module.
 """
 from __future__ import annotations
 
@@ -42,22 +44,27 @@ def _accumulate(vector: list[float], embedding: list[float], weight: float) -> l
     return _l2_normalize(updated)
 
 
-def _weighted_alpha(event: InteractionEvent, base_alpha: float) -> float:
-    return base_alpha * float(event.payload.get("session_intent_weight", 1.0))
+def _increment_locked_attribute(
+    data: dict[str, Any], attribute: str, value: str, increment: float,
+) -> None:
+    attrs = data["editable_preferences"]["locked_attributes"]
+    for attr in attrs:
+        if attr["attribute"] == attribute and attr["value"] == value:
+            attr["weight"] += increment
+            return
+    attrs.append({"attribute": attribute, "value": value, "weight": increment})
 
 
 def _apply_positive_signal(data: dict[str, Any], event: InteractionEvent, alpha: float) -> None:
     embedding = event.payload.get("product_embedding")
     if embedding:
-        weight = _weighted_alpha(event, alpha)
         data["vectors"]["positive"] = _accumulate(
-            data["vectors"]["positive"], embedding, weight,
+            data["vectors"]["positive"], embedding, alpha,
         )
 
     brand = event.payload.get("brand")
-    liked_brands = data["editable_preferences"]["liked_brands"]
-    if brand and brand not in liked_brands:
-        liked_brands.append(brand)
+    if brand:
+        _increment_locked_attribute(data, "brand", brand, alpha)
 
 
 def _apply_negative_style_signal(data: dict[str, Any], event: InteractionEvent) -> None:

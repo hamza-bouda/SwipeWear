@@ -53,12 +53,31 @@ class TestSwipeRight:
         )
         assert updated.vectors.negative == []
 
-    def test_adds_brand_to_liked_brands(self) -> None:
+    def test_adds_brand_as_locked_attribute_with_weight(self) -> None:
         updated = PreferenceUpdater().apply(
             _profile(),
             _event(EventType.swipe_right, product_embedding=EMBEDDING, brand="Carhartt"),
         )
-        assert "Carhartt" in updated.editable_preferences.liked_brands
+        attrs = updated.editable_preferences.locked_attributes
+        assert len(attrs) == 1
+        assert attrs[0].attribute == "brand"
+        assert attrs[0].value == "Carhartt"
+        assert attrs[0].weight == pytest.approx(ALPHA)
+
+    def test_repeated_brand_increments_existing_weight(self) -> None:
+        updater = PreferenceUpdater()
+        event = _event(EventType.swipe_right, product_embedding=EMBEDDING, brand="Carhartt")
+        profile = updater.apply(_profile(), event)
+        profile = updater.apply(profile, event)
+        attrs = profile.editable_preferences.locked_attributes
+        assert len(attrs) == 1
+        assert attrs[0].weight == pytest.approx(ALPHA * 2)
+
+    def test_no_brand_in_payload_leaves_locked_attributes_empty(self) -> None:
+        updated = PreferenceUpdater().apply(
+            _profile(), _event(EventType.swipe_right, product_embedding=EMBEDDING),
+        )
+        assert updated.editable_preferences.locked_attributes == []
 
     def test_increments_event_count(self) -> None:
         updated = PreferenceUpdater().apply(
@@ -121,6 +140,14 @@ class TestSaveAndOpen:
 
     def test_alpha_strong_is_double_alpha(self) -> None:
         assert ALPHA_STRONG == pytest.approx(ALPHA * 2)
+
+    def test_brand_weight_uses_alpha_strong(self) -> None:
+        updated = PreferenceUpdater().apply(
+            _profile(),
+            _event(EventType.save, product_embedding=EMBEDDING, brand="Patagonia"),
+        )
+        attrs = updated.editable_preferences.locked_attributes
+        assert attrs[0].weight == pytest.approx(ALPHA_STRONG)
 
 
 class TestEditPreference:
