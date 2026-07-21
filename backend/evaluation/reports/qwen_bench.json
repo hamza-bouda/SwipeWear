@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "ticket": "KAN-30",
+  "generated_at": "2026-07-20T22:52:43.600736+00:00",
+  "model_id": "Qwen/Qwen3-VL-2B-Instruct",
+  "quantization": "int8",
+  "device": "cpu",
+  "image_count": 5,
+  "successful_image_count": 5,
+  "load_latency_seconds": 380.837316,
+  "mean_inference_seconds": 270.459197,
+  "median_inference_seconds": 262.979304,
+  "peak_ram_mb": 6532.78,
+  "ram_delta_mb": 6510.73,
+  "go_threshold_seconds": 3.0,
+  "verdict": "DEFER",
+  "decision_reason": "DEFER: mean inference latency 270.459s/image is not below the 3.0s target",
+  "images": [
+    {
+      "image": "woman.jpg",
+      "latency_seconds": 262.979304,
+      "ram_mb": 6455.0,
+      "succeeded": true,
+      "output": "The image features a woman in a stylish, modern outfit consisting of a maroon coat, a light pink top, and a grey skirt, complemented by black gloves and sunglasses, with a bold red lip, and carrying multiple shopping bags.",
+      "error": null
+    },
+    {
+      "image": "man.jpg",
+      "latency_seconds": 341.017751,
+      "ram_mb": 6501.04,
+      "succeeded": true,
+      "output": "A rust-colored bomber jacket with a black label, displayed on a white hanger against a neutral background, showcasing a classic, casual, and modern style.",
+      "error": null
+    },
+    {
+      "image": "shop.jpg",
+      "latency_seconds": 253.519183,
+      "ram_mb": 6499.3,
+      "succeeded": true,
+      "output": "The store features a mix of casual and sporty clothing, including jackets, shirts, and pants, with a dominant blue and white color scheme and a rugged, urban fashion style.",
+      "error": null
+    },
+    {
+      "image": "rack.jpg",
+      "latency_seconds": 202.329171,
+      "ram_mb": 6427.34,
+      "succeeded": true,
+      "output": "The image displays a collection of women's clothing, primarily featuring cardigans, sweaters, and coats in a range of neutral tones including beige, cream, and earthy browns, with a soft, cozy, and sophisticated style.",
+      "error": null
+    },
+    {
+      "image": "jacket.jpg",
+      "latency_seconds": 292.450577,
+      "ram_mb": 6532.78,
+      "succeeded": true,
+      "output": "A black leather biker jacket with silver zippers and snap buttons, displayed on a white textured surface, exudes a classic and edgy biker style.",
+      "error": null
+    }
+  ],
+  "environment": {
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "cpu": "AMD64 Family 23 Model 96 Stepping 1, AuthenticAMD",
+    "logical_cpu_count": 6,
+    "total_ram_mb": 15591.43
+  },
+  "error": null
+}
