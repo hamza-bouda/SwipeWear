@@ -6,7 +6,7 @@ from fastapi import FastAPI
 
 from api.db import close_pool, init_pool
 from api.errors import unhandled_exception_handler
-from api.routers import auth, events, feed, ladder, onboarding, profile
+from api.routers import auth, debug, events, feed, ladder, onboarding, profile
 
 
 @asynccontextmanager
@@ -31,6 +31,7 @@ app.include_router(ladder.router)
 app.include_router(events.router)
 app.include_router(profile.router)
 app.include_router(onboarding.router)
+app.include_router(debug.router)
 
 
 @app.get("/health", tags=["infra"])
