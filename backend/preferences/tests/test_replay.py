@@ -40,8 +40,10 @@ class TestReplayEvents:
         assert profile.user_id == USER_ID
 
     def test_price_constraint_set_by_swipe_left_price(self):
+        # KAN-32: max_price_eur = min(current, product_price * 0.9) -- a 10%
+        # margin below the price the user rejected, not the price itself.
         profile = replay_events_in_memory(FIVE_EVENTS, user_id=USER_ID)
-        assert profile.hard_constraints.max_price_eur == 200.0
+        assert profile.hard_constraints.max_price_eur == 180.0
 
     def test_edit_preference_adds_liked_brand(self):
         profile = replay_events_in_memory(FIVE_EVENTS, user_id=USER_ID)
