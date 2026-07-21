@@ -3,6 +3,11 @@
 All breaking changes to shared schemas must be recorded here.
 Increment `schema_version` in `contracts/interfaces.py` for breaking changes.
 
+## v1.6 — 2026-07-21 — Hamza Bouda (KAN-76)
+- ProductSource: added `etsy` variant.
+  Non-breaking — new enum value; existing sources unaffected.
+  Required for Etsy Open API v3 connector (vintage & second-hand fashion).
+
 ## v1.5 — 2026-07-20 — Hamza Bouda (KAN-25)
 - ProductRecord: added `enriched_attrs: dict[str, str]` (default `{}`).
   Non-breaking — optional field; existing records and tests unaffected.

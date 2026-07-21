@@ -13,6 +13,7 @@ class ProductSource(str, Enum):
     ebay = "ebay"
     awin = "awin"
     cj = "cj"
+    etsy = "etsy"
 
 
 class ProductCondition(str, Enum):

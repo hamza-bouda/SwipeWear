@@ -396,28 +396,23 @@ class TestVectorRetrieverProductParsing:
 # ============================================================================
 
 def _make_fallback_row(product_id: str = "p1", **overrides) -> tuple:
+    from retrieval.fallback import _DB_COLUMNS
     defaults = dict(
         id=product_id,
         source="ebay",
         source_record_id=f"ebay-{product_id}",
         title=f"Product {product_id}",
-        brand="Nike",
-        model="AF1",
         price=45.0,
-        currency="EUR",
         condition="good",
-        size_raw="M",
-        size_eu="M",
         category="sneakers",
         image_urls=["https://example.com/img.jpg"],
-        affiliate_url=None,
-        available=True,
-        enriched_attrs={},
-        schema_version=1,
+        size_raw="M",
+        size_eu="M",
+        brand="Nike",
         embedding_version="fashionsiglip-v1",
     )
     defaults.update(overrides)
-    return tuple(defaults[c] for c in _PRODUCT_COLUMNS)
+    return tuple(defaults[c] for c in _DB_COLUMNS)
 
 
 class TestFallbackRetriever:
@@ -441,12 +436,12 @@ class TestFallbackRetriever:
         result = fb.retrieve(_profile(sizes=["M"]))
         assert "size" in result.hard_filters_applied
 
-    def test_query_orders_by_indexed_at_desc(self) -> None:
+    def test_query_orders_by_created_at_desc(self) -> None:
         conn = _mock_conn([])
         fb = FallbackRetriever(lambda: conn)
         fb.retrieve(_profile())
         sql, _ = conn.cursor.return_value.execute.call_args[0]
-        assert "indexed_at DESC" in sql
+        assert "created_at DESC" in sql
 
     def test_logs_warning(self) -> None:
         conn = _mock_conn([])
