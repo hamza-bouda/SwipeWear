@@ -5,3 +5,5 @@ export { OnboardingScreen } from './OnboardingScreen';
 export { StyleSelectionScreen } from './StyleSelectionScreen';
 export { ImageImportScreen } from './ImageImportScreen';
 export { ConstraintsScreen } from './ConstraintsScreen';
+export { LoginScreen } from './LoginScreen';
+export { ProductDetailScreen } from './ProductDetailScreen';
