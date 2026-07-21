@@ -7,6 +7,7 @@ export type RootStackParamList = {
   ProductDetail: { productId: string };
   PriceLadder: { productId: string };
   Login: undefined;
+  Algorithm: undefined;
 };
 
 export type MainTabParamList = {
