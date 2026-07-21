@@ -25,6 +25,23 @@ def _elapsed_ms(t0: float) -> float:
     return round((time.perf_counter() - t0) * 1000, 2)
 
 
+def _editable_tag_fallback(feed: RankedFeed) -> list[Explanation]:
+    """Return editable tags, without a generated sentence, for each item."""
+    explanations: list[Explanation] = []
+    for item in feed.items:
+        product = item.product
+        tags = [
+            value
+            for value in (product.brand, product.category, product.condition.value)
+            if value
+        ]
+        explanations.append(Explanation(
+            product_id=product.id,
+            editable_tags=tags,
+        ))
+    return explanations
+
+
 class RecoOrchestrator:
     """Sequences pipeline calls. Contains NO business logic — only call ordering.
 
@@ -182,6 +199,7 @@ class RecoOrchestrator:
                 "explainer fallback triggered",
                 extra={"pipe_module": "explainability", "error": warning},
             )
+            explanations = _editable_tag_fallback(ranked_feed)
             traces.append(
                 ModuleTrace(
                     module="explainability",
@@ -193,6 +211,18 @@ class RecoOrchestrator:
 
         if any_fallback and not ranked_feed.fallback_used:
             ranked_feed = ranked_feed.model_copy(update={"fallback_used": True})
+
+        explanation_by_product = {
+            explanation.product_id: explanation for explanation in explanations
+        }
+        ranked_feed = ranked_feed.model_copy(update={
+            "items": [
+                item.model_copy(update={
+                    "explanation": explanation_by_product.get(item.product.id),
+                })
+                for item in ranked_feed.items
+            ],
+        })
 
         logger.info(
             "pipeline complete",

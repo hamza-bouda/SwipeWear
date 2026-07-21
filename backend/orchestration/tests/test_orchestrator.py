@@ -131,6 +131,7 @@ class TestRecoOrchestratorHappyPath:
         orch = _make_orchestrator()
         feed = orch.get_feed(_make_request())
         assert len(feed.items) == 2
+        assert feed.items[0].explanation is not None
 
 
 # ── Fallbacks ────────────────────────────────────────────────────────────────
@@ -166,6 +167,9 @@ class TestRecoOrchestratorFallbacks:
         orch = _make_orchestrator(explainer=explainer)
         feed = orch.get_feed(_make_request())
         assert isinstance(feed, RankedFeed)
+        assert feed.items[0].explanation is not None
+        assert feed.items[0].explanation.grounded is False
+        assert feed.items[0].explanation.editable_tags == ["sneakers", "good"]
 
     def test_generic_exception_in_retriever_is_caught(self):
         retriever = MagicMock()
