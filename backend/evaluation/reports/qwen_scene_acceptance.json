@@ -1,0 +1,30 @@
+{
+  "ticket": "KAN-67",
+  "model": "Qwen/Qwen3-VL-2B-Instruct",
+  "quantization": "int8-weight-only",
+  "device": "cpu",
+  "date": "2026-07-21",
+  "result": "PASS",
+  "criterion": "three real fashion scenes with at least two named garments and crops each",
+  "cases": [
+    {
+      "image": "tests_ia/images/woman.jpg",
+      "categories": ["coat", "skirt"],
+      "crop_count": 2,
+      "passed": true
+    },
+    {
+      "image": "tests_ia/images/shop.jpg",
+      "categories": ["jacket", "jacket"],
+      "crop_count": 2,
+      "passed": true
+    },
+    {
+      "image": "tests_ia/images/rack.jpg",
+      "categories": ["jacket", "jacket"],
+      "crop_count": 2,
+      "passed": true
+    }
+  ],
+  "notes": "Images were validated in resumed subsets to reuse the expensive CPU acceptance workflow; the default test set remains all three images."
+}
