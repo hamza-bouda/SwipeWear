@@ -1,6 +1,11 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { OnboardingScreen } from '../screens';
+import {
+  OnboardingScreen,
+  StyleSelectionScreen,
+  ImageImportScreen,
+  ConstraintsScreen,
+} from '../screens';
 import { MainTabs } from './MainTabs';
 import { RootStackParamList } from './types';
 
@@ -13,6 +18,9 @@ export function RootNavigator() {
       screenOptions={{ headerShown: false }}
     >
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+      <Stack.Screen name="StyleSelection" component={StyleSelectionScreen} />
+      <Stack.Screen name="ImageImport" component={ImageImportScreen} />
+      <Stack.Screen name="Constraints" component={ConstraintsScreen} />
       <Stack.Screen name="Main" component={MainTabs} />
     </Stack.Navigator>
   );
