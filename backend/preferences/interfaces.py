@@ -1,6 +1,7 @@
 from __future__ import annotations
 from uuid import UUID
 from contracts.interfaces import InteractionEvent, UserPreferenceProfile
+from preferences.store import ProfileStore  # noqa: F401
 
 async def apply_event(
     profile: UserPreferenceProfile,
