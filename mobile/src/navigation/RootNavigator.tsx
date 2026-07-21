@@ -6,6 +6,7 @@ import {
   ImageImportScreen,
   ConstraintsScreen,
   LoginScreen,
+  ProductDetailScreen,
 } from '../screens';
 import { MainTabs } from './MainTabs';
 import { RootStackParamList } from './types';
@@ -23,6 +24,7 @@ export function RootNavigator() {
       <Stack.Screen name="ImageImport" component={ImageImportScreen} />
       <Stack.Screen name="Constraints" component={ConstraintsScreen} />
       <Stack.Screen name="Main" component={MainTabs} />
+      <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
     </Stack.Navigator>
   );
