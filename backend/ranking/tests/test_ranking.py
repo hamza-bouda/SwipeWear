@@ -1,4 +1,4 @@
-"""Tests for the ranking module — TransparentRanker (KAN-41)."""
+"""Tests for the ranking module — TransparentRanker + fallbacks."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -8,6 +8,11 @@ import pytest
 
 from contracts.pipeline import CandidateItem, CandidateSet, RankedFeed
 from contracts.product import ProductCondition, ProductRecord, ProductSource
+from ranking.fallback import (
+    apply_policy_with_fallback,
+    rank_with_fallback,
+    similarity_fallback_rank,
+)
 from contracts.profile import (
     EditablePreferences,
     HardConstraints,
@@ -313,3 +318,85 @@ class TestConfig:
     def test_weights_are_frozen(self) -> None:
         with pytest.raises(AttributeError):
             DEFAULT_WEIGHTS.similarity = 0.99
+
+
+# ── Fallbacks (KAN-47) ──────────────────────────────────────────────────────
+
+class TestSimilarityFallbackRank:
+    def test_sorts_by_similarity_desc(self) -> None:
+        cs = _make_candidate_set(
+            _make_candidate("p-1", similarity=0.5, rank=2, price=50.0),
+            _make_candidate("p-2", similarity=0.9, rank=1, price=50.0),
+            _make_candidate("p-3", similarity=0.7, rank=3, price=50.0),
+        )
+        feed = similarity_fallback_rank(cs)
+        ids = [it.product.id for it in feed.items]
+        assert ids == ["p-2", "p-3", "p-1"]
+
+    def test_fallback_used_flag_set(self) -> None:
+        cs = _make_candidate_set(_make_candidate())
+        feed = similarity_fallback_rank(cs)
+        assert feed.fallback_used is True
+
+    def test_preserves_request_id(self) -> None:
+        rid = uuid4()
+        cs = CandidateSet(request_id=rid, candidates=[])
+        feed = similarity_fallback_rank(cs)
+        assert feed.request_id == rid
+
+    def test_score_is_similarity(self) -> None:
+        cs = _make_candidate_set(_make_candidate(similarity=0.75))
+        feed = similarity_fallback_rank(cs)
+        assert feed.items[0].final_score == 0.75
+        assert feed.items[0].score_breakdown["similarity"] == 0.75
+
+
+class TestRankWithFallback:
+    def test_success_returns_ranker_result(self) -> None:
+        cs = _make_candidate_set(_make_candidate())
+        profile = _make_profile()
+
+        def ok_ranker(c, p):
+            return TransparentRanker().rank(c, p)
+
+        feed = rank_with_fallback(ok_ranker, cs, profile)
+        assert feed.fallback_used is False
+
+    def test_exception_returns_similarity_fallback(self) -> None:
+        cs = _make_candidate_set(
+            _make_candidate("p-1", similarity=0.5, rank=2, price=50.0),
+            _make_candidate("p-2", similarity=0.9, rank=1, price=50.0),
+        )
+        profile = _make_profile()
+
+        def bad_ranker(c, p):
+            raise RuntimeError("ranker exploded")
+
+        feed = rank_with_fallback(bad_ranker, cs, profile)
+        assert feed.fallback_used is True
+        assert feed.items[0].product.id == "p-2"
+
+
+class TestApplyPolicyWithFallback:
+    def test_success_returns_policy_result(self) -> None:
+        cs = _make_candidate_set(_make_candidate())
+        original_feed = TransparentRanker().rank(cs, _make_profile())
+
+        def ok_policy(f):
+            return f.model_copy(update={"diversity_applied": True})
+
+        result = apply_policy_with_fallback(ok_policy, original_feed)
+        assert result.diversity_applied is True
+        assert result.fallback_used is False
+
+    def test_exception_returns_original_feed(self) -> None:
+        cs = _make_candidate_set(_make_candidate())
+        original_feed = TransparentRanker().rank(cs, _make_profile())
+
+        def bad_policy(f):
+            raise RuntimeError("policy exploded")
+
+        result = apply_policy_with_fallback(bad_policy, original_feed)
+        assert result.fallback_used is True
+        assert len(result.items) == len(original_feed.items)
+        assert result.diversity_applied is False
