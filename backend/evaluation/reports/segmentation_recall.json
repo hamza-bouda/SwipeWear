@@ -1,0 +1,137 @@
+{
+  "activated": false,
+  "activation_rule": "activate only when Recall@10 gain is strictly positive",
+  "cases": [
+    {
+      "category": "accessory",
+      "fallback_reason": null,
+      "fallback_used": false,
+      "garment_fraction": 0.0,
+      "image": "bag.jpg",
+      "person_detected": false,
+      "segmentation_applied": false
+    },
+    {
+      "category": "accessory",
+      "fallback_reason": null,
+      "fallback_used": false,
+      "garment_fraction": 0.0194,
+      "image": "glasses.jpg",
+      "person_detected": true,
+      "segmentation_applied": true
+    },
+    {
+      "category": "outerwear",
+      "fallback_reason": null,
+      "fallback_used": false,
+      "garment_fraction": 0.0,
+      "image": "jacket.jpg",
+      "person_detected": false,
+      "segmentation_applied": false
+    },
+    {
+      "category": "pants",
+      "fallback_reason": null,
+      "fallback_used": false,
+      "garment_fraction": 0.0,
+      "image": "jeans.jpg",
+      "person_detected": false,
+      "segmentation_applied": false
+    },
+    {
+      "category": "outerwear",
+      "fallback_reason": null,
+      "fallback_used": false,
+      "garment_fraction": 0.439333,
+      "image": "man.jpg",
+      "person_detected": true,
+      "segmentation_applied": true
+    },
+    {
+      "category": "outerwear",
+      "fallback_reason": null,
+      "fallback_used": false,
+      "garment_fraction": 0.0,
+      "image": "rack.jpg",
+      "person_detected": false,
+      "segmentation_applied": false
+    },
+    {
+      "category": "outerwear",
+      "fallback_reason": null,
+      "fallback_used": false,
+      "garment_fraction": 0.0,
+      "image": "shop.jpg",
+      "person_detected": false,
+      "segmentation_applied": false
+    },
+    {
+      "category": "footwear",
+      "fallback_reason": null,
+      "fallback_used": false,
+      "garment_fraction": 0.0,
+      "image": "sneaker.jpg",
+      "person_detected": false,
+      "segmentation_applied": false
+    },
+    {
+      "category": "footwear",
+      "fallback_reason": null,
+      "fallback_used": false,
+      "garment_fraction": 0.0,
+      "image": "sneaker2.jpg",
+      "person_detected": false,
+      "segmentation_applied": false
+    },
+    {
+      "category": "tops",
+      "fallback_reason": null,
+      "fallback_used": false,
+      "garment_fraction": 0.0,
+      "image": "tee.jpg",
+      "person_detected": false,
+      "segmentation_applied": false
+    },
+    {
+      "category": "tops",
+      "fallback_reason": null,
+      "fallback_used": false,
+      "garment_fraction": 0.424892,
+      "image": "tees.jpg",
+      "person_detected": true,
+      "segmentation_applied": true
+    },
+    {
+      "category": "accessory",
+      "fallback_reason": null,
+      "fallback_used": false,
+      "garment_fraction": 0.052496,
+      "image": "watch.jpg",
+      "person_detected": true,
+      "segmentation_applied": true
+    },
+    {
+      "category": "outerwear",
+      "fallback_reason": null,
+      "fallback_used": false,
+      "garment_fraction": 0.221054,
+      "image": "woman.jpg",
+      "person_detected": true,
+      "segmentation_applied": true
+    }
+  ],
+  "catalogue_size": 13,
+  "date": "2026-07-21T09:44:12.835805+00:00",
+  "embedding_model": "fashionsiglip-q4f16-onnx-v1",
+  "query_count": 12,
+  "recall_at_10": {
+    "activated": false,
+    "baseline": 0.916667,
+    "gain": -0.166667,
+    "k": 10,
+    "segmented": 0.75
+  },
+  "scenario": "tests_ia golden image catalogue with leave-one-out image queries",
+  "segmentation_model": "mattmdjaga/segformer_b2_clothes",
+  "ticket": "KAN-68"
+}
