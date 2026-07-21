@@ -11,6 +11,8 @@ from contracts.pipeline import (
     RecoRequest,
 )
 from contracts.profile import UserPreferenceProfile
+from contracts.trace import RequestTrace
+from orchestration.latency_budgets import annotate_budgets, severe_budget_breaches
 from orchestration.interfaces import (
     ExplainerProtocol,
     PolicyProtocol,
@@ -67,13 +69,19 @@ class RecoOrchestrator:
         self._explainer = explainer
 
     def get_feed(self, request: RecoRequest) -> RankedFeed:
+        feed, _ = self.get_feed_with_trace(request)
+        return feed
+
+    def get_feed_with_trace(self, request: RecoRequest) -> tuple[RankedFeed, RequestTrace]:
         traces: list[ModuleTrace] = []
         profile: UserPreferenceProfile = request.user_profile
         any_fallback = False
+        pipeline_started = time.perf_counter()
 
         # ── Step 1: hard_filter ──────────────────────────────────────────────
         # Hard constraints live in profile.hard_constraints and are forwarded
         # to the retriever as part of the RecoRequest. No separate module.
+        hard_filter_started = time.perf_counter()
         hard_filters = [
             *(f"size:{s}" for s in profile.hard_constraints.sizes),
             *(f"excl_condition:{c}" for c in profile.hard_constraints.excluded_conditions),
@@ -87,12 +95,15 @@ class RecoOrchestrator:
             "hard_filter applied",
             extra={"pipe_module": "hard_filter", "filters": hard_filters},
         )
+        traces.append(ModuleTrace(
+            module="hard_filter", latency_ms=_elapsed_ms(hard_filter_started), version="v1",
+        ))
 
         # ── Step 2: retrieve ─────────────────────────────────────────────────
         t0 = time.perf_counter()
         try:
             candidate_set = self._retriever.retrieve(request)
-            traces.append(ModuleTrace(module="retrieval", latency_ms=_elapsed_ms(t0)))
+            traces.append(ModuleTrace(module="retrieve", latency_ms=_elapsed_ms(t0), version="v1"))
         except Exception as exc:
             # blueprint §12: retriever KO → empty set flagged as fallback
             elapsed = _elapsed_ms(t0)
@@ -110,8 +121,9 @@ class RecoOrchestrator:
             )
             traces.append(
                 ModuleTrace(
-                    module="retrieval",
+                    module="retrieve",
                     latency_ms=elapsed,
+                    version="v1",
                     fallback_used=True,
                     warnings=[warning],
                 )
@@ -121,7 +133,7 @@ class RecoOrchestrator:
         t0 = time.perf_counter()
         try:
             ranked_feed = self._ranker.rank(candidate_set, profile)
-            traces.append(ModuleTrace(module="ranking", latency_ms=_elapsed_ms(t0)))
+            traces.append(ModuleTrace(module="rank", latency_ms=_elapsed_ms(t0), version="v1"))
         except Exception as exc:
             # blueprint §12: ranker KO → candidates sorted by similarity_score
             elapsed = _elapsed_ms(t0)
@@ -154,8 +166,9 @@ class RecoOrchestrator:
             )
             traces.append(
                 ModuleTrace(
-                    module="ranking",
+                    module="rank",
                     latency_ms=elapsed,
+                    version="v1",
                     fallback_used=True,
                     warnings=[warning],
                 )
@@ -165,7 +178,7 @@ class RecoOrchestrator:
         t0 = time.perf_counter()
         try:
             ranked_feed = self._policy.apply(ranked_feed, profile)
-            traces.append(ModuleTrace(module="policy", latency_ms=_elapsed_ms(t0)))
+            traces.append(ModuleTrace(module="diversify", latency_ms=_elapsed_ms(t0), version="v1"))
         except Exception as exc:
             # blueprint §12: policy KO → ranked feed untouched
             elapsed = _elapsed_ms(t0)
@@ -177,8 +190,9 @@ class RecoOrchestrator:
             )
             traces.append(
                 ModuleTrace(
-                    module="policy",
+                    module="diversify",
                     latency_ms=elapsed,
+                    version="v1",
                     fallback_used=True,
                     warnings=[warning],
                 )
@@ -189,7 +203,7 @@ class RecoOrchestrator:
         explanations: list[Explanation] = []
         try:
             explanations = self._explainer.explain(ranked_feed, profile)
-            traces.append(ModuleTrace(module="explainability", latency_ms=_elapsed_ms(t0)))
+            traces.append(ModuleTrace(module="explain", latency_ms=_elapsed_ms(t0), version="v1"))
         except Exception as exc:
             # blueprint §12: explainer KO → empty list (editable_tags fallback in module)
             elapsed = _elapsed_ms(t0)
@@ -202,8 +216,9 @@ class RecoOrchestrator:
             explanations = _editable_tag_fallback(ranked_feed)
             traces.append(
                 ModuleTrace(
-                    module="explainability",
+                    module="explain",
                     latency_ms=elapsed,
+                    version="v1",
                     fallback_used=True,
                     warnings=[warning],
                 )
@@ -223,18 +238,17 @@ class RecoOrchestrator:
                 for item in ranked_feed.items
             ],
         })
-
-        logger.info(
-            "pipeline complete",
-            extra={
-                "request_id": str(request.request_id),
-                "n_candidates": len(candidate_set.candidates),
-                "n_results": len(ranked_feed.items),
-                "n_explanations": len(explanations),
-                "traces": [t.model_dump() for t in traces],
-            },
-        )
-        return ranked_feed
+        trace = annotate_budgets(RequestTrace(
+            user_id=profile.user_id,
+            modules=traces,
+            total_latency_ms=_elapsed_ms(pipeline_started),
+        ))
+        # Keep the message itself valid JSON so standard log collectors can
+        # ingest one complete trace object per recommendation request.
+        logger.info("%s", trace.model_dump_json())
+        for module in severe_budget_breaches(trace):
+            logger.error("latency budget severely exceeded", extra={"module": module})
+        return ranked_feed, trace
 
 
 __all__ = ["RecoOrchestrator"]
