@@ -1,10 +1,13 @@
-from __future__ import annotations
-from contracts.interfaces import CandidateSet, RankedItem, UserPreferenceProfile
+"""Ranking module public interface.
 
-def rank_candidates(
-    profile: UserPreferenceProfile,
-    candidates: CandidateSet,
-) -> list[RankedItem]:
-    # Pure function — no I/O, no DB reads. Latency < 50 ms CPU. Fallback: order by similarity.
-    # LightGBM ranker is frozen until real interaction data exists (see CLAUDE.md).
-    raise NotImplementedError
+Other modules import from here -- never from internal files (blueprint SS11).
+"""
+from __future__ import annotations
+
+from ranking.config import (  # noqa: F401
+    DEFAULT_WEIGHTS,
+    FRESHNESS_HALF_LIFE_DAYS,
+    PRICE_FIT_THRESHOLD,
+    RankingWeights,
+)
+from ranking.ranker import TransparentRanker  # noqa: F401
