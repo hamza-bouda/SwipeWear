@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button } from '../components';
+import { trackEvent } from '../analytics';
 import { colors, typography, spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 
@@ -10,6 +11,10 @@ interface Props {
 }
 
 export function OnboardingScreen({ navigation }: Props) {
+  useEffect(() => {
+    trackEvent({ name: 'onboarding_started' });
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -21,18 +26,27 @@ export function OnboardingScreen({ navigation }: Props) {
       <View style={styles.actions}>
         <Button
           title="Choose my styles"
-          onPress={() => navigation.navigate('StyleSelection')}
+          onPress={() => {
+            trackEvent({ name: 'onboarding_completed', properties: { route: 'styles' } });
+            navigation.navigate('StyleSelection');
+          }}
         />
         <Button
           title="Import my inspirations"
           variant="outline"
-          onPress={() => navigation.navigate('ImageImport')}
+          onPress={() => {
+            trackEvent({ name: 'onboarding_completed', properties: { route: 'images' } });
+            navigation.navigate('ImageImport');
+          }}
           style={styles.secondaryButton}
         />
         <Button
           title="Skip"
           variant="ghost"
-          onPress={() => navigation.replace('Main')}
+          onPress={() => {
+            trackEvent({ name: 'onboarding_completed', properties: { route: 'skip' } });
+            navigation.replace('Main');
+          }}
           style={styles.skipButton}
         />
       </View>
