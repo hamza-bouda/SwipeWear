@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { SwipeDeck, RejectSheet, Button } from '../components';
 import type { RejectReason } from '../components';
@@ -7,8 +9,12 @@ import { trackEvent } from '../analytics';
 import { Product } from '../types';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
 import { colors, typography, spacing } from '../theme';
+import { RootStackParamList } from '../navigation/types';
+import { useSaves } from '../context/SavesContext';
 
 export function FeedScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { toggleSave } = useSaves();
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [deckEmpty, setDeckEmpty] = useState(false);
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -38,11 +44,13 @@ export function FeedScreen() {
 
   const handleTap = useCallback((product: Product) => {
     trackEvent({ name: 'product_opened', properties: { product_id: product.id } });
-  }, []);
+    navigation.navigate('ProductDetail', { productId: product.id });
+  }, [navigation]);
 
   const handleSave = useCallback((product: Product) => {
     trackEvent({ name: 'save', properties: { product_id: product.id } });
-  }, []);
+    toggleSave(product);
+  }, [toggleSave]);
 
   const handleDeckEmpty = useCallback(() => {
     setDeckEmpty(true);
