@@ -3,13 +3,15 @@ from __future__ import annotations
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
 from api.auth import get_current_user_id
 from api.db import get_conn, put_conn
 from api.pipeline import build_orchestrator
 from api.schemas import FeedResponse
+from api.trace_store import save
 from contracts.pipeline import Explanation, RankedItem, RecoRequest
+from contracts.trace import RequestTrace
 from contracts.product import ProductCondition, ProductRecord, ProductSource
 from ingestion.interfaces import ClickContext, build_affiliate_url
 from preferences.interfaces import ProfileStore
@@ -95,6 +97,7 @@ def _enrich_with_affiliate_urls(
 def get_feed(
     n_results: int = 30,
     cursor: str | None = None,
+    response: Response = None,
     user_id: UUID = Depends(get_current_user_id),
 ):
     conn = None
@@ -108,7 +111,9 @@ def get_feed(
             user_profile=profile,
             n_results=n_results,
         )
-        ranked_feed = orchestrator.get_feed(request)
+        ranked_feed, trace = orchestrator.get_feed_with_trace(request)
+        save(trace)
+        response.headers["X-Trace-Id"] = str(trace.trace_id)
 
         items = _enrich_with_affiliate_urls(
             ranked_feed.items, ClickContext.feed,
@@ -133,6 +138,9 @@ def get_feed(
         _LOG.warning(
             "Pipeline unavailable, falling back to mock feed", exc_info=True,
         )
+        trace = RequestTrace(user_id=user_id)
+        save(trace)
+        response.headers["X-Trace-Id"] = str(trace.trace_id)
         return _get_mock_feed(n_results, cursor)
 
     finally:
