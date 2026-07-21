@@ -49,4 +49,5 @@ testpaths = [
     "explainability/tests",
     "evaluation/tests",
     "orchestration/tests",
+    "api/tests",
 ]
