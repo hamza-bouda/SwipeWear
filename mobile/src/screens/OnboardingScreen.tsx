@@ -21,12 +21,12 @@ export function OnboardingScreen({ navigation }: Props) {
       <View style={styles.actions}>
         <Button
           title="Choose my styles"
-          onPress={() => navigation.replace('Main')}
+          onPress={() => navigation.navigate('StyleSelection')}
         />
         <Button
           title="Import my inspirations"
           variant="outline"
-          onPress={() => navigation.replace('Main')}
+          onPress={() => navigation.navigate('ImageImport')}
           style={styles.secondaryButton}
         />
         <Button
