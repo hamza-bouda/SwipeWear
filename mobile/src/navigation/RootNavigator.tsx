@@ -5,6 +5,7 @@ import {
   StyleSelectionScreen,
   ImageImportScreen,
   ConstraintsScreen,
+  LoginScreen,
   ProductDetailScreen,
 } from '../screens';
 import { MainTabs } from './MainTabs';
@@ -24,6 +25,7 @@ export function RootNavigator() {
       <Stack.Screen name="Constraints" component={ConstraintsScreen} />
       <Stack.Screen name="Main" component={MainTabs} />
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
     </Stack.Navigator>
   );
 }
