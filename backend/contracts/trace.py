@@ -16,4 +16,3 @@ class RequestTrace(BaseModel):
     modules: list[ModuleTrace] = Field(default_factory=list)
     total_latency_ms: float = 0.0
     schema_version: int = 1
-
