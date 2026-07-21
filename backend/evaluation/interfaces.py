@@ -6,6 +6,7 @@ from pathlib import Path
 
 from contracts.product import ProductRecord
 from contracts.profile import UserPreferenceProfile
+from evaluation.reporting import write_report
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -35,7 +36,7 @@ def _passes_hard_constraints(product: ProductRecord, profile: UserPreferenceProf
     return True
 
 
-def run_golden_scenario() -> EvaluationReport:
+def run_golden_scenario(write_report_file: bool = False) -> EvaluationReport:
     """Execute the golden scenario on fixed fixtures. Never modify fixtures to make this pass."""
     profile = UserPreferenceProfile.model_validate(
         json.loads((FIXTURES_DIR / "golden_user.json").read_text(encoding="utf-8"))
@@ -56,7 +57,7 @@ def run_golden_scenario() -> EvaluationReport:
     top10 = [p.id for p in ranked[:10]]
 
     passed = top10 == expected_ids
-    return EvaluationReport(
+    report = EvaluationReport(
         passed=passed,
         metrics={
             "catalogue_size": float(len(products)),
@@ -64,3 +65,6 @@ def run_golden_scenario() -> EvaluationReport:
             "top10_match": 1.0 if passed else 0.0,
         },
     )
+    if write_report_file:
+        write_report("golden", report)
+    return report

@@ -16,10 +16,11 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
+from evaluation.reporting import write_report as write_versioned_report
+
 _LOG = logging.getLogger("swipewear.evaluation.eval_retrieval")
 
 REPORTS_DIR = Path(__file__).parent / "reports"
-REPORT_PATH = REPORTS_DIR / "retrieval_eval.json"
 
 K_VALUES = [10, 20, 50, 100]
 RECALL_100_THRESHOLD = 0.8
@@ -76,12 +77,8 @@ def evaluate_retrieval(
     )
 
     if write_report:
-        REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-        REPORT_PATH.write_text(
-            json.dumps(asdict(report), indent=2) + "\n",
-            encoding="utf-8",
-        )
-        _LOG.info("Retrieval eval report written to %s", REPORT_PATH)
+        report_path = write_versioned_report("retrieval", report, reports_dir=REPORTS_DIR)
+        _LOG.info("Retrieval eval report written to %s", report_path)
 
     return report
 
