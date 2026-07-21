@@ -9,7 +9,7 @@ from api.auth import get_current_user_id
 from api.db import get_conn, put_conn
 from api.pipeline import build_orchestrator
 from api.schemas import FeedResponse
-from contracts.pipeline import RankedItem, RecoRequest
+from contracts.pipeline import Explanation, RankedItem, RecoRequest
 from contracts.product import ProductCondition, ProductRecord, ProductSource
 from ingestion.interfaces import ClickContext, build_affiliate_url
 from preferences.interfaces import ProfileStore
@@ -63,6 +63,13 @@ def _get_mock_feed(n_results: int, cursor: str | None) -> FeedResponse:
             product=p,
             final_score=1.0 - (i * 0.05),
             rank=start + i + 1,
+            explanation=Explanation(
+                product_id=p.id,
+                editable_tags=[
+                    value for value in (p.brand, p.category, p.condition.value)
+                    if value
+                ],
+            ),
         )
         for i, p in enumerate(products)
     ]

@@ -9,4 +9,5 @@ export interface Product {
   size: string | null;
   imageUrls: string[];
   source: string;
+  recommendationReason?: string;
 }
