@@ -54,4 +54,3 @@ def severe_budget_breaches(trace: RequestTrace) -> list[str]:
     if trace.total_latency_ms > 2 * TOTAL_FEED_BUDGET_MS:
         breaches.append("feed_total")
     return breaches
-
