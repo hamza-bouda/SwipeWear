@@ -1,11 +1,12 @@
-from __future__ import annotations
-from contracts.interfaces import CandidateSet, HardConstraints, StyleVector
+"""Retrieval module public interface.
 
-async def retrieve_candidates(
-    style_vector: StyleVector,
-    hard_constraints: HardConstraints,
-    top_k: int = 200,
-) -> CandidateSet:
-    # pgvector HNSW cosine. Latency < 100 ms CPU.
-    # Fallback: recent products matching hard constraints.
-    raise NotImplementedError
+Other modules import from here — never from internal files (blueprint SS11).
+"""
+from __future__ import annotations
+
+from retrieval.filters import (  # noqa: F401
+    REGION_SOURCE_MAP,
+    HardFilterResult,
+    apply_hard_filters,
+    matches_hard_filters,
+)
