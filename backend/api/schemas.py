@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -42,6 +43,33 @@ class ProfileResponse(BaseModel):
 class ProfilePatchRequest(BaseModel):
     hard_constraints: HardConstraints | None = None
     editable_preferences: EditablePreferences | None = None
+
+
+PreferenceAttribute = Literal[
+    "liked_brands", "rejected_brands", "color", "category", "style",
+    "max_price_eur", "sizes",
+]
+
+
+class PreferenceItem(BaseModel):
+    id: str
+    attribute: PreferenceAttribute
+    value: str
+    source: Literal["learned", "edited"]
+    locked: bool = False
+
+
+class PreferencesResponse(BaseModel):
+    preferences: list[PreferenceItem]
+
+
+class PreferenceMutationRequest(BaseModel):
+    attribute: PreferenceAttribute
+    value: str
+
+
+class PreferenceMutationResponse(BaseModel):
+    preference: PreferenceItem
 
 
 class OnboardingStylesRequest(BaseModel):
