@@ -49,6 +49,11 @@ export function SwipeCard({ product, onTap, onSave }: SwipeCardProps) {
           <Text style={styles.title} numberOfLines={1}>
             {product.title}
           </Text>
+          {product.recommendationReason ? (
+            <Text style={styles.reason} numberOfLines={1}>
+              {product.recommendationReason}
+            </Text>
+          ) : null}
           <View style={styles.priceRow}>
             <Text style={styles.price}>{product.price} {product.currency}</Text>
             <TouchableOpacity onPress={onSave} style={styles.saveButton}>
@@ -105,6 +110,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  reason: {
+    ...typography.label,
+    color: colors.textInverse,
+    opacity: 0.82,
+    marginBottom: spacing.xs,
   },
   price: {
     ...typography.h3,

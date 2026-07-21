@@ -76,6 +76,7 @@ class RankedItem(BaseModel):
     rank: int
     score_breakdown: dict[str, float] = Field(default_factory=dict)
     price_ladder: list[PriceLadderEntry] = Field(default_factory=list)
+    explanation: Explanation | None = None
 
 
 class RankedFeed(BaseModel):
@@ -100,6 +101,9 @@ class Explanation(BaseModel):
 
 
 # ── ModuleTrace — observability ──────────────────────────────────────────────
+
+RankedItem.model_rebuild()
+
 
 class ModuleTrace(BaseModel):
     module: str
