@@ -15,3 +15,4 @@ from retrieval.fallback import (  # noqa: F401
     retrieve_with_fallback,
 )
 from retrieval.retriever import VectorRetriever  # noqa: F401
+from retrieval.ladder import build_price_ladder  # noqa: F401
