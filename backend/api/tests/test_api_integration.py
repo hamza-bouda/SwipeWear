@@ -9,13 +9,16 @@ from fastapi.testclient import TestClient
 from api.app import app
 from api.auth import create_token
 from api import store
+from api import trace_store
 
 
 @pytest.fixture(autouse=True)
 def _clean_store():
     store.reset()
+    trace_store.reset()
     yield
     store.reset()
+    trace_store.reset()
 
 
 @pytest.fixture()
@@ -130,6 +133,14 @@ class TestFeed:
         body2 = resp2.json()
         assert len(body2["items"]) == 3
         assert body2["next_cursor"] == "6"
+
+    def test_feed_exposes_owner_only_debug_trace(self, client, auth_headers):
+        feed = client.get("/feed", headers=auth_headers)
+        trace_id = feed.headers["x-trace-id"]
+        trace = client.get(f"/debug/trace/{trace_id}", headers=auth_headers)
+
+        assert trace.status_code == 200
+        assert trace.json()["trace_id"] == trace_id
 
 
 class TestEvents:

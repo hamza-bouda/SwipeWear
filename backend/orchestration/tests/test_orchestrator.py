@@ -199,3 +199,21 @@ class TestErrors:
     def test_errors_carry_message(self):
         err = RetrievalError("pgvector unreachable")
         assert "pgvector" in str(err)
+
+
+class TestRequestTrace:
+    def test_trace_contains_each_pipeline_stage(self):
+        _, trace = _make_orchestrator().get_feed_with_trace(_make_request())
+
+        assert [module.module for module in trace.modules] == [
+            "hard_filter", "retrieve", "rank", "diversify", "explain",
+        ]
+
+    def test_ranker_failure_is_recorded_as_trace_fallback(self):
+        ranker = MagicMock()
+        ranker.rank.side_effect = RankingError("ranker unavailable")
+        _, trace = _make_orchestrator(ranker=ranker).get_feed_with_trace(_make_request())
+
+        rank = next(module for module in trace.modules if module.module == "rank")
+        assert rank.fallback_used is True
+        assert rank.warnings
