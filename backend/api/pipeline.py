@@ -11,6 +11,7 @@ from contracts.pipeline import (
     RecoRequest,
 )
 from contracts.profile import UserPreferenceProfile
+from explainability.explainer import GroundedExplainer, fallback_explanation
 from orchestration.orchestrator import RecoOrchestrator
 from policy.interfaces import mmr_rerank
 from ranking.interfaces import TransparentRanker
@@ -61,18 +62,7 @@ class FallbackExplainer:
     ) -> list[Explanation]:
         explanations: list[Explanation] = []
         for item in feed.items:
-            tags: list[str] = []
-            if item.product.brand:
-                tags.append(item.product.brand)
-            if item.product.category:
-                tags.append(item.product.category)
-            if item.product.condition:
-                tags.append(item.product.condition.value)
-            explanations.append(Explanation(
-                product_id=item.product.id,
-                editable_tags=tags,
-                grounded=False,
-            ))
+            explanations.append(fallback_explanation(item))
         return explanations
 
 
@@ -81,5 +71,5 @@ def build_orchestrator(get_conn: Callable[[], Any]) -> RecoOrchestrator:
         retriever=RetrieverAdapter(get_conn),
         ranker=TransparentRanker(),
         policy=PolicyAdapter(),
-        explainer=FallbackExplainer(),
+        explainer=GroundedExplainer(),
     )
