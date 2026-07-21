@@ -6,7 +6,9 @@ from contracts.pipeline import (
     CandidateItem,
     CandidateSet,
     Explanation,
+    MatchConfidence,
     ModuleTrace,
+    PriceLadder,
     PriceLadderEntry,
     RankedFeed,
     RankedItem,
@@ -114,14 +116,37 @@ class TestRankedFeed:
 
     def test_price_ladder_entry(self):
         entry = PriceLadderEntry(
+            product_id="prod-001",
             url="https://ebay.com/item/123",
             price_eur=79.99,
             source="ebay",
+            condition="good",
             is_new=False,
             affiliate_url="https://rover.ebay.com/...",
         )
         assert entry.price_eur == 79.99
         assert entry.is_new is False
+        assert entry.confidence == MatchConfidence.similar
+
+    def test_price_ladder_container(self):
+        ladder = PriceLadder(
+            source_product_id="prod-001",
+            entries=[
+                PriceLadderEntry(
+                    product_id="alt-1",
+                    url="https://ebay.com/item/456",
+                    price_eur=40.0,
+                    source="ebay",
+                    condition="good",
+                    confidence=MatchConfidence.exact,
+                ),
+            ],
+            min_price_eur=40.0,
+            max_price_eur=80.0,
+            savings_pct=50.0,
+        )
+        assert len(ladder.entries) == 1
+        assert ladder.savings_pct == 50.0
 
     def test_serialization_roundtrip(self):
         feed = RankedFeed(
