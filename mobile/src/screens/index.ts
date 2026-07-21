@@ -8,3 +8,4 @@ export { ConstraintsScreen } from './ConstraintsScreen';
 export { PriceLadderScreen } from './PriceLadderScreen';
 export { LoginScreen } from './LoginScreen';
 export { ProductDetailScreen } from './ProductDetailScreen';
+export { AlgorithmScreen } from './AlgorithmScreen';

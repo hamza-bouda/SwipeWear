@@ -8,6 +8,7 @@ import {
   LoginScreen,
   ProductDetailScreen,
   PriceLadderScreen,
+  AlgorithmScreen,
 } from '../screens';
 import { MainTabs } from './MainTabs';
 import { RootStackParamList } from './types';
@@ -28,6 +29,7 @@ export function RootNavigator() {
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
       <Stack.Screen name="PriceLadder" component={PriceLadderScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Algorithm" component={AlgorithmScreen} />
     </Stack.Navigator>
   );
 }
