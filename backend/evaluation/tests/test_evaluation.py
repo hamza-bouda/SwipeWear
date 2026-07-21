@@ -5,6 +5,12 @@ import pytest
 
 from contracts.product import ProductCondition, ProductRecord, ProductSource
 from contracts.profile import UserPreferenceProfile
+from evaluation.eval_retrieval import (
+    RECALL_100_THRESHOLD,
+    RetrievalEvalReport,
+    compute_recall_at_k,
+    evaluate_retrieval,
+)
 from evaluation.interfaces import EvaluationReport, _passes_hard_constraints, run_golden_scenario
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
@@ -141,3 +147,103 @@ class TestGoldenScenario:
         assert report.metrics["catalogue_size"] == 50.0
         assert report.metrics["passing_after_filter"] == 29.0
         assert report.metrics["top10_match"] == 1.0
+
+
+# -- Retrieval evaluation -- Recall@K (KAN-40) --------------------------------
+
+class TestComputeRecallAtK:
+    def test_perfect_recall(self) -> None:
+        expected = ["a", "b", "c"]
+        retrieved = ["a", "b", "c", "d", "e"]
+        assert compute_recall_at_k(retrieved, expected, k=5) == 1.0
+
+    def test_partial_recall(self) -> None:
+        expected = ["a", "b", "c", "d"]
+        retrieved = ["a", "b", "x", "y", "z"]
+        assert compute_recall_at_k(retrieved, expected, k=5) == 0.5
+
+    def test_zero_recall(self) -> None:
+        expected = ["a", "b"]
+        retrieved = ["x", "y", "z"]
+        assert compute_recall_at_k(retrieved, expected, k=3) == 0.0
+
+    def test_k_limits_retrieved(self) -> None:
+        expected = ["a", "b"]
+        retrieved = ["x", "y", "a", "b"]
+        assert compute_recall_at_k(retrieved, expected, k=2) == 0.0
+        assert compute_recall_at_k(retrieved, expected, k=4) == 1.0
+
+    def test_empty_expected_returns_1(self) -> None:
+        assert compute_recall_at_k(["a", "b"], [], k=10) == 1.0
+
+    def test_empty_retrieved_returns_0(self) -> None:
+        assert compute_recall_at_k([], ["a", "b"], k=10) == 0.0
+
+
+class TestEvaluateRetrieval:
+    def test_returns_report_with_all_k_values(self) -> None:
+        retrieved = [f"p{i}" for i in range(100)]
+        expected = [f"p{i}" for i in range(10)]
+        report = evaluate_retrieval(retrieved, expected, write_report=False)
+        assert isinstance(report, RetrievalEvalReport)
+        assert 10 in report.recall_at
+        assert 20 in report.recall_at
+        assert 50 in report.recall_at
+        assert 100 in report.recall_at
+
+    def test_passed_when_recall_100_above_threshold(self) -> None:
+        retrieved = [f"p{i}" for i in range(100)]
+        expected = [f"p{i}" for i in range(10)]
+        report = evaluate_retrieval(retrieved, expected, write_report=False)
+        assert report.passed is True
+        assert report.failure_reason == ""
+
+    def test_fails_when_recall_100_below_threshold(self) -> None:
+        retrieved = ["x"] * 100
+        expected = [f"p{i}" for i in range(10)]
+        report = evaluate_retrieval(retrieved, expected, write_report=False)
+        assert report.passed is False
+        assert "Recall@100" in report.failure_reason
+
+    def test_counts_populated(self) -> None:
+        retrieved = ["a", "b", "c"]
+        expected = ["a", "b"]
+        report = evaluate_retrieval(retrieved, expected, write_report=False)
+        assert report.expected_count == 2
+        assert report.retrieved_count == 3
+
+    def test_evaluated_at_is_set(self) -> None:
+        report = evaluate_retrieval(["a"], ["a"], write_report=False)
+        assert report.evaluated_at != ""
+
+    def test_write_report_creates_json(self, tmp_path) -> None:
+        import evaluation.eval_retrieval as mod
+
+        original_dir = mod.REPORTS_DIR
+        original_path = mod.REPORT_PATH
+        mod.REPORTS_DIR = tmp_path
+        mod.REPORT_PATH = tmp_path / "retrieval_eval.json"
+        try:
+            evaluate_retrieval(["a"], ["a"], write_report=True)
+            assert mod.REPORT_PATH.exists()
+            data = json.loads(mod.REPORT_PATH.read_text(encoding="utf-8"))
+            assert "recall_at" in data
+        finally:
+            mod.REPORTS_DIR = original_dir
+            mod.REPORT_PATH = original_path
+
+
+class TestGoldenRecall:
+    def test_recall_at_10_on_golden_catalogue(self) -> None:
+        """AC: on golden catalogue of 50 products, Recall@10 is coherent."""
+        exp_data = json.loads(
+            (FIXTURES / "golden_expected.json").read_text(encoding="utf-8"),
+        )
+        expected_ids = [e["product_id"] for e in exp_data["top10"]]
+        retrieved_ids = expected_ids + [f"filler-{i}" for i in range(40)]
+        report = evaluate_retrieval(
+            retrieved_ids, expected_ids, write_report=False,
+        )
+        assert report.recall_at[10] == 1.0
+        assert report.recall_at[100] >= RECALL_100_THRESHOLD
+        assert report.passed is True
