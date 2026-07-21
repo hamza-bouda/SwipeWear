@@ -11,10 +11,12 @@ import { MOCK_PRODUCTS } from '../data/mockProducts';
 import { colors, typography, spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { useSaves } from '../context/SavesContext';
+import { useAlgorithm } from '../context/AlgorithmContext';
 
 export function FeedScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { toggleSave } = useSaves();
+  const { preferences, revision } = useAlgorithm();
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [deckEmpty, setDeckEmpty] = useState(false);
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -57,9 +59,16 @@ export function FeedScreen() {
   }, []);
 
   const handleReload = useCallback(() => {
-    setProducts([...MOCK_PRODUCTS]);
+    const excluded = new Set(preferences
+      .filter((preference) => preference.kind === 'excluded_brand')
+      .map((preference) => preference.label.toLowerCase()));
+    setProducts(MOCK_PRODUCTS.filter((product) => !excluded.has(product.brand.toLowerCase())));
     setDeckEmpty(false);
-  }, []);
+  }, [preferences]);
+
+  useEffect(() => {
+    handleReload();
+  }, [revision, handleReload]);
 
   return (
     <View style={styles.container}>
