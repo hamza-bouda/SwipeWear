@@ -1,8 +1,14 @@
-"""Tests for retrieval/filters.py -- hard filters (KAN-37)."""
+"""Tests for retrieval module -- hard filters + vector retriever."""
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 from contracts.product import ProductCondition, ProductRecord, ProductSource
-from contracts.profile import HardConstraints, UserPreferenceProfile
+from contracts.profile import (
+    HardConstraints,
+    StyleVectors,
+    UserPreferenceProfile,
+)
 
 from retrieval.filters import (
     REGION_SOURCE_MAP,
@@ -10,9 +16,12 @@ from retrieval.filters import (
     apply_hard_filters,
     matches_hard_filters,
 )
+from retrieval.retriever import VectorRetriever, _PRODUCT_COLUMNS
 
 
-# -- Helpers ------------------------------------------------------------------
+# ============================================================================
+# Helpers
+# ============================================================================
 
 def _product(**overrides) -> ProductRecord:
     defaults = dict(
@@ -38,7 +47,58 @@ def _profile(**hc_overrides) -> UserPreferenceProfile:
     )
 
 
-# -- apply_hard_filters (SQL generation) -------------------------------------
+def _profile_with_vector(**kwargs) -> UserPreferenceProfile:
+    hc_fields = set(HardConstraints.model_fields)
+    hc = HardConstraints(**{k: v for k, v in kwargs.items() if k in hc_fields})
+    return UserPreferenceProfile(
+        hard_constraints=hc,
+        vectors=StyleVectors(positive=[0.1] * 512),
+        event_count=5,
+    )
+
+
+def _make_db_row(
+    product_id: str = "p1",
+    similarity: float = 0.9,
+    **overrides,
+) -> tuple:
+    defaults = dict(
+        id=product_id,
+        source="ebay",
+        source_record_id=f"ebay-{product_id}",
+        title=f"Product {product_id}",
+        brand="Nike",
+        model="AF1",
+        price=45.0,
+        currency="EUR",
+        condition="good",
+        size_raw="M",
+        size_eu="M",
+        category="sneakers",
+        image_urls=["https://example.com/img.jpg"],
+        affiliate_url=None,
+        available=True,
+        enriched_attrs={},
+        schema_version=1,
+        embedding_version="fashionsiglip-v1",
+    )
+    defaults.update(overrides)
+    return tuple(defaults[c] for c in _PRODUCT_COLUMNS) + (similarity,)
+
+
+def _mock_conn(rows: list[tuple]) -> MagicMock:
+    cursor = MagicMock()
+    cursor.fetchall.return_value = rows
+    cursor.__enter__ = lambda s: s
+    cursor.__exit__ = MagicMock(return_value=False)
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+    return conn
+
+
+# ============================================================================
+# apply_hard_filters (SQL generation) -- KAN-37
+# ============================================================================
 
 class TestApplyHardFiltersEmpty:
     def test_empty_constraints_only_availability(self) -> None:
@@ -82,7 +142,7 @@ class TestApplyHardFiltersRegion:
     def test_region_sources_resolved(self) -> None:
         result = apply_hard_filters(_profile(regions=["FR"]))
         assert result.params["filter_sources"] == sorted(
-            REGION_SOURCE_MAP["FR"]
+            REGION_SOURCE_MAP["FR"],
         )
 
     def test_unknown_region_skipped(self) -> None:
@@ -121,14 +181,14 @@ class TestApplyHardFiltersCombined:
         assert " AND " in result.where_sql
 
 
-# -- HardFilterResult --------------------------------------------------------
-
 class TestHardFilterResult:
     def test_empty_result_no_where(self) -> None:
         assert HardFilterResult().where_sql == ""
 
 
-# -- matches_hard_filters (in-memory) ----------------------------------------
+# ============================================================================
+# matches_hard_filters (in-memory) -- KAN-37
+# ============================================================================
 
 class TestMatchesEmpty:
     def test_available_product_passes(self) -> None:
@@ -208,3 +268,123 @@ class TestMatchesFullScenario:
         assert passing_ids == {"ok1", "ok2"}
         assert not any(p.size_eu == "XL" for p in passing)
         assert not any(p.price > 50.0 for p in passing)
+
+
+# ============================================================================
+# VectorRetriever -- KAN-38
+# ============================================================================
+
+class TestVectorRetrieverColdStart:
+    def test_cold_start_returns_empty_candidates(self) -> None:
+        conn = _mock_conn([])
+        retriever = VectorRetriever(lambda: conn)
+        result = retriever.retrieve(_profile())
+        assert result.candidates == []
+        assert result.retrieval_latency_ms == 0.0
+        conn.cursor.assert_not_called()
+
+
+class TestVectorRetrieverQuery:
+    def test_executes_query_with_style_vector(self) -> None:
+        conn = _mock_conn([])
+        retriever = VectorRetriever(lambda: conn)
+        profile = _profile_with_vector()
+        retriever.retrieve(profile, k=50)
+        cursor = conn.cursor.return_value
+        cursor.execute.assert_called_once()
+        sql, params = cursor.execute.call_args[0]
+        assert "embedding <=>" in sql
+        assert params["style_vector"] == profile.vectors.positive
+        assert params["k"] == 50
+
+    def test_hard_filters_in_where_clause(self) -> None:
+        conn = _mock_conn([])
+        retriever = VectorRetriever(lambda: conn)
+        profile = _profile_with_vector(sizes=["M"], max_price_eur=50.0)
+        retriever.retrieve(profile)
+        sql, params = conn.cursor.return_value.execute.call_args[0]
+        assert "size_eu" in sql
+        assert "price" in sql
+        assert params["filter_sizes"] == ["M"]
+        assert params["filter_max_price"] == 50.0
+
+
+class TestVectorRetrieverResults:
+    def test_maps_rows_to_candidate_items(self) -> None:
+        rows = [
+            _make_db_row("p1", 0.95),
+            _make_db_row("p2", 0.80),
+        ]
+        conn = _mock_conn(rows)
+        retriever = VectorRetriever(lambda: conn)
+        result = retriever.retrieve(_profile_with_vector())
+        assert len(result.candidates) == 2
+        assert result.candidates[0].product.id == "p1"
+        assert result.candidates[0].similarity_score == 0.95
+        assert result.candidates[0].retrieval_rank == 1
+        assert result.candidates[1].product.id == "p2"
+        assert result.candidates[1].similarity_score == 0.80
+        assert result.candidates[1].retrieval_rank == 2
+
+    def test_hard_filters_applied_field_populated(self) -> None:
+        conn = _mock_conn([])
+        retriever = VectorRetriever(lambda: conn)
+        profile = _profile_with_vector(sizes=["M"])
+        result = retriever.retrieve(profile)
+        assert "size" in result.hard_filters_applied
+        assert "available" in result.hard_filters_applied
+
+    def test_latency_is_recorded(self) -> None:
+        conn = _mock_conn([])
+        retriever = VectorRetriever(lambda: conn)
+        result = retriever.retrieve(_profile_with_vector())
+        assert result.retrieval_latency_ms >= 0.0
+
+    def test_fallback_used_is_false(self) -> None:
+        conn = _mock_conn([])
+        retriever = VectorRetriever(lambda: conn)
+        result = retriever.retrieve(_profile_with_vector())
+        assert result.fallback_used is False
+
+
+class TestVectorRetrieverGoldenScenario:
+    def test_top_10_expected_products_in_top_100(self) -> None:
+        """AC: 10 expected products appear in top 100 (Recall@100)."""
+        expected_ids = {f"expected-{i}" for i in range(10)}
+        rows = []
+        for i in range(10):
+            rows.append(_make_db_row(
+                f"expected-{i}", similarity=0.99 - i * 0.01,
+            ))
+        for i in range(90):
+            rows.append(_make_db_row(
+                f"filler-{i}", similarity=0.80 - i * 0.005,
+            ))
+
+        conn = _mock_conn(rows)
+        retriever = VectorRetriever(lambda: conn)
+        result = retriever.retrieve(_profile_with_vector(), k=100)
+
+        retrieved_ids = {c.product.id for c in result.candidates}
+        recall = len(expected_ids & retrieved_ids) / len(expected_ids)
+        assert recall == 1.0
+        assert len(result.candidates) == 100
+
+
+class TestVectorRetrieverProductParsing:
+    def test_source_enum_parsed(self) -> None:
+        rows = [_make_db_row("p1", 0.9, source="awin")]
+        conn = _mock_conn(rows)
+        retriever = VectorRetriever(lambda: conn)
+        result = retriever.retrieve(_profile_with_vector())
+        assert result.candidates[0].product.source == ProductSource.awin
+
+    def test_condition_enum_parsed(self) -> None:
+        rows = [_make_db_row("p1", 0.9, condition="like_new")]
+        conn = _mock_conn(rows)
+        retriever = VectorRetriever(lambda: conn)
+        result = retriever.retrieve(_profile_with_vector())
+        assert (
+            result.candidates[0].product.condition
+            == ProductCondition.like_new
+        )
