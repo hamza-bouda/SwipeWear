@@ -89,6 +89,31 @@ class TestSchema:
         assert row is not None, "Column 'embedding' not found in product_embeddings"
         assert row[0] == 512, f"Expected 512 dims, got {row[0]}"
 
+    def test_catalogue_indexer_columns_exist(self, conn):
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT table_name, column_name FROM information_schema.columns"
+                " WHERE (table_name = 'products'"
+                "        AND column_name IN ('embedding_version', 'needs_reindex'))"
+                "    OR (table_name = 'product_embeddings'"
+                "        AND column_name = 'indexed_at')"
+            )
+            columns = set(cur.fetchall())
+        assert columns == {
+            ("products", "embedding_version"),
+            ("products", "needs_reindex"),
+            ("product_embeddings", "indexed_at"),
+        }
+
+    def test_product_embedding_upsert_index_exists(self, conn):
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT indexname FROM pg_indexes"
+                " WHERE tablename = 'product_embeddings'"
+            )
+            indexes = {row[0] for row in cur.fetchall()}
+        assert "uq_product_embeddings_product_id" in indexes
+
     def test_interaction_events_user_index_exists(self, conn):
         with conn.cursor() as cur:
             cur.execute(
