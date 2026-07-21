@@ -21,6 +21,10 @@ MODULE_SET = set(MODULES)
 
 violations: list[str] = []
 
+# api/ is the top-level assembler — it wires internal modules together
+# and is allowed to import beyond interfaces (blueprint §11 note).
+ASSEMBLER_MODULES = {"api"}
+
 for module in MODULES:
     module_dir = BACKEND / module
     for py_file in module_dir.rglob("*.py"):
@@ -43,6 +47,8 @@ for module in MODULES:
                 target_module = parts[0]
                 target_subpath = parts[1] if len(parts) > 1 else ""
                 if target_module not in MODULE_SET or target_module == module:
+                    continue
+                if module in ASSEMBLER_MODULES:
                     continue
                 # allow imports from contracts (always ok)
                 if target_module == "contracts":
