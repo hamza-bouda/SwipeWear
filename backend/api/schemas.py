@@ -66,3 +66,27 @@ class TokenRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class RegisterRequest(BaseModel):
+    email: str = Field(min_length=3)
+    password: str = Field(min_length=8)
+    anonymous_user_id: UUID | None = None
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class AuthUserResponse(BaseModel):
+    user_id: UUID
+    email: str
+    access_token: str
+    token_type: str = "bearer"
+    profile_migrated: bool = False
+
+
+class DeleteAccountResponse(BaseModel):
+    deleted: bool = True
+    user_id: UUID
