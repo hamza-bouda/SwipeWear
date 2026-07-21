@@ -54,6 +54,7 @@ Toute PR qui viole une de ces règles est refusée, qu'elle vienne d'un humain o
 7. **Chaque module a un fallback** (blueprint §12) : Qwen KO → embedding seul + confirmation tags ; retriever KO → produits récents filtrés ; ranker KO → tri par similarité ; policy KO → liste brute ; explainer KO → tags éditables. Un nouvel appel modèle sans fallback = PR refusée.
 8. **Le golden scenario protège tout.** Ne JAMAIS modifier les fixtures (`evaluation/fixtures/`) pour faire passer un test. Si le golden échoue, c'est le code qu'on corrige — ou une discussion d'équipe si le nouveau comportement est voulu.
 9. **Budgets de latence** (cibles CPU) : hard_filter 20 ms · retrieve 100 ms · rank 50 ms · diversify 30 ms · explain 30 ms · total feed 300 ms · embedding image < 350 ms · GLiNER < 300 ms/titre · échelle de prix < 800 ms.
+10. **Tout changement de schéma Postgres est journalisé.** Toute nouvelle migration dans `backend/migrations/` (nouvelle table, colonne, index, contrainte) doit être ajoutée au **Journal des migrations** (section 9 de ce fichier), pas seulement décrite dans le message de commit — c'est ce qui permet à un agent démarrant sur une autre machine de connaître l'état réel de la base sans avoir à relire tous les fichiers `.sql`.
 
 ---
 
@@ -104,6 +105,7 @@ Un ticket n'est `Terminé` que si :
 - **Pas d'installation de dépendances non listées** sans le signaler : toute nouvelle dépendance est mentionnée dans la PR avec sa justification.
 - **Respecter les gels** : ne pas implémenter E12/E13 (alertes, Premium) ni les items Icebox tant que les gates ne sont pas atteintes, même si « c'est facile ».
 - **Mettre à jour les miroirs** : après une décision qui change le backlog, mettre à jour Jira (source de vérité) puis, si demandé, `Backlog/PRODUCT_BACKLOG.md`.
+- **Journaliser tout changement de base de données.** Un agent qui ajoute ou modifie un fichier dans `backend/migrations/` (nouvelle table, colonne, index, contrainte, renommage) ajoute une ligne au **Journal des migrations** (section 9) avant de considérer la tâche terminée — sur quelque machine que ce soit. C'est le seul moyen pour qu'un agent démarrant une session ailleurs connaisse l'état réel du schéma sans devoir relire tous les `.sql`.
 - **Langue** : documentation et tickets en français ; code, noms de variables et messages de commit en anglais.
 
 ## 8. Ce qu'un agent ne fait JAMAIS sans demander
@@ -114,3 +116,16 @@ Un ticket n'est `Terminé` que si :
 - Changer un modèle IA, un seuil validé ou un prix (4,99 €).
 - Activer le watcher Vinted ou toute collecte de données non autorisée.
 - Committer une clé d'API, un token ou un identifiant d'affiliation.
+
+---
+
+## 9. Journal des migrations base de données (`backend/migrations/`)
+
+Historique volontairement tenu ici (et pas seulement dans les fichiers `.sql` ou les messages de commit) pour qu'un agent qui démarre une session sur n'importe quelle machine connaisse l'état réel du schéma sans devoir relire toute la migration history. Chaque agent qui touche `backend/migrations/` ajoute une ligne **avant** de clore sa tâche (règle §7).
+
+| Migration | Ticket | Changement | Raison |
+|---|---|---|---|
+| `001_init.sql` | E1 | `products`, `product_embeddings` (+ index HNSW), `interaction_events`, `user_profiles` | Schéma initial du MVP. |
+| `001_interaction_events.sql` | E1 | (voir fichier) | Compagnon de `001_init.sql` pour l'event log. |
+| `002_catalog_indexer.sql` | KAN-29 | `products.embedding_version`, `products.needs_reindex`, `product_embeddings.indexed_at` + index unique sur `product_embeddings.product_id` | Support de l'indexeur d'embeddings catalogue. |
+| `003_user_profiles_event_count.sql` | KAN-31 | `user_profiles.event_count` (INTEGER NOT NULL DEFAULT 0) | Le contrat `UserPreferenceProfile` porte `event_count` depuis KAN-17, mais `001_init.sql` avait omis la colonne — sans elle, un `save()` suivi d'un `load()` ne pouvait pas restituer le profil à l'identique. **Décision confirmée (2026-07-21) :** `user_profiles.vectors` reste en JSONB (positive + negative, cf. `contracts/profile.py::StyleVectors`) et non un unique `vector(512)` natif pgvector — un seul vecteur était l'intention initiale du ticket KAN-31, mais le design à deux vecteurs (déjà dans le contrat) est celui qui prime. |
