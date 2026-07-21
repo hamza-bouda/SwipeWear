@@ -29,6 +29,7 @@ IMAGE_DOWNLOAD_TIMEOUT_SECONDS = 15.0
 INDEX_RESULT_SCHEMA_VERSION = 1
 
 ImageLoader = Callable[[str], bytes]
+ImageTransform = Callable[[bytes], bytes]
 
 
 class EmbeddingStore(Protocol):
@@ -147,10 +148,12 @@ class CatalogueIndexer:
         image_loader: ImageLoader,
         *,
         clock: Callable[[], datetime] | None = None,
+        image_transform: ImageTransform | None = None,
     ) -> None:
         self._embedding_service = embedding_service
         self._store = store
         self._image_loader = image_loader
+        self._image_transform = image_transform
         self._clock = clock or (lambda: datetime.now(timezone.utc))
         self._version_prepared = False
         self._marked_for_reindex = 0
@@ -177,7 +180,8 @@ class CatalogueIndexer:
     def index_product(self, record: ProductRecord) -> IndexedProduct:
         """Encode a ProductRecord's primary image and upsert its vector."""
         self._prepare_version()
-        image_bytes = self._image_loader(record.image_urls[0])
+        original_image = self._image_loader(record.image_urls[0])
+        image_bytes = self._transform_image(original_image, record.id)
         embedding = _validate_embedding(
             self._embedding_service.encode_image(image_bytes),
             self._embedding_service.vector_dim,
@@ -195,6 +199,23 @@ class CatalogueIndexer:
             vector_dim=self._embedding_service.vector_dim,
             indexed_at=indexed_at,
         )
+
+    def _transform_image(self, image: bytes, product_id: str) -> bytes:
+        if self._image_transform is None:
+            return image
+        try:
+            return self._image_transform(image)
+        except Exception:  # noqa: BLE001 - original-image fallback is mandatory
+            _LOG.exception(
+                "Image transform failed for %s; using original image",
+                product_id,
+                extra={
+                    "pipe_module": "embeddings.indexer",
+                    "product_id": product_id,
+                    "fallback_used": True,
+                },
+            )
+            return image
 
     def index_batch(self, records: Sequence[ProductRecord]) -> BatchIndexResult:
         """Index a batch, logging progress and continuing after item failures."""
@@ -289,6 +310,7 @@ def _build_default_indexer(
     embedding_service: EmbeddingService | None,
     store: EmbeddingStore | None,
     image_loader: ImageLoader | None,
+    image_transform: ImageTransform | None,
 ) -> tuple[CatalogueIndexer, Any | None]:
     if embedding_service is None:
         from embeddings.fashionsiglip import get_service
@@ -298,11 +320,16 @@ def _build_default_indexer(
     if store is None:
         owned_connection = _connect()
         store = PostgresEmbeddingStore(owned_connection)
+    if image_transform is None:
+        from vision.interfaces import get_active_image_transform
+
+        image_transform = get_active_image_transform()
     return (
         CatalogueIndexer(
             embedding_service,
             store,
             image_loader or download_image,
+            image_transform=image_transform,
         ),
         owned_connection,
     )
@@ -314,12 +341,14 @@ def index_product(
     embedding_service: EmbeddingService | None = None,
     store: EmbeddingStore | None = None,
     image_loader: ImageLoader | None = None,
+    image_transform: ImageTransform | None = None,
 ) -> IndexedProduct:
     """Index one product using production defaults unless dependencies are supplied."""
     indexer, owned_connection = _build_default_indexer(
         embedding_service=embedding_service,
         store=store,
         image_loader=image_loader,
+        image_transform=image_transform,
     )
     try:
         return indexer.index_product(record)
@@ -334,12 +363,14 @@ def index_batch(
     embedding_service: EmbeddingService | None = None,
     store: EmbeddingStore | None = None,
     image_loader: ImageLoader | None = None,
+    image_transform: ImageTransform | None = None,
 ) -> BatchIndexResult:
     """Index products as one batch using production defaults or injected adapters."""
     indexer, owned_connection = _build_default_indexer(
         embedding_service=embedding_service,
         store=store,
         image_loader=image_loader,
+        image_transform=image_transform,
     )
     try:
         return indexer.index_batch(records)
