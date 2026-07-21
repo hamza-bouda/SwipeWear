@@ -1,6 +1,6 @@
 """Retrieval module public interface.
 
-Other modules import from here — never from internal files (blueprint SS11).
+Other modules import from here -- never from internal files (blueprint SS11).
 """
 from __future__ import annotations
 
@@ -10,3 +10,4 @@ from retrieval.filters import (  # noqa: F401
     apply_hard_filters,
     matches_hard_filters,
 )
+from retrieval.retriever import VectorRetriever  # noqa: F401
