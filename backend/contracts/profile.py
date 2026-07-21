@@ -30,6 +30,7 @@ class LockedAttribute(BaseModel):
     attribute: str
     value: str
     weight: float = 1.0
+    locked: bool = False
 
 
 class EditablePreferences(BaseModel):

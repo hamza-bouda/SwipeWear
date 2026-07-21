@@ -50,6 +50,8 @@ def _increment_locked_attribute(
     attrs = data["editable_preferences"]["locked_attributes"]
     for attr in attrs:
         if attr["attribute"] == attribute and attr["value"] == value:
+            if attr.get("locked", False):
+                return
             attr["weight"] += increment
             return
     attrs.append({"attribute": attribute, "value": value, "weight": increment})
