@@ -116,6 +116,8 @@ class TestFeed:
         body = resp.json()
         assert len(body["items"]) == 8
         assert body["next_cursor"] is None
+        assert body["items"][0]["explanation"]["grounded"] is False
+        assert body["items"][0]["explanation"]["editable_tags"]
 
     def test_get_feed_paginated(self, client, auth_headers):
         resp = client.get("/feed?n_results=3", headers=auth_headers)
