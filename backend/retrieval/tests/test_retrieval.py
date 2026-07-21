@@ -1,7 +1,7 @@
-"""Tests for retrieval module -- hard filters + vector retriever."""
+"""Tests for retrieval module -- filters, vector retriever, fallback."""
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from contracts.product import ProductCondition, ProductRecord, ProductSource
 from contracts.profile import (
@@ -16,6 +16,7 @@ from retrieval.filters import (
     apply_hard_filters,
     matches_hard_filters,
 )
+from retrieval.fallback import FallbackRetriever, retrieve_with_fallback
 from retrieval.retriever import VectorRetriever, _PRODUCT_COLUMNS
 
 
@@ -388,3 +389,98 @@ class TestVectorRetrieverProductParsing:
             result.candidates[0].product.condition
             == ProductCondition.like_new
         )
+
+
+# ============================================================================
+# FallbackRetriever -- KAN-39
+# ============================================================================
+
+def _make_fallback_row(product_id: str = "p1", **overrides) -> tuple:
+    defaults = dict(
+        id=product_id,
+        source="ebay",
+        source_record_id=f"ebay-{product_id}",
+        title=f"Product {product_id}",
+        brand="Nike",
+        model="AF1",
+        price=45.0,
+        currency="EUR",
+        condition="good",
+        size_raw="M",
+        size_eu="M",
+        category="sneakers",
+        image_urls=["https://example.com/img.jpg"],
+        affiliate_url=None,
+        available=True,
+        enriched_attrs={},
+        schema_version=1,
+        embedding_version="fashionsiglip-v1",
+    )
+    defaults.update(overrides)
+    return tuple(defaults[c] for c in _PRODUCT_COLUMNS)
+
+
+class TestFallbackRetriever:
+    def test_returns_candidates_with_neutral_scores(self) -> None:
+        rows = [_make_fallback_row("f1"), _make_fallback_row("f2")]
+        conn = _mock_conn(rows)
+        fb = FallbackRetriever(lambda: conn)
+        result = fb.retrieve(_profile())
+        assert len(result.candidates) == 2
+        assert all(c.similarity_score == 0.0 for c in result.candidates)
+
+    def test_fallback_used_flag_is_true(self) -> None:
+        conn = _mock_conn([_make_fallback_row("f1")])
+        fb = FallbackRetriever(lambda: conn)
+        result = fb.retrieve(_profile())
+        assert result.fallback_used is True
+
+    def test_hard_filters_applied_populated(self) -> None:
+        conn = _mock_conn([])
+        fb = FallbackRetriever(lambda: conn)
+        result = fb.retrieve(_profile(sizes=["M"]))
+        assert "size" in result.hard_filters_applied
+
+    def test_query_orders_by_indexed_at_desc(self) -> None:
+        conn = _mock_conn([])
+        fb = FallbackRetriever(lambda: conn)
+        fb.retrieve(_profile())
+        sql, _ = conn.cursor.return_value.execute.call_args[0]
+        assert "indexed_at DESC" in sql
+
+    def test_logs_warning(self) -> None:
+        conn = _mock_conn([])
+        fb = FallbackRetriever(lambda: conn)
+        with patch("retrieval.fallback._LOG") as mock_log:
+            fb.retrieve(_profile())
+            mock_log.warning.assert_called_once()
+
+    def test_retrieval_rank_assigned(self) -> None:
+        rows = [_make_fallback_row("f1"), _make_fallback_row("f2")]
+        conn = _mock_conn(rows)
+        fb = FallbackRetriever(lambda: conn)
+        result = fb.retrieve(_profile())
+        assert result.candidates[0].retrieval_rank == 1
+        assert result.candidates[1].retrieval_rank == 2
+
+
+class TestRetrieveWithFallback:
+    def test_uses_vector_retriever_on_success(self) -> None:
+        vec_conn = _mock_conn([_make_db_row("v1", 0.95)])
+        fb_conn = _mock_conn([_make_fallback_row("f1")])
+        vec = VectorRetriever(lambda: vec_conn)
+        fb = FallbackRetriever(lambda: fb_conn)
+        result = retrieve_with_fallback(vec, fb, _profile_with_vector())
+        assert result.candidates[0].product.id == "v1"
+        assert result.fallback_used is False
+
+    def test_falls_back_on_vector_exception(self) -> None:
+        """AC: VectorRetriever raises -> FallbackRetriever takes over."""
+        vec = MagicMock(spec=VectorRetriever)
+        vec.retrieve.side_effect = RuntimeError("pgvector down")
+        fb_conn = _mock_conn([_make_fallback_row("f1")])
+        fb = FallbackRetriever(lambda: fb_conn)
+        result = retrieve_with_fallback(vec, fb, _profile_with_vector())
+        assert result.fallback_used is True
+        assert result.candidates[0].product.id == "f1"
+        assert result.candidates[0].similarity_score == 0.0
