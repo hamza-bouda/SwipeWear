@@ -1,14 +1,26 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
+from api.db import close_pool, init_pool
 from api.errors import unhandled_exception_handler
 from api.routers import auth, events, feed, ladder, onboarding, profile
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_pool()
+    yield
+    close_pool()
+
 
 app = FastAPI(
     title="SwipeWear API",
     version="0.1.0",
     description="B2C second-hand fashion discovery — feed, swipe events, profile & onboarding.",
+    lifespan=lifespan,
 )
 
 app.add_exception_handler(Exception, unhandled_exception_handler)
