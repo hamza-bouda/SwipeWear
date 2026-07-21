@@ -21,4 +21,3 @@ def get_trace(
     if trace is None or trace.user_id != user_id:
         raise HTTPException(status_code=404, detail="Trace not found")
     return trace
-

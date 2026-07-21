@@ -28,4 +28,3 @@ def get(trace_id: UUID) -> RequestTrace | None:
 def reset() -> None:
     with _lock:
         _traces.clear()
-

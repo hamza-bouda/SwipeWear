@@ -118,4 +118,3 @@ def fallback_explanation(item: RankedItem) -> Explanation:
         product_id=item.product.id,
         editable_tags=_product_tags(item.product),
     )
-
