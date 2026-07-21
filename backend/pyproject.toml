@@ -20,11 +20,14 @@ dev = [
     "pytest>=8.0",
     "flake8>=7.0",
     "mypy>=1.9",
+    "Pillow>=9.0",
 ]
 ai = [
     "gliner>=0.2",
     "open-clip-torch>=2.20",
     "Pillow>=9.0",
+    "transformers>=4.24",
+    "onnxruntime>=1.17",
 ]
 
 [tool.setuptools.packages.find]

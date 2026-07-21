@@ -202,3 +202,40 @@ def test_indexer_module_does_not_need_a_real_image_file(tmp_path: Path) -> None:
     ).index_product(_record())
 
     assert result.product_id in store.embeddings
+
+
+def test_enabled_segmentation_crop_replaces_original_before_encoding() -> None:
+    service = FakeEmbeddingService()
+    store = FakeStore()
+    transformed: list[bytes] = []
+
+    def isolate(image: bytes) -> bytes:
+        transformed.append(image)
+        return b"isolated-garment-crop"
+
+    CatalogueIndexer(
+        service,
+        store,
+        lambda _: b"whole-person-photo",
+        image_transform=isolate,
+    ).index_product(_record())
+
+    assert transformed == [b"whole-person-photo"]
+    assert service.images == [b"isolated-garment-crop"]
+
+
+def test_indexer_uses_original_if_image_transform_raises() -> None:
+    service = FakeEmbeddingService()
+    store = FakeStore()
+
+    def failing_transform(image: bytes) -> bytes:
+        raise RuntimeError("segmentation unavailable")
+
+    CatalogueIndexer(
+        service,
+        store,
+        lambda _: b"whole-person-photo",
+        image_transform=failing_transform,
+    ).index_product(_record())
+
+    assert service.images == [b"whole-person-photo"]
