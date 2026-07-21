@@ -4,7 +4,7 @@ Each source has its own URL format. Credentials are read from environment
 variables (never hardcoded — CLAUDE.md §6, §8).
 
 Supported sources:
-    ebay — eBay Partner Network (EPN) rover format
+    ebay — eBay Partner Network (EPN) query-param format
     awin — Awin deep link with publisher ID
     cj   — CJ Affiliate deep link with publisher ID
 """
@@ -30,14 +30,14 @@ def _get_env(key: str) -> str | None:
     return os.environ.get(key)
 
 
-def _build_ebay_rover_url(
+def _build_ebay_epn_url(
     product: ProductRecord,
     context: ClickContext,
 ) -> str:
-    program_id = _get_env("EPN_PROGRAM_ID")
+    mkrid = _get_env("EPN_PROGRAM_ID")
     campaign_id = _get_env("EPN_CAMPAIGN_ID")
 
-    if not program_id or not campaign_id:
+    if not mkrid or not campaign_id:
         _LOG.warning("EPN credentials missing, returning raw URL for %s", product.id)
         return product.affiliate_url or ""
 
@@ -45,12 +45,15 @@ def _build_ebay_rover_url(
     custom_id = f"sw-{context.value}-{product.id}"
 
     params = {
+        "mkcid": "1",
+        "mkrid": mkrid,
+        "siteid": "0",
         "campid": campaign_id,
-        "toolid": "10001",
         "customid": custom_id,
-        "mpre": listing_url,
+        "toolid": "10001",
+        "mkevt": "1",
     }
-    return f"https://rover.ebay.com/rover/1/{program_id}/1?{urlencode(params)}"
+    return f"{listing_url}?{urlencode(params)}" if listing_url else ""
 
 
 def _build_awin_deep_link(
@@ -95,7 +98,7 @@ def _build_cj_deep_link(
 
 
 _BUILDERS = {
-    ProductSource.ebay: _build_ebay_rover_url,
+    ProductSource.ebay: _build_ebay_epn_url,
     ProductSource.awin: _build_awin_deep_link,
     ProductSource.cj: _build_cj_deep_link,
 }
