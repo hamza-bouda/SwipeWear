@@ -225,17 +225,18 @@ class TestEvaluateRetrieval:
         import evaluation.eval_retrieval as mod
 
         original_dir = mod.REPORTS_DIR
-        original_path = mod.REPORT_PATH
         mod.REPORTS_DIR = tmp_path
-        mod.REPORT_PATH = tmp_path / "retrieval_eval.json"
         try:
             evaluate_retrieval(["a"], ["a"], write_report=True)
-            assert mod.REPORT_PATH.exists()
-            data = json.loads(mod.REPORT_PATH.read_text(encoding="utf-8"))
+            reports = list(tmp_path.glob("*_retrieval_*.json"))
+            assert len(reports) == 1
+            data = json.loads(reports[0].read_text(encoding="utf-8"))
             assert "recall_at" in data
+            assert data["git_sha"]
+            assert data["config"]["ranker_weights"]
+            assert (tmp_path / "INDEX.csv").exists()
         finally:
             mod.REPORTS_DIR = original_dir
-            mod.REPORT_PATH = original_path
 
 
 class TestGoldenRecall:
@@ -323,19 +324,17 @@ class TestEvaluateRanking:
         import evaluation.eval_ranking as mod
 
         original_dir = mod.REPORTS_DIR
-        original_path = mod.REPORT_PATH
         mod.REPORTS_DIR = tmp_path
-        mod.REPORT_PATH = tmp_path / "ranking_eval.json"
         try:
             evaluate_ranking(["a"], ["a"], {"a": 1.0}, write_report=True)
-            assert mod.REPORT_PATH.exists()
-            data = json.loads(mod.REPORT_PATH.read_text(encoding="utf-8"))
+            reports = list(tmp_path.glob("*_ranking_*.json"))
+            assert len(reports) == 1
+            data = json.loads(reports[0].read_text(encoding="utf-8"))
             assert "ndcg_baseline" in data
             assert "ndcg_ranker" in data
             assert "delta" in data
         finally:
             mod.REPORTS_DIR = original_dir
-            mod.REPORT_PATH = original_path
 
 
 class TestGoldenRanking:

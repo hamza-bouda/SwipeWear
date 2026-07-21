@@ -1,0 +1,2 @@
+date,type,git_sha,report,metrics
+2026-07-21,golden,0701bf2,20260721_golden_0701bf2.json,"{""metrics_catalogue_size"": 50.0, ""metrics_passing_after_filter"": 29.0, ""metrics_top10_match"": 1.0, ""passed"": true}"

@@ -1,0 +1,29 @@
+{
+  "config": {
+    "epsilon": 0.1,
+    "mmr_lambda": 0.7,
+    "ranker_weights": {
+      "brand_boost": 0.15,
+      "freshness": 0.15,
+      "price_fit": 0.2,
+      "similarity": 0.5
+    },
+    "thresholds": {
+      "freshness_half_life_days": 7.0,
+      "price_fit": 0.8,
+      "recall_at_100": 0.8
+    }
+  },
+  "created_at": "2026-07-21T18:23:39.678393+00:00",
+  "embedding_version": "fashionsiglip-v1",
+  "fixture_hash": "",
+  "git_sha": "0701bf2",
+  "metrics": {
+    "catalogue_size": 50.0,
+    "passing_after_filter": 29.0,
+    "top10_match": 1.0
+  },
+  "passed": true,
+  "report_type": "golden",
+  "warnings": []
+}

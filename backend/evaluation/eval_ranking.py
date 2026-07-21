@@ -13,10 +13,11 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+from evaluation.reporting import write_report as write_versioned_report
+
 _LOG = logging.getLogger("swipewear.evaluation.eval_ranking")
 
 REPORTS_DIR = Path(__file__).parent / "reports"
-REPORT_PATH = REPORTS_DIR / "ranking_eval.json"
 
 
 @dataclass
@@ -86,12 +87,8 @@ def evaluate_ranking(
     )
 
     if write_report:
-        REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-        REPORT_PATH.write_text(
-            json.dumps(asdict(report), indent=2) + "\n",
-            encoding="utf-8",
-        )
-        _LOG.info("Ranking eval report written to %s", REPORT_PATH)
+        report_path = write_versioned_report("ranking", report, reports_dir=REPORTS_DIR)
+        _LOG.info("Ranking eval report written to %s", report_path)
 
     return report
 
