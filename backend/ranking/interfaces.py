@@ -10,4 +10,9 @@ from ranking.config import (  # noqa: F401
     PRICE_FIT_THRESHOLD,
     RankingWeights,
 )
+from ranking.fallback import (  # noqa: F401
+    apply_policy_with_fallback,
+    rank_with_fallback,
+    similarity_fallback_rank,
+)
 from ranking.ranker import TransparentRanker  # noqa: F401
