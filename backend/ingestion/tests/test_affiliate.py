@@ -50,14 +50,14 @@ _CJ_ENV = {
 
 class TestEbayAffiliateUrl:
     @patch.dict(os.environ, _EPN_ENV)
-    def test_contains_program_id(self) -> None:
+    def test_contains_mkrid(self) -> None:
         url = build_affiliate_url(_product(), ClickContext.feed)
-        assert "5338" in url
+        assert "mkrid=5338" in url
 
     @patch.dict(os.environ, _EPN_ENV)
     def test_contains_campaign_id(self) -> None:
         url = build_affiliate_url(_product(), ClickContext.feed)
-        assert "1234567890" in url
+        assert "campid=1234567890" in url
 
     @patch.dict(os.environ, _EPN_ENV)
     def test_contains_custom_id_with_context(self) -> None:
@@ -65,14 +65,19 @@ class TestEbayAffiliateUrl:
         assert "sw-ladder-prod-1" in url
 
     @patch.dict(os.environ, _EPN_ENV)
-    def test_contains_rover_domain(self) -> None:
+    def test_appends_params_to_listing_url(self) -> None:
         url = build_affiliate_url(_product(), ClickContext.detail)
-        assert "rover.ebay.com" in url
+        assert url.startswith("https://www.ebay.com/itm/123456?")
 
     @patch.dict(os.environ, _EPN_ENV)
-    def test_contains_destination_url(self) -> None:
+    def test_contains_mkevt(self) -> None:
         url = build_affiliate_url(_product(), ClickContext.feed)
-        assert "ebay.com" in url
+        assert "mkevt=1" in url
+
+    @patch.dict(os.environ, _EPN_ENV)
+    def test_contains_mkcid(self) -> None:
+        url = build_affiliate_url(_product(), ClickContext.feed)
+        assert "mkcid=1" in url
 
     def test_returns_raw_url_without_credentials(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
