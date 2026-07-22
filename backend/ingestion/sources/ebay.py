@@ -188,10 +188,18 @@ class EbaySource:
             item.get("condition", "USED").upper().replace(" ", "_")
         )
         images: list[str] = []
-        if item.get("thumbnailImages"):
+        if item.get("image"):
+            images.append(item["image"]["imageUrl"])
+        for extra in item.get("additionalImages", []):
+            url = extra.get("imageUrl", "")
+            if url and url not in images:
+                images.append(url)
+        if not images and item.get("thumbnailImages"):
             images = [img["imageUrl"] for img in item["thumbnailImages"]]
-        elif item.get("image"):
-            images = [item["image"]["imageUrl"]]
+
+        cat_ids = item.get("categories", [])
+        category_id = str(cat_ids[0]["categoryId"]) if cat_ids else None
+
         return {
             "item_id": item.get("itemId", ""),
             "title": item.get("title", ""),
@@ -201,4 +209,7 @@ class EbaySource:
             "image_urls": images,
             "listing_url": item.get("itemWebUrl", ""),
             "source": "ebay",
+            "brand": item.get("brand"),
+            "category_id": category_id,
+            "size_raw": item.get("sizeType") or item.get("size"),
         }
