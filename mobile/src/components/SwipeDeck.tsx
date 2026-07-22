@@ -1,5 +1,5 @@
-import React, { useCallback, useRef, useState } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { View, StyleSheet, Dimensions, Platform } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -11,12 +11,13 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import { Product } from '../types';
-import { SwipeCard, CARD_WIDTH, CARD_HEIGHT } from './SwipeCard';
+import { SwipeCard } from './SwipeCard';
 import { spacing } from '../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
 const SWIPE_VELOCITY = 500;
+const TAP_MAX_DISTANCE = 8;
 
 export type SwipeDirection = 'left' | 'right';
 
@@ -38,77 +39,216 @@ export function SwipeDeck({
   onDeckEmpty,
 }: SwipeDeckProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const indexRef = useRef(0);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const rotation = useSharedValue(0);
   const isAnimating = useRef(false);
+  const gestureRef = useRef<View>(null);
 
-  const handleSwipeComplete = useCallback(
-    (direction: SwipeDirection) => {
-      const product = products[currentIndex];
-      if (!product) return;
+  const productsRef = useRef(products);
+  productsRef.current = products;
 
-      if (direction === 'right') {
-        onSwipeRight(product);
-      } else {
-        onSwipeLeft(product);
-      }
+  const callbacksRef = useRef({ onSwipeRight, onSwipeLeft, onTap, onDeckEmpty, onSave });
+  callbacksRef.current = { onSwipeRight, onSwipeLeft, onTap, onDeckEmpty, onSave };
 
-      setCurrentIndex((prev) => {
-        const next = prev + 1;
-        if (next >= products.length) {
-          onDeckEmpty();
-        }
-        return next;
-      });
-      isAnimating.current = false;
-    },
-    [currentIndex, products, onSwipeRight, onSwipeLeft, onDeckEmpty],
-  );
+  const handleSwipeComplete = useCallback((direction: SwipeDirection) => {
+    translateX.value = 0;
+    translateY.value = 0;
+    rotation.value = 0;
+
+    const product = productsRef.current[indexRef.current];
+    if (!product) return;
+
+    if (direction === 'right') {
+      callbacksRef.current.onSwipeRight(product);
+    } else {
+      callbacksRef.current.onSwipeLeft(product);
+    }
+
+    const next = indexRef.current + 1;
+    indexRef.current = next;
+    setCurrentIndex(next);
+
+    if (next >= productsRef.current.length) {
+      callbacksRef.current.onDeckEmpty();
+    }
+    isAnimating.current = false;
+  }, [translateX, translateY, rotation]);
 
   const animateOut = useCallback(
     (direction: SwipeDirection) => {
-      'worklet';
       const toX = direction === 'right' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
-      translateX.value = withTiming(toX, { duration: 300 }, () => {
-        translateX.value = 0;
-        translateY.value = 0;
-        rotation.value = 0;
-        runOnJS(handleSwipeComplete)(direction);
+      translateX.value = withTiming(toX, { duration: 300 }, (finished) => {
+        // Do NOT mutate shared values here: cancelling the running animation
+        // from its own completion callback recurses infinitely on web.
+        if (finished) {
+          runOnJS(handleSwipeComplete)(direction);
+        }
       });
     },
     [translateX, translateY, rotation, handleSwipeComplete],
   );
 
-  const gesture = Gesture.Pan()
-    .onUpdate((event) => {
-      if (isAnimating.current) return;
-      translateX.value = event.translationX;
-      translateY.value = event.translationY * 0.5;
+  const resetPosition = useCallback(() => {
+    translateX.value = withSpring(0, { damping: 15 });
+    translateY.value = withSpring(0, { damping: 15 });
+    rotation.value = withSpring(0, { damping: 15 });
+  }, [translateX, translateY, rotation]);
+
+  const handleTapOnCard = useCallback(() => {
+    const product = productsRef.current[indexRef.current];
+    if (product) callbacksRef.current.onTap(product);
+  }, []);
+
+  const handleDrag = useCallback(
+    (dx: number, dy: number) => {
+      translateX.value = dx;
+      translateY.value = dy * 0.5;
       rotation.value = interpolate(
-        event.translationX,
+        dx,
         [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
         [-15, 0, 15],
         Extrapolation.CLAMP,
       );
-    })
-    .onEnd((event) => {
+    },
+    [translateX, translateY, rotation],
+  );
+
+  const handleRelease = useCallback(
+    (dx: number, velocityX: number) => {
       if (isAnimating.current) return;
       const shouldSwipe =
-        Math.abs(event.translationX) > SWIPE_THRESHOLD ||
-        Math.abs(event.velocityX) > SWIPE_VELOCITY;
-
+        Math.abs(dx) > SWIPE_THRESHOLD || Math.abs(velocityX) > SWIPE_VELOCITY;
       if (shouldSwipe) {
         isAnimating.current = true;
-        const direction: SwipeDirection =
-          event.translationX > 0 ? 'right' : 'left';
-        animateOut(direction);
+        animateOut(dx > 0 ? 'right' : 'left');
       } else {
-        translateX.value = withSpring(0, { damping: 15 });
-        translateY.value = withSpring(0, { damping: 15 });
-        rotation.value = withSpring(0, { damping: 15 });
+        resetPosition();
       }
+    },
+    [animateOut, resetPosition],
+  );
+
+  // ── Web: raw DOM pointer events (RNGH web is unreliable across re-renders).
+  // Callback ref: attaches the moment the card node mounts, detaches on unmount.
+  const webCleanup = useRef<(() => void) | null>(null);
+
+  const setGestureNode = useCallback(
+    (view: View | null) => {
+      (gestureRef as React.MutableRefObject<View | null>).current = view;
+      if (Platform.OS !== 'web') return;
+
+      if (webCleanup.current) {
+        webCleanup.current();
+        webCleanup.current = null;
+      }
+
+      const node = view as unknown as HTMLElement | null;
+      if (!node || typeof node.addEventListener !== 'function') return;
+
+      let dragging = false;
+      let startX = 0;
+      let startY = 0;
+      let lastX = 0;
+      let lastT = 0;
+      let velocityX = 0;
+
+      const onDown = (e: PointerEvent) => {
+        if (isAnimating.current) return;
+        dragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        lastX = e.clientX;
+        lastT = e.timeStamp;
+        velocityX = 0;
+        try {
+          node.setPointerCapture(e.pointerId);
+        } catch {
+          // synthetic events may not support pointer capture
+        }
+        e.preventDefault();
+      };
+
+      const onMove = (e: PointerEvent) => {
+        if (!dragging || isAnimating.current) return;
+        const dt = e.timeStamp - lastT;
+        if (dt > 0) velocityX = ((e.clientX - lastX) / dt) * 1000;
+        lastX = e.clientX;
+        lastT = e.timeStamp;
+        handleDrag(e.clientX - startX, e.clientY - startY);
+      };
+
+      const onUp = (e: PointerEvent) => {
+        if (!dragging) return;
+        dragging = false;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        if (Math.abs(dx) < TAP_MAX_DISTANCE && Math.abs(dy) < TAP_MAX_DISTANCE) {
+          resetPosition();
+          handleTapOnCard();
+          return;
+        }
+        handleRelease(dx, velocityX);
+      };
+
+      const onCancel = () => {
+        if (!dragging) return;
+        dragging = false;
+        resetPosition();
+      };
+
+      const prevent = (e: Event) => e.preventDefault();
+
+      node.style.touchAction = 'none';
+      node.style.userSelect = 'none';
+      node.style.cursor = 'grab';
+
+      node.addEventListener('pointerdown', onDown);
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onCancel);
+      node.addEventListener('dragstart', prevent);
+
+      webCleanup.current = () => {
+        node.removeEventListener('pointerdown', onDown);
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onCancel);
+        node.removeEventListener('dragstart', prevent);
+      };
+    },
+    [handleDrag, handleRelease, handleTapOnCard, resetPosition],
+  );
+
+  // ── Native: react-native-gesture-handler ──
+  const gesture = useMemo(() => {
+    const pan = Gesture.Pan()
+      .activeOffsetX([-10, 10])
+      .failOffsetY([-20, 20])
+      .shouldCancelWhenOutside(false)
+      .onUpdate((event) => {
+        'worklet';
+        translateX.value = event.translationX;
+        translateY.value = event.translationY * 0.5;
+        rotation.value = interpolate(
+          event.translationX,
+          [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
+          [-15, 0, 15],
+          Extrapolation.CLAMP,
+        );
+      })
+      .onEnd((event) => {
+        'worklet';
+        runOnJS(handleRelease)(event.translationX, event.velocityX);
+      });
+
+    const tap = Gesture.Tap().onEnd(() => {
+      runOnJS(handleTapOnCard)();
     });
+
+    return Gesture.Race(pan, tap);
+  }, [translateX, translateY, rotation, handleRelease, handleTapOnCard]);
 
   const topCardStyle = useAnimatedStyle(() => ({
     transform: [
@@ -154,43 +294,44 @@ export function SwipeDeck({
 
   if (currentIndex >= products.length) return null;
 
-  const visibleCards = products.slice(currentIndex, currentIndex + 2);
+  const topProduct = products[currentIndex];
+  const nextProduct = currentIndex + 1 < products.length ? products[currentIndex + 1] : null;
+
+  const cardContent = (
+    <View ref={setGestureNode} collapsable={false}>
+      <SwipeCard
+        product={topProduct}
+        onSave={() => callbacksRef.current.onSave(topProduct)}
+      />
+      <Animated.View style={[styles.label, styles.likeLabel, rightLabelStyle]}>
+        <Animated.Text style={styles.labelText}>LIKE</Animated.Text>
+      </Animated.View>
+      <Animated.View style={[styles.label, styles.nopeLabel, leftLabelStyle]}>
+        <Animated.Text style={styles.labelText}>NOPE</Animated.Text>
+      </Animated.View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
-      {visibleCards.map((product, i) => {
-        const isTop = i === 0;
-        return (
-          <Animated.View
-            key={product.id}
-            style={[
-              styles.cardWrapper,
-              isTop ? topCardStyle : nextCardStyle,
-              { zIndex: visibleCards.length - i },
-            ]}
-          >
-            {isTop ? (
-              <GestureDetector gesture={gesture}>
-                <Animated.View>
-                  <SwipeCard
-                    product={product}
-                    onTap={() => onTap(product)}
-                    onSave={() => onSave(product)}
-                  />
-                  <Animated.View style={[styles.label, styles.likeLabel, rightLabelStyle]}>
-                    <Animated.Text style={styles.labelText}>LIKE</Animated.Text>
-                  </Animated.View>
-                  <Animated.View style={[styles.label, styles.nopeLabel, leftLabelStyle]}>
-                    <Animated.Text style={styles.labelText}>NOPE</Animated.Text>
-                  </Animated.View>
-                </Animated.View>
-              </GestureDetector>
-            ) : (
-              <SwipeCard product={product} />
-            )}
-          </Animated.View>
-        );
-      })}
+      {nextProduct && (
+        <Animated.View
+          key="next"
+          style={[styles.cardWrapper, nextCardStyle, { zIndex: 1 }]}
+        >
+          <SwipeCard product={nextProduct} />
+        </Animated.View>
+      )}
+      <Animated.View
+        key="top"
+        style={[styles.cardWrapper, topCardStyle, { zIndex: 2 }]}
+      >
+        {Platform.OS === 'web' ? (
+          cardContent
+        ) : (
+          <GestureDetector gesture={gesture}>{cardContent}</GestureDetector>
+        )}
+      </Animated.View>
     </View>
   );
 }
