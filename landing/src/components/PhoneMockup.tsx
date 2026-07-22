@@ -7,35 +7,35 @@ import Image from "next/image";
 const cards = [
   {
     brand: "NIKE",
-    title: "Air Max 90 Vintage",
+    title: "Air Max 90",
     price: "45 €",
-    condition: "Like new",
+    condition: "Comme neuf",
     size: "42",
-    image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=500&fit=crop",
+    image: "https://images.unsplash.com/photo-1515955656352-a1fa3ffcd111?w=400&h=500&fit=crop&q=80",
   },
   {
     brand: "THE NORTH FACE",
-    title: "Nuptse 700 Puffer",
+    title: "Puffer Jacket",
     price: "89 €",
     condition: "Tres bon",
     size: "M",
-    image: "https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=400&h=500&fit=crop",
+    image: "https://images.unsplash.com/photo-1614031679232-0dae776a72ee?w=400&h=500&fit=crop&q=80",
   },
   {
     brand: "LEVI'S",
-    title: "501 Original Fit",
-    price: "32 €",
+    title: "Denim Jacket",
+    price: "52 €",
     condition: "Bon etat",
-    size: "32",
-    image: "https://images.unsplash.com/photo-1542272604-787c3835535d?w=400&h=500&fit=crop",
+    size: "M",
+    image: "https://images.unsplash.com/photo-1611312449408-fcece27cdbb7?w=400&h=500&fit=crop&q=80",
   },
   {
     brand: "ADIDAS",
-    title: "Samba OG White",
+    title: "Originals Sneakers",
     price: "55 €",
     condition: "Comme neuf",
     size: "43",
-    image: "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=400&h=500&fit=crop",
+    image: "https://images.unsplash.com/photo-1518002171953-a080ee817e1f?w=400&h=500&fit=crop&q=80",
   },
   {
     brand: "CARHARTT",
@@ -43,7 +43,7 @@ const cards = [
     price: "67 €",
     condition: "Good",
     size: "L",
-    image: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&h=500&fit=crop",
+    image: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&h=500&fit=crop&q=80",
   },
 ];
 
@@ -71,7 +71,7 @@ function SwipeCard({
       transition={{ duration: 0.3 }}
     >
       <motion.div
-        className="w-full h-full rounded-2xl overflow-hidden bg-[#111] relative cursor-grab active:cursor-grabbing select-none"
+        className="w-full h-full rounded-2xl overflow-hidden bg-white relative cursor-grab active:cursor-grabbing select-none shadow-lg"
         drag={isTop ? "x" : false}
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.9}
@@ -84,54 +84,51 @@ function SwipeCard({
           transition: { duration: 0.4 },
         }}
       >
-        {/* Product image */}
-        <Image
-          src={card.image}
-          alt={card.title}
-          fill
-          className="object-cover"
-          sizes="240px"
-          draggable={false}
-        />
-
-        {/* Top badges */}
-        <div className="absolute top-3 right-3 z-10">
-          <span className="bg-yellow-400 text-black text-[8px] font-bold px-2 py-0.5 rounded-full uppercase">
-            NEW
-          </span>
+        <div className="relative w-full h-[70%]">
+          <Image
+            src={card.image}
+            alt={card.title}
+            fill
+            className="object-cover"
+            sizes="240px"
+            draggable={false}
+          />
+          <div className="absolute top-2.5 right-2.5 z-10">
+            <span className="bg-yellow-400 text-black text-[7px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+              NEW
+            </span>
+          </div>
         </div>
 
-        {/* Bottom info overlay */}
-        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-10 z-10">
+        <div className="px-3 py-2.5 bg-white">
           <div className="flex items-center gap-1 mb-1">
-            <span className="text-[8px] bg-white/15 backdrop-blur-sm rounded px-1.5 py-0.5 text-white/80">
+            <span className="text-[7px] bg-neutral-100 rounded-full px-1.5 py-0.5 text-neutral-500 font-medium">
               {card.condition}
             </span>
-            <span className="text-[8px] bg-white/15 backdrop-blur-sm rounded px-1.5 py-0.5 text-white/80">
+            <span className="text-[7px] bg-neutral-100 rounded-full px-1.5 py-0.5 text-neutral-500 font-medium">
               {card.size}
             </span>
           </div>
-          <p className="text-[9px] text-white/50">{card.brand}</p>
-          <p className="text-[11px] font-semibold text-white">{card.title}</p>
+          <p className="text-[8px] text-neutral-400 uppercase tracking-wider font-medium">{card.brand}</p>
+          <p className="text-[11px] font-semibold text-black leading-tight">{card.title}</p>
           <div className="flex justify-between items-center mt-1">
-            <span className="text-sm font-bold text-yellow-400">
+            <span className="text-sm font-bold text-yellow-500">
               {card.price}
             </span>
-            <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center">
-              <span className="text-[8px] text-white">&hearts;</span>
+            <div className="w-5 h-5 rounded-full bg-neutral-100 flex items-center justify-center">
+              <span className="text-[9px] text-neutral-400">&hearts;</span>
             </div>
           </div>
         </div>
 
-        {/* LIKE label on drag */}
         {isTop && (
           <motion.div
-            className="absolute top-5 left-3 z-20 border-2 border-yellow-400 rounded-lg px-2 py-0.5 pointer-events-none"
+            className="absolute top-4 left-3 z-20 border-2 border-yellow-400 rounded-lg px-2 py-0.5 bg-yellow-400/10 pointer-events-none"
             initial={{ opacity: 0 }}
             style={{ opacity: 0 }}
             whileDrag={{ opacity: 1 }}
           >
-            <span className="text-xs font-extrabold text-yellow-400">
+            <span className="text-xs font-extrabold text-yellow-500">
               LIKE
             </span>
           </motion.div>
@@ -168,28 +165,28 @@ export function PhoneMockup() {
       className="relative mx-auto w-[280px] sm:w-[300px]"
     >
       {/* Glow behind phone */}
-      <div className="absolute -inset-8 rounded-full bg-gradient-to-br from-yellow-400/10 to-amber-500/5 blur-3xl" />
+      <div className="absolute -inset-8 rounded-full bg-gradient-to-br from-yellow-400/10 to-amber-500/5 blur-3xl animate-pulse-glow" />
 
       {/* Phone frame */}
-      <div className="relative rounded-[2.5rem] border border-black/10 bg-gradient-to-b from-[#1a1a1a] to-[#0d0d0d] p-3 shadow-2xl shadow-black/20">
+      <div className="relative rounded-[2.5rem] border border-neutral-200 bg-gradient-to-b from-neutral-800 to-neutral-900 p-3 shadow-2xl shadow-black/15">
         {/* Notch */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-6 bg-black rounded-b-2xl z-30" />
 
         {/* Screen */}
-        <div className="relative rounded-[2rem] overflow-hidden bg-black aspect-[9/19.5]">
+        <div className="relative rounded-[2rem] overflow-hidden bg-white aspect-[9/19.5]">
           {/* Status bar */}
           <div className="flex items-center justify-between px-6 pt-3 pb-1 relative z-20">
-            <span className="text-[10px] text-white/50 font-medium">9:41</span>
+            <span className="text-[10px] text-black/40 font-medium">9:41</span>
             <div className="flex gap-1">
-              <div className="w-3.5 h-2 rounded-sm bg-white/50" />
-              <div className="w-2 h-2 rounded-full bg-white/50" />
+              <div className="w-3.5 h-2 rounded-sm bg-black/30" />
+              <div className="w-2 h-2 rounded-full bg-black/30" />
             </div>
           </div>
 
           {/* App header */}
-          <div className="px-4 py-2 text-center relative z-20">
-            <span className="text-sm font-bold text-white tracking-wide">
-              Swipe<span className="text-yellow-400">Wear</span>
+          <div className="px-4 py-1.5 text-center relative z-20">
+            <span className="text-sm font-bold text-black tracking-wide">
+              Swipe<span className="text-yellow-500">Wear</span>
             </span>
           </div>
 
@@ -200,14 +197,12 @@ export function PhoneMockup() {
             onTouchStart={() => setAutoSwipe(false)}
           >
             <AnimatePresence mode="popLayout">
-              {/* Next card (behind) */}
               <SwipeCard
                 key={`next-${(index + 1) % cards.length}`}
                 card={nextCard}
                 isTop={false}
                 onSwipe={() => {}}
               />
-              {/* Top card */}
               <SwipeCard
                 key={`top-${index}`}
                 card={topCard}
@@ -217,13 +212,29 @@ export function PhoneMockup() {
             </AnimatePresence>
           </div>
 
-          {/* Bottom nav dots */}
-          <div className="flex justify-center gap-8 pt-2 pb-2 relative z-20">
-            <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center">
-              <span className="text-white/30 text-xs">&times;</span>
+          {/* Bottom action buttons */}
+          <div className="flex justify-center gap-8 pt-1 pb-2 relative z-20">
+            <div className="w-8 h-8 rounded-full border border-neutral-200 flex items-center justify-center bg-white shadow-sm">
+              <span className="text-neutral-400 text-xs">&times;</span>
             </div>
-            <div className="w-8 h-8 rounded-full border border-yellow-400/40 flex items-center justify-center">
-              <span className="text-yellow-400 text-xs">&hearts;</span>
+            <div className="w-8 h-8 rounded-full border border-yellow-300 flex items-center justify-center bg-yellow-50 shadow-sm">
+              <span className="text-yellow-500 text-xs">&hearts;</span>
+            </div>
+          </div>
+
+          {/* Bottom tab bar */}
+          <div className="absolute bottom-0 inset-x-0 flex justify-around items-center py-2 px-4 border-t border-neutral-100 bg-white/90 backdrop-blur-sm z-20">
+            <div className="flex flex-col items-center">
+              <span className="text-[9px]">&#128293;</span>
+              <span className="text-[6px] font-medium text-black mt-0.5">Feed</span>
+            </div>
+            <div className="flex flex-col items-center opacity-40">
+              <span className="text-[9px]">&#10084;&#65039;</span>
+              <span className="text-[6px] font-medium text-black/50 mt-0.5">Saves</span>
+            </div>
+            <div className="flex flex-col items-center opacity-40">
+              <span className="text-[9px]">&#128100;</span>
+              <span className="text-[6px] font-medium text-black/50 mt-0.5">Profile</span>
             </div>
           </div>
         </div>
