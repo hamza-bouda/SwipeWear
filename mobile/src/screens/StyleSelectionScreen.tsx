@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkMark: {
-    color: colors.textInverse,
+    color: colors.accentText,
     fontSize: 16,
     fontWeight: '700',
   },
