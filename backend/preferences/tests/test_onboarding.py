@@ -32,9 +32,9 @@ class TestCatalogue:
     def test_between_8_and_12_archetypes(self) -> None:
         assert 8 <= len(STYLE_ARCHETYPE_IDS) <= 12
 
-    def test_every_archetype_has_a_512_dim_embedding(self) -> None:
+    def test_every_archetype_has_a_768_dim_embedding(self) -> None:
         for style_id in STYLE_ARCHETYPE_IDS:
-            assert len(ARCHETYPE_EMBEDDINGS[style_id]) == 512
+            assert len(ARCHETYPE_EMBEDDINGS[style_id]) == 768
 
     def test_embeddings_are_l2_normalized(self) -> None:
         for style_id in STYLE_ARCHETYPE_IDS:
@@ -71,7 +71,7 @@ class TestMultipleStyles:
         selected = ["streetwear", "techwear", "casual"]
         profile = build_profile_from_styles(selected)
 
-        dim = 512
+        dim = 768
         raw_avg = [
             sum(ARCHETYPE_EMBEDDINGS[s][i] for s in selected) / len(selected)
             for i in range(dim)
