@@ -25,7 +25,7 @@ Ces décisions sont validées (tests IA GO 6/6 du 2026-07-16, blueprint §13). U
 
 | Sujet | Décision figée |
 |---|---|
-| Embeddings mode | Marqo-FashionSigLIP (OpenCLIP), vecteurs 512, L2-normalisés, version `fashionsiglip-v1` |
+| Embeddings mode | Marqo-FashionSigLIP (OpenCLIP), vecteurs **768** (corrigé le 2026-07-22, KAN-77 — l'ancienne valeur 512 n'avait jamais été vérifiée contre une exécution réelle du modèle), L2-normalisés, version `fashionsiglip-v1` |
 | Analyse de scènes | Qwen3-VL-2B-Instruct quantisé, derrière l'adapter `SceneAnalyzer` — soumis au bench KAN-30 |
 | Matching "même pièce" | DINOv2 base, seuil ~0.80 (marge validée : 0.956 vs 0.508 vs 0.074) |
 | Parsing titres | GLiNER, labels : marque / modèle / taille / couleur / état |
@@ -130,3 +130,4 @@ Historique volontairement tenu ici (et pas seulement dans les fichiers `.sql` ou
 | `002_catalog_indexer.sql` | KAN-29 | `products.embedding_version`, `products.needs_reindex`, `product_embeddings.indexed_at` + index unique sur `product_embeddings.product_id` | Support de l'indexeur d'embeddings catalogue. |
 | `004_products_available.sql` | KAN-76 | `products.available` (BOOLEAN NOT NULL DEFAULT TRUE) | Colonne manquante dans 001_init — le hard_filter `WHERE available = true` échouait sans elle. |
 | `003_user_profiles_event_count.sql` | KAN-31 | `user_profiles.event_count` (INTEGER NOT NULL DEFAULT 0) | Le contrat `UserPreferenceProfile` porte `event_count` depuis KAN-17, mais `001_init.sql` avait omis la colonne — sans elle, un `save()` suivi d'un `load()` ne pouvait pas restituer le profil à l'identique. **Décision confirmée (2026-07-21) :** `user_profiles.vectors` reste en JSONB (positive + negative, cf. `contracts/profile.py::StyleVectors`) et non un unique `vector(512)` natif pgvector — un seul vecteur était l'intention initiale du ticket KAN-31, mais le design à deux vecteurs (déjà dans le contrat) est celui qui prime. |
+| `005_embedding_dim_768.sql` | KAN-77 | `product_embeddings.embedding` élargi de `vector(512)` à `vector(768)` (drop + recreate de l'index HNSW) | Le modèle réel Marqo-FashionSigLIP sort du 768-dim, pas 512 — jamais vérifié avant car les tests mockent entièrement l'appel modèle. Confirmé en exécutant le vrai pipeline pour générer les embeddings des archétypes de style (KAN-33). Sans risque aujourd'hui (aucun embedding réel encore calculé) ; ne le serait plus après un vrai import catalogue. |

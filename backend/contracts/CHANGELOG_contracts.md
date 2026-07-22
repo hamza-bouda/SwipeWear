@@ -3,6 +3,15 @@
 All breaking changes to shared schemas must be recorded here.
 Increment `schema_version` in `contracts/interfaces.py` for breaking changes.
 
+## v1.7 — 2026-07-22 — rachid iraauan (KAN-77)
+- StyleVectors: `vector_dim` default corrected from `512` to `768`.
+  Breaking in practice (any code assuming 512-length vectors), but not
+  breaking for the schema shape itself (still an int field) — no real
+  embeddings existed yet under the old assumption, so no live data migration
+  is needed. The real Marqo-FashionSigLIP model outputs 768-dim vectors;
+  512 had never been verified against an actual model run. See also:
+  `embeddings/interfaces.py::VECTOR_DIM`, `migrations/005_embedding_dim_768.sql`.
+
 ## v1.6 — 2026-07-21 — Hamza Bouda (KAN-76)
 - ProductSource: added `etsy` variant.
   Non-breaking — new enum value; existing sources unaffected.

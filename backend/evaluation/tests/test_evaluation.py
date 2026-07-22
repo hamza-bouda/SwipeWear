@@ -64,11 +64,11 @@ class TestFixtureLoading:
         for entry in exp["top10"]:
             assert entry["product_id"] in catalogue_ids
 
-    def test_style_vectors_are_512_dim(self):
+    def test_style_vectors_are_768_dim(self):
         data = json.loads((FIXTURES / "golden_user.json").read_text(encoding="utf-8"))
         profile = UserPreferenceProfile.model_validate(data)
-        assert len(profile.vectors.positive) == 512
-        assert len(profile.vectors.negative) == 512
+        assert len(profile.vectors.positive) == 768
+        assert len(profile.vectors.negative) == 768
 
 
 # ── Hard constraint filter ─────────────────────────────────────────────────────

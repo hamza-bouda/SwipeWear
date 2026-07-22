@@ -1,7 +1,8 @@
 """FashionSigLIP embedding adapter via OpenCLIP.
 
 Model  : Marqo/marqo-fashionSigLIP (hf-hub)
-Output : (512,) float32, L2-normalised
+Output : (768,) float32, L2-normalised (KAN-77: corrected from an
+         unvalidated 512 assumption -- this is the model's real output dim)
 Latency: < 350 ms/image on CPU (spec-validated: 284 ms)
 """
 from __future__ import annotations
@@ -82,11 +83,11 @@ class FashionSigLIPService:
     vector_dim: int = VECTOR_DIM
 
     def encode_image(self, image: bytes) -> np.ndarray:
-        """Encode raw image bytes → (512,) float32 L2-normalised vector."""
+        """Encode raw image bytes → (768,) float32 L2-normalised vector."""
         return _l2_normalize(_run_image(image))
 
     def encode_text(self, text: str) -> np.ndarray:
-        """Encode text → (512,) float32 L2-normalised vector (same space as encode_image)."""
+        """Encode text → (768,) float32 L2-normalised vector (same space as encode_image)."""
         return _l2_normalize(_run_text(text))
 
 

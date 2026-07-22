@@ -14,7 +14,7 @@ from preferences.updater import PreferenceUpdater
 
 USER_ID = UUID("00000000-0000-0000-0000-000000000042")
 T0 = datetime(2026, 7, 21, 10, 0, 0, tzinfo=timezone.utc)
-EMBEDDING = [1.0] + [0.0] * 511
+EMBEDDING = [1.0] + [0.0] * 767
 
 
 def _event(event_type: EventType, **payload) -> InteractionEvent:
@@ -121,7 +121,7 @@ class TestSwipeLeftPrice:
     def test_style_vectors_strictly_unchanged(self) -> None:
         """AC critique: un swipe_left_price ne touche JAMAIS le vecteur de style."""
         profile = _profile(
-            vectors=StyleVectors(positive=[0.3] * 512, negative=[0.1] * 512),
+            vectors=StyleVectors(positive=[0.3] * 768, negative=[0.1] * 768),
         )
         updated = PreferenceUpdater().apply(
             profile, _event(EventType.swipe_left_price, product_price_eur=10.0),
@@ -173,7 +173,7 @@ class TestEditPreference:
         assert updated.hard_constraints.max_price_eur == 42.0
 
     def test_does_not_touch_style_vectors(self) -> None:
-        profile = _profile(vectors=StyleVectors(positive=[0.5] * 512))
+        profile = _profile(vectors=StyleVectors(positive=[0.5] * 768))
         updated = PreferenceUpdater().apply(
             profile,
             _event(EventType.edit_preference, field="liked_brands", value="Nike"),

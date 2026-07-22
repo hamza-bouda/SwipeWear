@@ -169,7 +169,7 @@ class TestBuildPriceLadderNotFound:
 class TestBuildPriceLadderResults:
     def test_returns_entries_sorted_by_price(self) -> None:
         source_row = _make_product_row("src", price=60.0)
-        embedding = [0.1] * 512
+        embedding = [0.1] * 768
         candidates = [
             _make_candidate_row("c1", 0.90, price=80.0, source="awin", condition="new"),
             _make_candidate_row("c2", 0.85, price=30.0, source="ebay", condition="good"),
@@ -184,7 +184,7 @@ class TestBuildPriceLadderResults:
 
     def test_min_max_savings_computed(self) -> None:
         source_row = _make_product_row("src")
-        embedding = [0.1] * 512
+        embedding = [0.1] * 768
         candidates = [
             _make_candidate_row("c1", 0.90, price=100.0, condition="new"),
             _make_candidate_row("c2", 0.85, price=40.0, condition="good"),
@@ -198,7 +198,7 @@ class TestBuildPriceLadderResults:
 
     def test_mixes_occasion_and_new(self) -> None:
         source_row = _make_product_row("src")
-        embedding = [0.1] * 512
+        embedding = [0.1] * 768
         candidates = [
             _make_candidate_row("c1", 0.90, condition="new", source="awin"),
             _make_candidate_row("c2", 0.85, condition="good", source="ebay"),
@@ -212,7 +212,7 @@ class TestBuildPriceLadderResults:
 
     def test_is_new_flag_set_correctly(self) -> None:
         source_row = _make_product_row("src")
-        embedding = [0.1] * 512
+        embedding = [0.1] * 768
         candidates = [
             _make_candidate_row("c1", 0.90, condition="new"),
             _make_candidate_row("c2", 0.85, condition="good"),
@@ -227,7 +227,7 @@ class TestBuildPriceLadderResults:
 
     def test_max_results_limits_output(self) -> None:
         source_row = _make_product_row("src")
-        embedding = [0.1] * 512
+        embedding = [0.1] * 768
         candidates = [
             _make_candidate_row(f"c{i}", 0.90 - i * 0.01, price=10.0 + i)
             for i in range(20)
@@ -239,7 +239,7 @@ class TestBuildPriceLadderResults:
 
     def test_latency_recorded(self) -> None:
         source_row = _make_product_row("src")
-        embedding = [0.1] * 512
+        embedding = [0.1] * 768
         conn = _mock_conn_for_ladder(source_row, embedding, [])
         result = build_price_ladder("src", lambda: conn)
         assert result.latency_ms >= 0.0
@@ -250,7 +250,7 @@ class TestBuildPriceLadderResults:
 class TestBuildPriceLadderConfidence:
     def test_exact_match_brand_model(self) -> None:
         source_row = _make_product_row("src", brand="Nike", model="Air Force 1")
-        embedding = [0.1] * 512
+        embedding = [0.1] * 768
         candidates = [
             _make_candidate_row(
                 "c1", 0.90,
@@ -282,7 +282,7 @@ class TestBuildPriceLadderGolden:
             "jacket-1", brand="The North Face", model="Nuptse",
             price=120.0, category="jackets",
         )
-        embedding = [0.1] * 512
+        embedding = [0.1] * 768
         candidates = [
             _make_candidate_row(
                 "j-used", 0.92, brand="The North Face", model="Nuptse",
