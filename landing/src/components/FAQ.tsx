@@ -34,19 +34,19 @@ function FAQItem({ q, a }: { q: string; a: string }) {
       initial={{ opacity: 0, y: 10 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="border-b border-white/5"
+      className="border-b border-black/[0.05]"
     >
       <button
         onClick={() => setOpen(!open)}
         className="flex items-center justify-between w-full py-5 text-left group cursor-pointer"
       >
-        <span className="text-sm sm:text-base font-medium pr-4 group-hover:text-violet-300 transition-colors">
+        <span className="text-sm sm:text-base font-medium pr-4 text-black group-hover:text-yellow-600 transition-colors">
           {q}
         </span>
         <motion.span
           animate={{ rotate: open ? 45 : 0 }}
           transition={{ duration: 0.2 }}
-          className="text-white/30 text-xl shrink-0"
+          className="text-black/20 text-xl shrink-0 group-hover:text-yellow-500 transition-colors"
         >
           +
         </motion.span>
@@ -60,7 +60,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
             transition={{ duration: 0.3 }}
             className="overflow-hidden"
           >
-            <p className="pb-5 text-sm text-white/40 leading-relaxed">
+            <p className="pb-5 text-sm text-black/40 leading-relaxed">
               {a}
             </p>
           </motion.div>
@@ -72,7 +72,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 
 export function FAQ() {
   return (
-    <section id="faq" className="relative py-24 sm:py-32 px-4">
+    <section id="faq" className="relative py-24 sm:py-32 px-4 bg-neutral-50">
       <div className="relative max-w-2xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -81,10 +81,10 @@ export function FAQ() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <span className="inline-block text-xs font-mono tracking-widest text-white/40 uppercase mb-4">
+          <span className="inline-block text-[11px] font-mono tracking-[0.2em] text-black/25 uppercase mb-4">
             FAQ
           </span>
-          <h2 className="text-3xl sm:text-4xl font-bold">
+          <h2 className="text-3xl sm:text-4xl font-bold text-black">
             Des questions ?
           </h2>
         </motion.div>

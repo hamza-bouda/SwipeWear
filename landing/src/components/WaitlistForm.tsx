@@ -49,17 +49,17 @@ export function WaitlistForm({ className = "" }: { className?: string }) {
         {status === "success" ? (
           <motion.div
             key="success"
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="flex items-center gap-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 px-6 py-4"
+            className="flex items-center gap-3 rounded-2xl bg-emerald-50 border border-emerald-200 px-6 py-4"
           >
-            <span className="text-2xl">&#10003;</span>
+            <span className="text-xl text-emerald-600">&#10003;</span>
             <div>
-              <p className="font-semibold text-emerald-400">
+              <p className="font-semibold text-emerald-700">
                 Tu es sur la liste !
               </p>
-              <p className="text-sm text-emerald-400/70">
+              <p className="text-sm text-emerald-600/70">
                 On te previent des le lancement.
               </p>
             </div>
@@ -81,7 +81,7 @@ export function WaitlistForm({ className = "" }: { className?: string }) {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="ton@email.com"
                 required
-                className="w-full rounded-xl bg-white/5 border border-white/10 px-5 py-3.5 text-white placeholder:text-white/30 outline-none transition-all duration-300 focus:border-accent/50 focus:ring-2 focus:ring-accent/20 focus:bg-white/[0.07]"
+                className="w-full rounded-xl bg-black/[0.03] border border-black/[0.08] px-5 py-3.5 text-black placeholder:text-black/25 outline-none transition-all duration-300 focus:border-yellow-500/40 focus:ring-2 focus:ring-yellow-400/15 focus:bg-white"
               />
             </div>
             <motion.button
@@ -89,10 +89,10 @@ export function WaitlistForm({ className = "" }: { className?: string }) {
               disabled={status === "loading"}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="relative rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 px-7 py-3.5 font-semibold text-white transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-60 cursor-pointer animate-pulse-glow"
+              className="relative rounded-xl bg-black px-7 py-3.5 font-bold text-white transition-all duration-300 hover:bg-black/80 hover:shadow-lg hover:shadow-black/10 disabled:opacity-60 cursor-pointer"
             >
               {status === "loading" ? (
-                <span className="flex items-center gap-2">
+                <span className="flex items-center justify-center gap-2">
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -113,14 +113,14 @@ export function WaitlistForm({ className = "" }: { className?: string }) {
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="mt-2 text-sm text-red-400"
+            className="mt-2 text-sm text-red-500"
           >
             {errorMsg}
           </motion.p>
         )}
       </AnimatePresence>
 
-      <p className="mt-3 text-xs text-white/30">
+      <p className="mt-3 text-xs text-black/25">
         Pas de spam. Juste un email au lancement.
       </p>
     </div>
