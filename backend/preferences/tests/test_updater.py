@@ -186,3 +186,18 @@ class TestConfigIsUsedNotHardcoded:
         assert isinstance(ALPHA, float)
         assert isinstance(BETA, float)
         assert isinstance(PRICE_DISCOUNT, float)
+
+
+def test_locked_brand_ignores_twenty_contradictory_swipes() -> None:
+    from contracts.profile import EditablePreferences, LockedAttribute
+
+    profile = _profile(editable_preferences=EditablePreferences(
+        locked_attributes=[LockedAttribute(attribute="brand", value="Nike", locked=True)],
+    ))
+    updater = PreferenceUpdater()
+    for _ in range(20):
+        profile = updater.apply(profile, _event(EventType.swipe_right, brand="Nike"))
+
+    locked = profile.editable_preferences.locked_attributes[0]
+    assert locked.value == "Nike"
+    assert locked.weight == 1.0

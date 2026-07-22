@@ -112,6 +112,34 @@ class TestProfile:
         assert body["editable_preferences"]["liked_brands"] == ["Stussy"]
 
 
+class TestPreferencesApi:
+    def test_add_list_lock_unlock_and_delete_preference(self, client, auth_headers):
+        created = client.post(
+            "/profile/preferences",
+            json={"attribute": "liked_brands", "value": "Carhartt"},
+            headers=auth_headers,
+        )
+        assert created.status_code == 201
+        preference_id = created.json()["preference"]["id"]
+
+        listed = client.get("/profile/preferences", headers=auth_headers)
+        assert listed.status_code == 200
+        assert listed.json()["preferences"][0]["source"] == "edited"
+
+        locked = client.post(
+            f"/profile/preferences/{preference_id}/lock", headers=auth_headers,
+        )
+        assert locked.json()["preference"]["locked"] is True
+        unlocked = client.post(
+            f"/profile/preferences/{preference_id}/unlock", headers=auth_headers,
+        )
+        assert unlocked.json()["preference"]["locked"] is False
+
+        deleted = client.delete(f"/profile/preferences/{preference_id}", headers=auth_headers)
+        assert deleted.status_code == 204
+        assert client.get("/profile/preferences", headers=auth_headers).json()["preferences"] == []
+
+
 class TestFeed:
     def test_get_feed_default(self, client, auth_headers):
         resp = client.get("/feed", headers=auth_headers)

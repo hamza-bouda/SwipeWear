@@ -11,10 +11,12 @@ import { useFeed } from '../api';
 import { colors, typography, spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { useSaves } from '../context/SavesContext';
+import { useAlgorithm } from '../context/AlgorithmContext';
 
 export function FeedScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { toggleSave } = useSaves();
+  const { preferences, revision } = useAlgorithm();
   const { products: feedProducts, loading, reload } = useFeed();
   const [products, setProducts] = useState<Product[]>([]);
   const [deckEmpty, setDeckEmpty] = useState(false);
@@ -27,10 +29,13 @@ export function FeedScreen() {
 
   useEffect(() => {
     if (feedProducts.length > 0) {
-      setProducts(feedProducts);
+      const excluded = new Set(preferences
+        .filter((preference) => preference.kind === 'excluded_brand')
+        .map((preference) => preference.label.toLowerCase()));
+      setProducts(feedProducts.filter((product) => !excluded.has(product.brand.toLowerCase())));
       setDeckEmpty(false);
     }
-  }, [feedProducts]);
+  }, [feedProducts, preferences, revision]);
 
   const handleSwipeRight = useCallback((product: Product) => {
     trackEvent({ name: 'swipe', properties: { type: 'swipe_right', product_id: product.id } });

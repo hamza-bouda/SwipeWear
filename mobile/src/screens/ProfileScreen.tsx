@@ -55,7 +55,8 @@ export function ProfileScreen() {
       {isAuthenticated ? (
         <View style={styles.section}>
           <Text style={styles.email}>{email}</Text>
-          <Text style={styles.subtitle}>Your algorithm settings will appear here</Text>
+          <Text style={styles.subtitle}>See and tune the preferences shaping your recommendations.</Text>
+          <Button title="My algorithm" onPress={() => (rootNav ?? navigation).navigate('Algorithm' as never)} />
 
           <View style={styles.actions}>
             <Button title="Log out" onPress={handleLogout} variant="outline" />
