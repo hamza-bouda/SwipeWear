@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   },
   cardPrice: {
     ...typography.bodyBold,
-    color: colors.primary,
+    color: colors.accentDark,
     marginTop: spacing.xs,
   },
   removeButton: {
