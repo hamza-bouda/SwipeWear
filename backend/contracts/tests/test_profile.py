@@ -68,10 +68,10 @@ class TestFilledProfile:
                 ],
             ),
             vectors=StyleVectors(
-                positive=[0.1] * 512,
-                negative=[-0.05] * 512,
+                positive=[0.1] * 768,
+                negative=[-0.05] * 768,
                 embedding_version="fashionsiglip-v1",
-                vector_dim=512,
+                vector_dim=768,
             ),
         )
 
@@ -80,7 +80,7 @@ class TestFilledProfile:
         assert profile.event_count == 42
         assert profile.hard_constraints.max_price_eur == 120.0
         assert "Nike" in profile.editable_preferences.liked_brands
-        assert len(profile.vectors.positive) == 512
+        assert len(profile.vectors.positive) == 768
 
     def test_not_cold_start_when_vectors_present(self):
         profile = self._make_full_profile()
@@ -107,7 +107,7 @@ class TestFilledProfile:
 
     def test_vector_dim_default(self):
         v = StyleVectors()
-        assert v.vector_dim == 512
+        assert v.vector_dim == 768
         assert v.embedding_version == "fashionsiglip-v1"
 
     def test_schema_version_is_1(self):
