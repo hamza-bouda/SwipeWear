@@ -12,7 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Product } from '../types';
 import { SwipeCard } from './SwipeCard';
-import { spacing } from '../theme';
+import { spacing, colors } from '../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
@@ -355,15 +355,15 @@ const styles = StyleSheet.create({
   },
   likeLabel: {
     left: spacing.lg,
-    borderColor: '#34C759',
+    borderColor: colors.accent,
   },
   nopeLabel: {
     right: spacing.lg,
-    borderColor: '#FF3B30',
+    borderColor: colors.error,
   },
   labelText: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#FFF',
+    color: colors.textInverse,
   },
 });

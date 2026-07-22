@@ -76,7 +76,7 @@ export function FeedScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.logo}>SwipeWear</Text>
+        <Text style={styles.logo}>Swipe<Text style={styles.logoAccent}>Wear</Text></Text>
       </View>
 
       {loading ? (
@@ -125,6 +125,9 @@ const styles = StyleSheet.create({
   logo: {
     ...typography.h2,
     color: colors.textPrimary,
+  },
+  logoAccent: {
+    color: colors.accent,
   },
   emptyState: {
     flex: 1,

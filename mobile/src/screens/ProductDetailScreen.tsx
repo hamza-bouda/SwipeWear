@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   },
   price: {
     ...typography.h1,
-    color: colors.primary,
+    color: colors.accentDark,
     marginBottom: spacing.sm,
   },
   category: {
