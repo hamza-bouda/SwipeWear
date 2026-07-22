@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   sectionTitle: { ...typography.bodyBold, color: colors.textPrimary, marginBottom: spacing.sm },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { backgroundColor: colors.surface, borderRadius: 20, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, flexDirection: 'row', gap: spacing.xs, alignItems: 'center' },
-  chipLocked: { borderColor: colors.primary, backgroundColor: colors.surface },
+  chipLocked: { borderColor: colors.accent, backgroundColor: colors.accentLight },
   chipText: { ...typography.caption, color: colors.textPrimary },
   chipMeta: { ...typography.caption, color: colors.textSecondary },
   empty: { ...typography.caption, color: colors.textSecondary },
@@ -136,6 +136,6 @@ const styles = StyleSheet.create({
   suggestions: { marginTop: spacing.xs, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
   suggestion: { padding: spacing.md, backgroundColor: colors.surface, flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   suggestionText: { ...typography.body, color: colors.textPrimary },
-  add: { ...typography.bodyBold, color: colors.primary },
+  add: { ...typography.bodyBold, color: colors.accentDark },
   legend: { ...typography.caption, color: colors.textSecondary, lineHeight: 18 },
 });
