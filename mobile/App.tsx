@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { AuthProvider } from './src/context/AuthContext';
 import { SavesProvider } from './src/context/SavesContext';
+import { AlgorithmProvider } from './src/context/AlgorithmContext';
 import { RootNavigator } from './src/navigation';
 
 export default function App() {
@@ -11,10 +12,12 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
         <SavesProvider>
-          <NavigationContainer>
-            <StatusBar style="auto" />
-            <RootNavigator />
-          </NavigationContainer>
+          <AlgorithmProvider>
+            <NavigationContainer>
+              <StatusBar style="auto" />
+              <RootNavigator />
+            </NavigationContainer>
+          </AlgorithmProvider>
         </SavesProvider>
       </AuthProvider>
     </GestureHandlerRootView>
