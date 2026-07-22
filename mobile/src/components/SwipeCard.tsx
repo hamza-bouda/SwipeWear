@@ -5,15 +5,16 @@ import {
   Image,
   StyleSheet,
   Dimensions,
-  TouchableOpacity,
+  Pressable,
 } from 'react-native';
 import { Product } from '../types';
 import { Badge } from './Badge';
 import { colors, typography, spacing, borderRadius } from '../theme';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 export const CARD_WIDTH = SCREEN_WIDTH - spacing.lg * 2;
-export const CARD_HEIGHT = CARD_WIDTH * 1.35;
+const MAX_CARD_HEIGHT = SCREEN_HEIGHT - 200;
+export const CARD_HEIGHT = Math.min(CARD_WIDTH * 1.35, MAX_CARD_HEIGHT);
 
 interface SwipeCardProps {
   product: Product;
@@ -30,7 +31,7 @@ const conditionLabels: Record<string, string> = {
 
 export function SwipeCard({ product, onTap, onSave }: SwipeCardProps) {
   return (
-    <TouchableOpacity activeOpacity={0.95} onPress={onTap} style={styles.card}>
+    <View style={styles.card}>
       <Image
         source={{ uri: product.imageUrls[0] }}
         style={styles.image}
@@ -56,13 +57,13 @@ export function SwipeCard({ product, onTap, onSave }: SwipeCardProps) {
           ) : null}
           <View style={styles.priceRow}>
             <Text style={styles.price}>{product.price} {product.currency}</Text>
-            <TouchableOpacity onPress={onSave} style={styles.saveButton}>
+            <Pressable onPress={onSave} style={styles.saveButton}>
               <Text style={styles.saveIcon}>{'♡'}</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 
