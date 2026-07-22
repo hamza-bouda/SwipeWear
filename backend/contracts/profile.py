@@ -48,7 +48,7 @@ class StyleVectors(BaseModel):
     positive: list[float] = Field(default_factory=list)
     negative: list[float] = Field(default_factory=list)
     embedding_version: str = "fashionsiglip-v1"
-    vector_dim: int = 512
+    vector_dim: int = 768
 
 
 # ─────────────────────────────────────────────────────────────────────────────

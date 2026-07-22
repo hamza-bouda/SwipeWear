@@ -25,7 +25,7 @@ def _profile(**overrides) -> UserPreferenceProfile:
         event_count=3,
         hard_constraints=HardConstraints(sizes=["M"], max_price_eur=50.0),
         editable_preferences=EditablePreferences(liked_brands=["Nike"]),
-        vectors=StyleVectors(positive=[0.1] * 512),
+        vectors=StyleVectors(positive=[0.1] * 768),
         last_updated=T0,
     )
     defaults.update(overrides)
