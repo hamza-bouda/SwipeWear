@@ -13,11 +13,11 @@ from embeddings.indexer import CatalogueIndexer, index_batch, index_product
 
 class FakeEmbeddingService:
     embedding_version = "test-embedding-v1"
-    vector_dim = 512
+    vector_dim = 768
 
     def __init__(self) -> None:
         self.images: list[bytes] = []
-        self.output = np.ones(512, dtype=np.float32) / np.sqrt(512)
+        self.output = np.ones(768, dtype=np.float32) / np.sqrt(768)
 
     def encode_image(self, image: bytes) -> np.ndarray:
         self.images.append(image)
@@ -85,10 +85,10 @@ def test_index_product_encodes_primary_image_and_upserts_vector() -> None:
     assert service.images == [b"primary-image"]
     assert result.product_id == "product-0"
     assert result.embedding_version == "test-embedding-v1"
-    assert result.vector_dim == 512
+    assert result.vector_dim == 768
     assert result.indexed_at == now
     vector, version, indexed_at = store.embeddings["product-0"]
-    assert vector.shape == (512,)
+    assert vector.shape == (768,)
     assert version == "test-embedding-v1"
     assert indexed_at == now
 
@@ -171,8 +171,8 @@ def test_batch_continues_after_one_product_fails() -> None:
 @pytest.mark.parametrize(
     ("output", "message"),
     [
-        (np.ones(511, dtype=np.float32), "expected embedding shape"),
-        (np.full(512, np.nan, dtype=np.float32), "non-finite"),
+        (np.ones(767, dtype=np.float32), "expected embedding shape"),
+        (np.full(768, np.nan, dtype=np.float32), "non-finite"),
     ],
 )
 def test_invalid_embedding_is_not_persisted(

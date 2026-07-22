@@ -76,7 +76,7 @@ class TestSchema:
             indexes = {row[0] for row in cur.fetchall()}
         assert "idx_product_embeddings_hnsw" in indexes
 
-    def test_embedding_column_is_512_dims(self, conn):
+    def test_embedding_column_is_768_dims(self, conn):
         with conn.cursor() as cur:
             cur.execute(
                 "SELECT a.atttypmod"
@@ -87,7 +87,7 @@ class TestSchema:
             )
             row = cur.fetchone()
         assert row is not None, "Column 'embedding' not found in product_embeddings"
-        assert row[0] == 512, f"Expected 512 dims, got {row[0]}"
+        assert row[0] == 768, f"Expected 768 dims, got {row[0]}"
 
     def test_catalogue_indexer_columns_exist(self, conn):
         with conn.cursor() as cur:

@@ -22,7 +22,7 @@ DATABASE_URL = os.getenv(
 
 class DeterministicEmbeddingService:
     embedding_version = "kan29-recall-test-v1"
-    vector_dim = 512
+    vector_dim = 768
 
     def encode_image(self, image: bytes) -> np.ndarray:
         index = int(image.decode())

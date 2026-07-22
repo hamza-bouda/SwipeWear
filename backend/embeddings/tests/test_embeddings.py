@@ -36,8 +36,8 @@ class TestInterfaceConstants:
     def test_embedding_version_is_fashionsiglip_v1(self) -> None:
         assert EMBEDDING_VERSION == "fashionsiglip-v1"
 
-    def test_vector_dim_is_512(self) -> None:
-        assert VECTOR_DIM == 512
+    def test_vector_dim_is_768(self) -> None:
+        assert VECTOR_DIM == 768
 
     def test_service_class_attributes_match_constants(self) -> None:
         assert FashionSigLIPService.embedding_version == EMBEDDING_VERSION
@@ -76,7 +76,7 @@ class TestL2Normalize:
 
 class TestEncodeImage:
     @patch("embeddings.fashionsiglip._run_image")
-    def test_returns_512_dim_ndarray(self, mock_run) -> None:
+    def test_returns_768_dim_ndarray(self, mock_run) -> None:
         mock_run.return_value = _unit()
         result = FashionSigLIPService().encode_image(b"fake-image")
         assert result.shape == (VECTOR_DIM,)
@@ -104,7 +104,7 @@ class TestEncodeImage:
 
 class TestEncodeText:
     @patch("embeddings.fashionsiglip._run_text")
-    def test_returns_512_dim_ndarray(self, mock_run) -> None:
+    def test_returns_768_dim_ndarray(self, mock_run) -> None:
         mock_run.return_value = _unit(axis=1)
         result = FashionSigLIPService().encode_text("Nike Air Force 1")
         assert result.shape == (VECTOR_DIM,)
@@ -205,10 +205,10 @@ class TestMetadata:
         assert FashionSigLIPService().embedding_version == "fashionsiglip-v1"
 
     def test_vector_dim_on_instance(self) -> None:
-        assert FashionSigLIPService().vector_dim == 512
+        assert FashionSigLIPService().vector_dim == 768
 
     def test_embedding_version_is_class_attribute(self) -> None:
         assert FashionSigLIPService.embedding_version == "fashionsiglip-v1"
 
     def test_vector_dim_is_class_attribute(self) -> None:
-        assert FashionSigLIPService.vector_dim == 512
+        assert FashionSigLIPService.vector_dim == 768

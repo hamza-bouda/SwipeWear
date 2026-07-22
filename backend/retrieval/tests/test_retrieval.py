@@ -53,7 +53,7 @@ def _profile_with_vector(**kwargs) -> UserPreferenceProfile:
     hc = HardConstraints(**{k: v for k, v in kwargs.items() if k in hc_fields})
     return UserPreferenceProfile(
         hard_constraints=hc,
-        vectors=StyleVectors(positive=[0.1] * 512),
+        vectors=StyleVectors(positive=[0.1] * 768),
         event_count=5,
     )
 
