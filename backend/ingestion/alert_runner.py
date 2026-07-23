@@ -1,13 +1,13 @@
-"""Ingestion-time alert matching job (KAN-70).
+"""Ingestion-time alert matching job (KAN-70 / KAN-74).
 
 Called after each new product is inserted into the catalogue.
 Evaluates the product against all active specific_item alerts using DINOv2
-and logs matches with their scores for audit and future recalibration.
+and dispatches push notifications via the notification queue (KAN-74).
 
 Design constraints:
 - Runs in the ingestion job, NOT per user-request.
 - DINOv2 model is shared (singleton) with vision/instance_matcher.py.
-- Does not fire push notifications — that is KAN-71.
+- Push dispatch: is_premium looked up per user via billing.subscription_store.
 - A missing reference_dinov2_embedding on an alert silently skips it.
 """
 from __future__ import annotations
@@ -17,6 +17,8 @@ from typing import Any
 from uuid import UUID
 
 from alerts.alert_store import fetch_active_specific_item_alerts
+from billing.subscription_store import is_user_premium
+from notifications.dispatcher import enqueue_match_notification
 from vision.instance_matcher import MatchResult, MatchTier, match
 
 _LOG = logging.getLogger("swipewear.ingestion.alert_runner")
@@ -90,3 +92,40 @@ def evaluate_product_against_alerts(
             ))
 
     return matches
+
+
+def dispatch_alert_matches(
+    conn: Any,
+    product_id: str,
+    matches: list[AlertMatch],
+    product_price: float | None = None,
+    product_image: str | None = None,
+) -> int:
+    """Enqueue push notifications for each AlertMatch (KAN-74).
+
+    Looks up premium status per user so premium users get instant delivery
+    and free-tier users get the 30-minute delay.
+
+    Returns the number of notifications enqueued (None returns from
+    enqueue_match_notification — suppressed prefs — are not counted).
+    """
+    enqueued = 0
+    for m in matches:
+        premium = is_user_premium(conn, m.user_id)
+        queue_id = enqueue_match_notification(
+            conn=conn,
+            user_id=m.user_id,
+            alert_id=m.alert_id,
+            product_id=product_id,
+            match_tier=m.result.tier.value,
+            product_price=product_price,
+            product_image=product_image,
+            is_premium=premium,
+        )
+        if queue_id is not None:
+            enqueued += 1
+            _LOG.info(
+                "Dispatched notification queue_id=%s user=%s alert=%s tier=%s premium=%s",
+                queue_id, m.user_id, m.alert_id, m.result.tier.value, premium,
+            )
+    return enqueued

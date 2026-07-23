@@ -59,7 +59,9 @@ def mark_notification_opened(conn: Any, queue_id: str) -> None:
 def flush_due_notifications(conn: Any) -> int:
     """Process all pending queue entries whose scheduled_for <= now.
 
-    Fetches due entries, sends push via Expo, marks sent_at and logs.
+    Fetches due entries, checks product availability (KAN-74: if product sold out
+    during the free-tier delay, records a "pépite manquée" and skips the send),
+    then sends push via Expo, marks sent_at and logs.
     Returns the number of messages sent.
     """
     now = datetime.now(timezone.utc)
@@ -83,6 +85,17 @@ def flush_due_notifications(conn: Any) -> int:
     total_sent = 0
     for row in rows:
         queue_id, user_id, alert_id, product_id, match_tier, product_price, product_image, is_digest = row
+
+        # KAN-74: skip if product is no longer available (sold out during delay)
+        if not _is_product_available(conn, product_id):
+            _LOG.info(
+                "Pépite manquée: product %s unavailable at flush time (user=%s alert=%s)",
+                product_id, user_id, alert_id,
+            )
+            _record_missed_deal(conn, str(user_id), str(alert_id), product_id)
+            _mark_sent(conn, str(queue_id))
+            continue
+
         tokens = get_device_tokens(conn, UUID(str(user_id)))
         if not tokens:
             _mark_sent(conn, str(queue_id))
@@ -110,6 +123,43 @@ def flush_due_notifications(conn: Any) -> int:
         total_sent += len([r for r in receipts if r.status == "ok"])
 
     return total_sent
+
+
+def _is_product_available(conn: Any, product_id: str) -> bool:
+    """Return True if the product exists and is still available in the catalogue."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT available FROM products WHERE id = %s",
+            (product_id,),
+        )
+        row = cur.fetchone()
+    if row is None:
+        return False  # product removed entirely
+    return bool(row[0])
+
+
+def _record_missed_deal(conn: Any, user_id: str, alert_id: str, product_id: str) -> None:
+    """Insert a missed_deals row for a free-tier user whose product sold out."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO missed_deals (user_id, alert_id, product_id)
+            VALUES (%s, %s, %s)
+            ON CONFLICT DO NOTHING
+            """,
+            (user_id, alert_id, product_id),
+        )
+    conn.commit()
+
+
+def count_missed_deals(conn: Any, user_id: UUID) -> int:
+    """Return total "pépites manquées" count for a user."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT COUNT(*) FROM missed_deals WHERE user_id = %s",
+            (str(user_id),),
+        )
+        return int(cur.fetchone()[0])
 
 
 def _mark_sent(conn: Any, queue_id: str) -> None:
