@@ -33,7 +33,10 @@ class HardFilterResult:
         return "WHERE " + " AND ".join(self.clauses)
 
 
-def apply_hard_filters(profile: UserPreferenceProfile) -> HardFilterResult:
+def apply_hard_filters(
+    profile: UserPreferenceProfile,
+    blocked_sources: list[str] | None = None,
+) -> HardFilterResult:
     hc = profile.hard_constraints
     clauses: list[str] = []
     params: dict[str, object] = {}
@@ -41,6 +44,11 @@ def apply_hard_filters(profile: UserPreferenceProfile) -> HardFilterResult:
 
     clauses.append("available = true")
     applied.append("available")
+
+    if blocked_sources:
+        clauses.append("source != ALL(%(filter_blocked_sources)s)")
+        params["filter_blocked_sources"] = blocked_sources
+        applied.append("watcher_kill_switch")
 
     if hc.sizes:
         clauses.append("size_eu = ANY(%(filter_sizes)s)")

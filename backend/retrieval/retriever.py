@@ -14,6 +14,7 @@ from contracts.pipeline import CandidateItem, CandidateSet
 from contracts.product import ProductCondition, ProductRecord, ProductSource
 from contracts.profile import UserPreferenceProfile
 from retrieval.filters import apply_hard_filters
+from retrieval.watcher_filter import get_disabled_watcher_sources
 
 _LOG = logging.getLogger("swipewear.retrieval.retriever")
 
@@ -57,8 +58,10 @@ class VectorRetriever:
                 retrieval_latency_ms=0.0,
             )
 
+        conn = self._get_conn()
         style_vector = profile.vectors.positive
-        filter_result = apply_hard_filters(profile)
+        blocked = get_disabled_watcher_sources(conn)
+        filter_result = apply_hard_filters(profile, blocked_sources=blocked or None)
 
         query = _QUERY_TEMPLATE.format(
             columns=", ".join(_PRODUCT_COLUMNS),
@@ -70,7 +73,6 @@ class VectorRetriever:
             "k": k,
         }
 
-        conn = self._get_conn()
         with conn.cursor() as cur:
             cur.execute(query, params)
             rows = cur.fetchall()
