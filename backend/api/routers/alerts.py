@@ -5,6 +5,7 @@ import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 
 from alerts.alert_store import (
     count_active_alerts,
@@ -24,9 +25,6 @@ from notifications.notification_store import count_missed_deals
 _LOG = logging.getLogger("swipewear.api.alerts")
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
-
-
-from pydantic import BaseModel, Field
 
 
 class AlertCreateRequest(BaseModel):
@@ -81,7 +79,10 @@ def create_alert_endpoint(
         if active >= FREE_ALERT_LIMIT and not is_user_premium(conn, user_id):
             raise HTTPException(
                 status_code=403,
-                detail=f"Free tier limited to {FREE_ALERT_LIMIT} active alerts. Upgrade to Premium for unlimited alerts.",
+                detail=(
+                    f"Free tier limited to {FREE_ALERT_LIMIT} active alerts."
+                    " Upgrade to Premium for unlimited alerts."
+                ),
             )
         alert = Alert(
             user_id=user_id,
@@ -146,7 +147,10 @@ def patch_alert_endpoint(
                 ):
                     raise HTTPException(
                         status_code=403,
-                        detail=f"Free tier limited to {FREE_ALERT_LIMIT} active alerts. Upgrade to Premium.",
+                        detail=(
+                            f"Free tier limited to {FREE_ALERT_LIMIT} active alerts."
+                            " Upgrade to Premium."
+                        ),
                     )
             ok = set_alert_status(conn, alert_id, user_id, body.status)
             if not ok:

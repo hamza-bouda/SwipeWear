@@ -26,7 +26,6 @@ Reads DATABASE_URL from .env or environment.
 from __future__ import annotations
 
 import argparse
-import json
 import math
 import os
 import random
@@ -435,7 +434,9 @@ def main() -> None:
 
     with psycopg2.connect(db_url) as conn2:
         with conn2.cursor() as cur:
-            cur.execute("SELECT category, COUNT(*) FROM products GROUP BY category ORDER BY category")
+            cur.execute(
+                "SELECT category, COUNT(*) FROM products GROUP BY category ORDER BY category"
+            )
             print("\nProducts by category:")
             for cat, cnt in cur.fetchall():
                 print(f"  {cat:20s} {cnt}")

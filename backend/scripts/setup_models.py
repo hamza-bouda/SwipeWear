@@ -17,7 +17,6 @@ Exit code: 0 = all requested models OK, 1 = any failure.
 from __future__ import annotations
 
 import argparse
-import io
 import logging
 import os
 import sys
@@ -85,7 +84,10 @@ def check_qwen() -> bool:
     _LOG.info("→ Loading %s from %s (may take several minutes) …", name, _QWEN_REPO)
     t0 = time.monotonic()
     try:
-        from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration  # type: ignore[import]
+        from transformers import (  # type: ignore[import]
+            AutoProcessor,
+            Qwen2_5_VLForConditionalGeneration,
+        )
         import torch  # type: ignore[import]
 
         processor = AutoProcessor.from_pretrained(_QWEN_REPO, trust_remote_code=True)
