@@ -45,7 +45,9 @@ def enqueue_match_notification(
     """
     pref = get_preference(conn, user_id, alert_id)
     if pref == "disabled":
-        _LOG.debug("Notification suppressed (disabled pref) for user %s alert %s", user_id, alert_id)
+        _LOG.debug(
+            "Notification suppressed (disabled pref) for user %s alert %s", user_id, alert_id
+        )
         return None
 
     is_digest = pref == "daily_digest" or should_send_as_digest(conn, user_id)
@@ -59,7 +61,9 @@ def enqueue_match_notification(
     # update it with the latest product instead of creating a new entry.
     existing_id = find_pending_within_window(conn, user_id, alert_id)
     if existing_id and not is_digest:
-        _update_queued_entry(conn, existing_id, product_id, match_tier, product_price, product_image, scheduled_for)
+        _update_queued_entry(
+            conn, existing_id, product_id, match_tier, product_price, product_image, scheduled_for
+        )
         _LOG.debug("Batched into existing queue_id=%s", existing_id)
         return existing_id
 

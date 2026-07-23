@@ -12,7 +12,6 @@ from __future__ import annotations
 import logging
 import threading
 from datetime import datetime, timezone
-from uuid import UUID
 
 from contracts.events import InteractionEvent
 from contracts.profile import UserPreferenceProfile

@@ -84,7 +84,10 @@ def flush_due_notifications(conn: Any) -> int:
 
     total_sent = 0
     for row in rows:
-        queue_id, user_id, alert_id, product_id, match_tier, product_price, product_image, is_digest = row
+        (
+            queue_id, user_id, alert_id, product_id,
+            match_tier, product_price, product_image, is_digest,
+        ) = row
 
         # KAN-74: skip if product is no longer available (sold out during delay)
         if not _is_product_available(conn, product_id):
@@ -184,7 +187,9 @@ def _log_receipts(conn: Any, queue_id: str, user_id: str, receipts) -> None:
     conn.commit()
 
 
-def _build_message_text(match_tier: str, product_price: float | None, is_digest: bool) -> tuple[str, str]:
+def _build_message_text(
+    match_tier: str, product_price: float | None, is_digest: bool
+) -> tuple[str, str]:
     label = _MATCH_TIER_LABELS.get(match_tier, "Une alerte a matché")
     if is_digest:
         title = "Vos alertes SwipeWear"

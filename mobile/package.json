@@ -4,6 +4,7 @@
   "main": "index.ts",
   "dependencies": {
     "@expo/metro-runtime": "~57.0.6",
+    "@expo/vector-icons": "^15.0.2",
     "@gorhom/bottom-sheet": "^5.2.14",
     "@react-native-community/slider": "5.2.0",
     "@react-navigation/bottom-tabs": "^7.18.13",
@@ -17,10 +18,10 @@
     "react-dom": "19.2.3",
     "react-native": "0.86.0",
     "react-native-gesture-handler": "~2.32.0",
+    "react-native-purchases": "^8.0.0",
     "react-native-reanimated": "4.5.0",
     "react-native-safe-area-context": "^5.8.0",
     "react-native-screens": "^4.26.2",
-    "react-native-purchases": "^8.0.0",
     "react-native-web": "^0.21.2"
   },
   "devDependencies": {

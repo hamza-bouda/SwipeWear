@@ -48,3 +48,27 @@ export async function apiPost<T>(
   }
   return resp.json();
 }
+
+export async function apiPatch<T>(
+  path: string,
+  body: unknown,
+  options: RequestOptions = {},
+): Promise<T> {
+  const url = new URL(path, API_BASE_URL);
+  const headers: Record<string, string> = {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+  };
+  if (options.token) headers['Authorization'] = `Bearer ${options.token}`;
+  const resp = await fetch(url.toString(), { method: 'PATCH', headers, body: JSON.stringify(body) });
+  if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
+  return resp.json();
+}
+
+export async function apiDelete(path: string, options: RequestOptions = {}): Promise<void> {
+  const url = new URL(path, API_BASE_URL);
+  const headers: Record<string, string> = { 'Accept': 'application/json' };
+  if (options.token) headers['Authorization'] = `Bearer ${options.token}`;
+  const resp = await fetch(url.toString(), { method: 'DELETE', headers });
+  if (!resp.ok) throw new Error(`API ${resp.status}: ${resp.statusText}`);
+}

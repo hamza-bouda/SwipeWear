@@ -1,10 +1,12 @@
+import type { Product } from '../types';
+
 export type RootStackParamList = {
   Onboarding: undefined;
   StyleSelection: undefined;
   ImageImport: undefined;
   Constraints: { route: 'styles' | 'images'; selectedStyles?: string[]; imageUris?: string[] };
   Main: undefined;
-  ProductDetail: { productId: string };
+  ProductDetail: { productId: string; product?: Product };
   PriceLadder: { productId: string };
   Login: undefined;
   Algorithm: undefined;
@@ -12,6 +14,8 @@ export type RootStackParamList = {
 
 export type MainTabParamList = {
   Feed: undefined;
-  Saves: undefined;
+  Drop: undefined;
+  Alerts: undefined;
+  Dressing: undefined;
   Profile: undefined;
 };
