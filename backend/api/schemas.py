@@ -73,6 +73,7 @@ class PreferenceMutationResponse(BaseModel):
 
 
 class OnboardingStylesRequest(BaseModel):
+    style_ids: list[str] = Field(default_factory=list)
     liked_brands: list[str] = Field(default_factory=list)
     sizes: list[str] = Field(default_factory=list)
     max_price_eur: float | None = None
