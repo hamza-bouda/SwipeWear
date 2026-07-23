@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.db import close_pool, init_pool
 from api.errors import unhandled_exception_handler
-from api.routers import auth, debug, events, feed, ladder, onboarding, profile
+from api.routers import alerts, auth, debug, events, feed, ladder, onboarding, profile
 
 
 @asynccontextmanager
@@ -34,6 +34,7 @@ app.add_middleware(
 app.add_exception_handler(Exception, unhandled_exception_handler)
 
 app.include_router(auth.router)
+app.include_router(alerts.router)
 app.include_router(feed.router)
 app.include_router(ladder.router)
 app.include_router(events.router)
