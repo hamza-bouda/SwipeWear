@@ -1,4 +1,4 @@
-"""CRUD operations for the `alerts` table (KAN-69)."""
+"""CRUD operations for the `alerts` table (KAN-69, KAN-70)."""
 from __future__ import annotations
 
 import json
@@ -23,13 +23,15 @@ def count_active_alerts(conn: Any, user_id: UUID) -> int:
 def create_alert(conn: Any, alert: Alert) -> Alert:
     with conn.cursor() as cur:
         embedding_json = json.dumps(alert.reference_embedding) if alert.reference_embedding else None
+        dinov2_json = json.dumps(alert.reference_dinov2_embedding) if alert.reference_dinov2_embedding else None
         constraints_json = json.dumps(alert.constraints.model_dump())
         cur.execute(
             """
             INSERT INTO alerts
                 (alert_id, user_id, alert_type, label, reference_embedding,
-                 reference_product_id, constraints, status, created_at, schema_version)
-            VALUES (%s, %s, %s, %s, %s::jsonb, %s, %s::jsonb, %s, %s, %s)
+                 reference_dinov2_embedding, reference_product_id, constraints,
+                 status, created_at, schema_version)
+            VALUES (%s, %s, %s, %s, %s::jsonb, %s::jsonb, %s, %s::jsonb, %s, %s, %s)
             """,
             (
                 str(alert.alert_id),
@@ -37,6 +39,7 @@ def create_alert(conn: Any, alert: Alert) -> Alert:
                 alert.alert_type.value,
                 alert.label,
                 embedding_json,
+                dinov2_json,
                 alert.reference_product_id,
                 constraints_json,
                 alert.status.value,
@@ -53,7 +56,8 @@ def list_alerts(conn: Any, user_id: UUID) -> list[Alert]:
         cur.execute(
             """
             SELECT alert_id, user_id, alert_type, label, reference_embedding,
-                   reference_product_id, constraints, status, created_at, schema_version
+                   reference_dinov2_embedding, reference_product_id, constraints,
+                   status, created_at, schema_version
             FROM alerts WHERE user_id = %s ORDER BY created_at DESC
             """,
             (str(user_id),),
@@ -67,7 +71,8 @@ def get_alert(conn: Any, alert_id: UUID, user_id: UUID) -> Alert | None:
         cur.execute(
             """
             SELECT alert_id, user_id, alert_type, label, reference_embedding,
-                   reference_product_id, constraints, status, created_at, schema_version
+                   reference_dinov2_embedding, reference_product_id, constraints,
+                   status, created_at, schema_version
             FROM alerts WHERE alert_id = %s AND user_id = %s
             """,
             (str(alert_id), str(user_id)),
@@ -109,10 +114,27 @@ def update_alert_constraints(conn: Any, alert_id: UUID, user_id: UUID, constrain
     return updated > 0
 
 
+def fetch_active_specific_item_alerts(conn: Any) -> list[tuple]:
+    """Return rows for active specific_item alerts (used by alert runner).
+
+    Each row: (alert_id, user_id, reference_dinov2_embedding, reference_embedding)
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT alert_id, user_id, reference_dinov2_embedding, reference_embedding
+            FROM alerts
+            WHERE status = 'active' AND alert_type = 'specific_item'
+            """,
+        )
+        return cur.fetchall()
+
+
 def _row_to_alert(row: tuple) -> Alert:
     (
         alert_id, user_id, alert_type, label, reference_embedding,
-        reference_product_id, constraints, status, created_at, schema_version,
+        reference_dinov2_embedding, reference_product_id, constraints,
+        status, created_at, schema_version,
     ) = row
     return Alert(
         alert_id=alert_id,
@@ -120,6 +142,10 @@ def _row_to_alert(row: tuple) -> Alert:
         alert_type=AlertType(alert_type),
         label=label,
         reference_embedding=reference_embedding if reference_embedding is None else list(reference_embedding),
+        reference_dinov2_embedding=(
+            reference_dinov2_embedding if reference_dinov2_embedding is None
+            else list(reference_dinov2_embedding)
+        ),
         reference_product_id=reference_product_id,
         constraints=constraints if isinstance(constraints, dict) else json.loads(constraints),
         status=AlertStatus(status),
