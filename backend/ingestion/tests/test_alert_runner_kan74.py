@@ -29,8 +29,12 @@ class TestDispatchAlertMatches:
         conn = MagicMock()
 
         with (
-            patch("ingestion.alert_runner.is_user_premium", return_value=True) as mock_premium,
-            patch("ingestion.alert_runner.enqueue_match_notification", return_value="q-1") as mock_enqueue,
+            patch(
+                "ingestion.alert_runner.is_user_premium", return_value=True
+            ) as mock_premium,
+            patch(
+                "ingestion.alert_runner.enqueue_match_notification", return_value="q-1"
+            ) as mock_enqueue,
         ):
             result = dispatch_alert_matches(conn, "prod-1", [match], product_price=49.9)
 
@@ -48,7 +52,9 @@ class TestDispatchAlertMatches:
 
         with (
             patch("ingestion.alert_runner.is_user_premium", return_value=False),
-            patch("ingestion.alert_runner.enqueue_match_notification", return_value="q-2") as mock_enqueue,
+            patch(
+                "ingestion.alert_runner.enqueue_match_notification", return_value="q-2"
+            ) as mock_enqueue,
         ):
             result = dispatch_alert_matches(conn, "prod-2", [match])
 
@@ -81,7 +87,10 @@ class TestDispatchAlertMatches:
 
         with (
             patch("ingestion.alert_runner.is_user_premium", return_value=True),
-            patch("ingestion.alert_runner.enqueue_match_notification", side_effect=["q1", None, "q3"]),
+            patch(
+                "ingestion.alert_runner.enqueue_match_notification",
+                side_effect=["q1", None, "q3"],
+            ),
         ):
             result = dispatch_alert_matches(conn, "prod-5", matches)
 

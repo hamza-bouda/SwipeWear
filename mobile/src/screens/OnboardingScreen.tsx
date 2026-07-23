@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components';
 import { trackEvent } from '../analytics';
-import { colors, typography, spacing } from '../theme';
+import { colors, typography, spacing, borderRadius } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 
 interface Props {
@@ -11,28 +12,38 @@ interface Props {
 }
 
 export function OnboardingScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
+
   useEffect(() => {
     trackEvent({ name: 'onboarding_started' });
   }, []);
 
   return (
     <View style={styles.container}>
+      <View style={[styles.topSpacer, { height: insets.top + 60 }]} />
+
       <View style={styles.content}>
-        <Text style={styles.title}>Swipe<Text style={styles.titleAccent}>Wear</Text></Text>
+        <View style={styles.logoWrap}>
+          <Text style={styles.logoMark}>SW</Text>
+        </View>
+        <Text style={styles.title}>
+          Swipe<Text style={styles.titleAccent}>Wear</Text>
+        </Text>
         <Text style={styles.subtitle}>
-          Discover second-hand fashion pieces picked for your style
+          Découvre des pièces de seconde main sélectionnées par ton IA, en swipant comme sur Tinder.
         </Text>
       </View>
-      <View style={styles.actions}>
+
+      <View style={[styles.actions, { paddingBottom: insets.bottom + spacing.lg }]}>
         <Button
-          title="Choose my styles"
+          title="Choisir mes styles"
           onPress={() => {
             trackEvent({ name: 'onboarding_completed', properties: { route: 'styles' } });
             navigation.navigate('StyleSelection');
           }}
         />
         <Button
-          title="Import my inspirations"
+          title="Importer mes inspirations"
           variant="outline"
           onPress={() => {
             trackEvent({ name: 'onboarding_completed', properties: { route: 'images' } });
@@ -41,7 +52,7 @@ export function OnboardingScreen({ navigation }: Props) {
           style={styles.secondaryButton}
         />
         <Button
-          title="Skip"
+          title="Passer"
           variant="ghost"
           onPress={() => {
             trackEvent({ name: 'onboarding_completed', properties: { route: 'skip' } });
@@ -57,38 +68,53 @@ export function OnboardingScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.primary,
-    padding: spacing.lg,
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.lg,
     justifyContent: 'space-between',
   },
+  topSpacer: {},
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: spacing.md,
+  },
+  logoWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  logoMark: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: colors.accentText,
+    letterSpacing: -1,
   },
   title: {
     ...typography.h1,
-    color: colors.textInverse,
+    color: colors.textPrimary,
     fontSize: 36,
-    marginBottom: spacing.md,
+    letterSpacing: -1,
   },
   titleAccent: {
     color: colors.accent,
   },
   subtitle: {
     ...typography.body,
-    color: colors.textInverse,
+    color: colors.textSecondary,
     textAlign: 'center',
-    opacity: 0.8,
+    lineHeight: 22,
+    paddingHorizontal: spacing.sm,
   },
   actions: {
-    paddingBottom: spacing.xl,
+    gap: spacing.sm,
   },
   secondaryButton: {
-    marginTop: spacing.sm,
-    borderColor: colors.textInverse,
+    borderColor: colors.border,
   },
-  skipButton: {
-    marginTop: spacing.sm,
-  },
+  skipButton: {},
 });

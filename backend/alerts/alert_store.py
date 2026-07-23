@@ -6,7 +6,7 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from contracts.alerts import FREE_ALERT_LIMIT, Alert, AlertStatus, AlertType
+from contracts.alerts import Alert, AlertStatus, AlertType
 
 _LOG = logging.getLogger("swipewear.alerts.store")
 
@@ -22,8 +22,14 @@ def count_active_alerts(conn: Any, user_id: UUID) -> int:
 
 def create_alert(conn: Any, alert: Alert) -> Alert:
     with conn.cursor() as cur:
-        embedding_json = json.dumps(alert.reference_embedding) if alert.reference_embedding else None
-        dinov2_json = json.dumps(alert.reference_dinov2_embedding) if alert.reference_dinov2_embedding else None
+        embedding_json = (
+            json.dumps(alert.reference_embedding) if alert.reference_embedding else None
+        )
+        dinov2_json = (
+            json.dumps(alert.reference_dinov2_embedding)
+            if alert.reference_dinov2_embedding
+            else None
+        )
         constraints_json = json.dumps(alert.constraints.model_dump())
         cur.execute(
             """
@@ -103,7 +109,9 @@ def delete_alert(conn: Any, alert_id: UUID, user_id: UUID) -> bool:
     return deleted > 0
 
 
-def update_alert_constraints(conn: Any, alert_id: UUID, user_id: UUID, constraints_json: str) -> bool:
+def update_alert_constraints(
+    conn: Any, alert_id: UUID, user_id: UUID, constraints_json: str
+) -> bool:
     with conn.cursor() as cur:
         cur.execute(
             "UPDATE alerts SET constraints = %s::jsonb WHERE alert_id = %s AND user_id = %s",
@@ -141,7 +149,9 @@ def _row_to_alert(row: tuple) -> Alert:
         user_id=user_id,
         alert_type=AlertType(alert_type),
         label=label,
-        reference_embedding=reference_embedding if reference_embedding is None else list(reference_embedding),
+        reference_embedding=(
+            reference_embedding if reference_embedding is None else list(reference_embedding)
+        ),
         reference_dinov2_embedding=(
             reference_dinov2_embedding if reference_dinov2_embedding is None
             else list(reference_dinov2_embedding)

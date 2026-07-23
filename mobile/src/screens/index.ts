@@ -1,6 +1,8 @@
 export { FeedScreen } from './FeedScreen';
 export { SavesScreen } from './SavesScreen';
 export { ProfileScreen } from './ProfileScreen';
+export { AlertsScreen } from './AlertsScreen';
+export { DropScreen } from './DropScreen';
 export { OnboardingScreen } from './OnboardingScreen';
 export { StyleSelectionScreen } from './StyleSelectionScreen';
 export { ImageImportScreen } from './ImageImportScreen';

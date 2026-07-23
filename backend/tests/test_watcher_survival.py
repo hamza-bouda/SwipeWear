@@ -22,7 +22,10 @@ class TestBackendSurvivesWithoutWatcher:
             if "tests" in py_file.parts:
                 continue
             text = py_file.read_text(encoding="utf-8", errors="ignore")
-            lines = [l for l in text.splitlines() if "from watcher" in l or "import watcher" in l]
+            lines = [
+                ln for ln in text.splitlines()
+                if "from watcher" in ln or "import watcher" in ln
+            ]
             if lines:
                 violations.append(str(py_file.relative_to(BACKEND_DIR)))
         assert violations == [], f"backend source imports watcher in: {violations}"

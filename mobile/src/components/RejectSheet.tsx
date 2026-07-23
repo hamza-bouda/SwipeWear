@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, forwardRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius } from '../theme';
 
 export type RejectReason = 'swipe_left_style' | 'swipe_left_price';
@@ -19,7 +20,7 @@ export const RejectSheet = forwardRef<BottomSheet, RejectSheetProps>(
           {...props}
           disappearsOnIndex={-1}
           appearsOnIndex={0}
-          opacity={0.4}
+          opacity={0.25}
         />
       ),
       [],
@@ -36,26 +37,32 @@ export const RejectSheet = forwardRef<BottomSheet, RejectSheetProps>(
         handleIndicatorStyle={styles.indicator}
       >
         <View style={styles.content}>
-          <Text style={styles.title}>Why not this one?</Text>
+          <Text style={styles.title}>Pourquoi pas celle-ci ?</Text>
           <TouchableOpacity
             style={styles.option}
             onPress={() => onSelect('swipe_left_style')}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Not my style"
+            accessibilityLabel="Pas mon style"
           >
-            <Text style={styles.optionIcon}>{'🚫'}</Text>
-            <Text style={styles.optionText}>Not my style</Text>
+            <View style={styles.optionIconWrap}>
+              <Ionicons name="close-circle" size={20} color={colors.error} />
+            </View>
+            <Text style={styles.optionText}>Pas mon style</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.option}
             onPress={() => onSelect('swipe_left_price')}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Too expensive"
+            accessibilityLabel="Trop cher"
           >
-            <Text style={styles.optionIcon}>{'💸'}</Text>
-            <Text style={styles.optionText}>Too expensive</Text>
+            <View style={styles.optionIconWrap}>
+              <Ionicons name="pricetag" size={20} color={colors.warning} />
+            </View>
+            <Text style={styles.optionText}>Trop cher</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
           </TouchableOpacity>
         </View>
       </BottomSheet>
@@ -65,17 +72,22 @@ export const RejectSheet = forwardRef<BottomSheet, RejectSheetProps>(
 
 const styles = StyleSheet.create({
   background: {
-    backgroundColor: colors.secondary,
+    backgroundColor: colors.background,
     borderTopLeftRadius: borderRadius.lg,
     borderTopRightRadius: borderRadius.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
   },
   indicator: {
-    backgroundColor: colors.disabled,
-    width: 40,
+    backgroundColor: colors.border,
+    width: 36,
   },
   content: {
     padding: spacing.lg,
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   title: {
     ...typography.h3,
@@ -90,12 +102,20 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: borderRadius.md,
     gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  optionIcon: {
-    fontSize: 24,
+  optionIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   optionText: {
     ...typography.bodyBold,
     color: colors.textPrimary,
+    flex: 1,
   },
 });

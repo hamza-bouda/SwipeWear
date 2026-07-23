@@ -36,10 +36,15 @@ export function Button({
     disabled && styles.disabled,
     style,
   ];
+
+  const getTextColor = (): TextStyle => {
+    if (variant === 'primary') return styles.textOnAccent;
+    return styles.textPrimary;
+  };
+
   const textStyle: TextStyle[] = [
     styles.text,
-    variant === 'primary' ? styles.textInverse : styles.textDefault,
-    variant === 'outline' || variant === 'ghost' ? styles.textDefault : {},
+    getTextColor(),
     disabled ? styles.textDisabled : {},
   ];
 
@@ -48,14 +53,14 @@ export function Button({
       style={containerStyle}
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.7}
+      activeOpacity={0.75}
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityState={{ disabled: disabled || loading, busy: loading }}
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === 'primary' ? colors.textInverse : colors.primary}
+          color={variant === 'primary' ? colors.accentText : colors.textPrimary}
           size="small"
         />
       ) : (
@@ -74,16 +79,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   disabled: {
-    opacity: 0.5,
+    opacity: 0.45,
   },
   text: {
     ...typography.bodyBold,
   },
-  textInverse: {
-    color: colors.textInverse,
+  textOnAccent: {
+    color: colors.accentText,
   },
-  textDefault: {
-    color: colors.primary,
+  textPrimary: {
+    color: colors.textPrimary,
   },
   textDisabled: {
     color: colors.disabled,
@@ -92,15 +97,17 @@ const styles = StyleSheet.create({
 
 const variantStyles: Record<ButtonVariant, ViewStyle> = {
   primary: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accent,
   },
   secondary: {
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: colors.primary,
+    borderColor: colors.borderStrong,
   },
   ghost: {
     backgroundColor: 'transparent',

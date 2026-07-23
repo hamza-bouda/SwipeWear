@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,9 +6,12 @@ import {
   FlatList,
   Image,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { Product } from '../types';
@@ -16,54 +19,125 @@ import { useSaves } from '../context/SavesContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+const CATEGORIES = ['Tout', 'Hauts', 'Bas', 'Chaussures', 'Accessoires'];
+
+function categoryMatch(product: Product, filter: string): boolean {
+  if (filter === 'Tout') return true;
+  const cat = product.category?.toLowerCase() ?? '';
+  if (filter === 'Hauts') return cat.includes('top') || cat.includes('jacket') || cat.includes('shirt') || cat.includes('coat') || cat.includes('sweater');
+  if (filter === 'Bas') return cat.includes('pants') || cat.includes('jeans') || cat.includes('shorts') || cat.includes('skirt');
+  if (filter === 'Chaussures') return cat.includes('shoe') || cat.includes('sneaker') || cat.includes('boot') || cat.includes('footwear');
+  if (filter === 'Accessoires') return cat.includes('bag') || cat.includes('hat') || cat.includes('watch') || cat.includes('accessories');
+  return false;
+}
+
+function ProductCard({ product, onPress, onRemove }: { product: Product; onPress: () => void; onRemove: () => void }) {
+  return (
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+      <View style={styles.cardImageWrap}>
+        <Image source={{ uri: product.imageUrls[0] }} style={styles.cardImage} resizeMode="cover" />
+        <TouchableOpacity style={styles.removeBtn} onPress={onRemove} accessibilityLabel="Retirer du dressing">
+          <Ionicons name="close" size={12} color={colors.textInverse} />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.cardInfo}>
+        <Text style={styles.cardTitle} numberOfLines={1}>{product.title}</Text>
+        <Text style={styles.cardPrice}>{product.price} {product.currency}</Text>
+        <Text style={styles.cardMeta}>{product.source}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 export function SavesScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const { savedProducts, toggleSave } = useSaves();
+  const [activeFilter, setActiveFilter] = useState('Tout');
+
+  const filtered = useMemo(
+    () => savedProducts.filter(p => categoryMatch(p, activeFilter)),
+    [savedProducts, activeFilter],
+  );
+
+  const totalValue = savedProducts.reduce((sum, p) => sum + p.price, 0);
 
   if (savedProducts.length === 0) {
     return (
-      <View style={styles.empty}>
-        <Text style={styles.emptyIcon}>❤️</Text>
-        <Text style={styles.emptyTitle}>No saves yet</Text>
-        <Text style={styles.emptySubtitle}>
-          Tap the heart on items you love to save them here
-        </Text>
+      <View style={styles.container}>
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+          <Text style={styles.title}>Mon dressing</Text>
+        </View>
+        <View style={styles.empty}>
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="shirt-outline" size={32} color={colors.disabled} />
+          </View>
+          <Text style={styles.emptyTitle}>Dressing vide</Text>
+          <Text style={styles.emptySub}>Swipe à droite ou appuie sur le cœur pour ajouter des pièces ici</Text>
+        </View>
       </View>
     );
   }
 
-  const renderItem = ({ item }: { item: Product }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate('ProductDetail', { productId: item.id })}
-      activeOpacity={0.8}
-      accessibilityRole="button"
-      accessibilityLabel={`${item.brand} ${item.title}, ${item.price} ${item.currency}`}
-    >
-      <Image source={{ uri: item.imageUrls[0] }} style={styles.cardImage} />
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardBrand}>{item.brand}</Text>
-        <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.cardPrice}>{item.price} {item.currency}</Text>
-      </View>
-      <TouchableOpacity style={styles.removeButton} onPress={() => toggleSave(item)} accessibilityRole="button" accessibilityLabel={`Remove ${item.title} from saves`}>
-        <Text style={styles.removeText}>✕</Text>
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
-
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Saved items</Text>
-        <Text style={styles.headerCount}>{savedProducts.length}</Text>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <Text style={styles.title}>Mon dressing</Text>
       </View>
+
+      <View style={styles.statsRow}>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{savedProducts.length}</Text>
+          <Text style={styles.statLabel}>pièces</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{totalValue.toFixed(0)} €</Text>
+          <Text style={styles.statLabel}>valeur totale</Text>
+        </View>
+        <View style={[styles.statCard, styles.statCardAccent]}>
+          <Text style={[styles.statValue, styles.statValueAccent]}>{(totalValue * 0.6).toFixed(0)} €</Text>
+          <Text style={styles.statLabel}>économisés</Text>
+        </View>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterRow}
+      >
+        {CATEGORIES.map(cat => (
+          <TouchableOpacity
+            key={cat}
+            style={[styles.filterChip, activeFilter === cat && styles.filterChipActive]}
+            onPress={() => setActiveFilter(cat)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterText, activeFilter === cat && styles.filterTextActive]}>
+              {cat}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       <FlatList
-        data={savedProducts}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        data={filtered}
+        keyExtractor={p => p.id}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={styles.grid}
         showsVerticalScrollIndicator={false}
+        renderItem={({ item }) => (
+          <ProductCard
+            product={item}
+            onPress={() => navigation.navigate('ProductDetail', { productId: item.id, product: item })}
+            onRemove={() => toggleSave(item)}
+          />
+        )}
+        ListEmptyComponent={
+          <View style={styles.emptyFilter}>
+            <Text style={styles.emptySub}>Aucune pièce dans cette catégorie</Text>
+          </View>
+        }
       />
     </View>
   );
@@ -75,71 +149,145 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xxl,
     paddingBottom: spacing.md,
   },
-  headerTitle: {
+  title: {
     ...typography.h1,
     color: colors.textPrimary,
+    letterSpacing: -0.5,
   },
-  headerCount: {
-    ...typography.h3,
-    color: colors.textSecondary,
-  },
-  list: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-  },
-  card: {
+  statsRow: {
     flexDirection: 'row',
-    backgroundColor: colors.secondary,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
-    marginBottom: spacing.sm,
-    overflow: 'hidden',
+    padding: spacing.sm,
     alignItems: 'center',
   },
-  cardImage: {
-    width: 80,
-    height: 80,
+  statCardAccent: {
+    backgroundColor: colors.accentLight,
+    borderWidth: 1,
+    borderColor: colors.accentDark,
   },
-  cardInfo: {
-    flex: 1,
-    padding: spacing.sm,
+  statValue: {
+    ...typography.h3,
+    color: colors.textPrimary,
+    fontSize: 17,
+    fontWeight: '700',
   },
-  cardBrand: {
+  statValueAccent: {
+    color: colors.accent,
+  },
+  statLabel: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontSize: 10,
+    marginTop: 2,
+  },
+  filterRow: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    gap: spacing.xs,
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterChipActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  filterText: {
     ...typography.label,
     color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  filterTextActive: {
+    color: colors.accentText,
+    fontWeight: '700',
+  },
+  grid: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 120,
+  },
+  row: {
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  card: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+  },
+  cardImageWrap: {
+    height: 140,
+    position: 'relative',
+    backgroundColor: colors.cardBg,
+  },
+  cardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  removeBtn: {
+    position: 'absolute',
+    top: spacing.xs,
+    right: spacing.xs,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardInfo: {
+    padding: spacing.sm,
   },
   cardTitle: {
-    ...typography.body,
+    ...typography.caption,
     color: colors.textPrimary,
-    marginTop: 2,
+    fontWeight: '600',
   },
   cardPrice: {
     ...typography.bodyBold,
-    color: colors.accentDark,
-    marginTop: spacing.xs,
+    color: colors.accent,
+    fontSize: 14,
+    marginTop: 2,
   },
-  removeButton: {
-    padding: spacing.md,
-  },
-  removeText: {
-    ...typography.body,
+  cardMeta: {
+    ...typography.caption,
     color: colors.textSecondary,
+    fontSize: 10,
+    marginTop: 1,
   },
   empty: {
     flex: 1,
-    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.lg,
+    padding: spacing.xl,
   },
-  emptyIcon: {
-    fontSize: 48,
+  emptyFilter: {
+    alignItems: 'center',
+    paddingVertical: spacing.xxl,
+  },
+  emptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing.md,
   },
   emptyTitle: {
@@ -147,9 +295,10 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
-  emptySubtitle: {
+  emptySub: {
     ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
+    lineHeight: 20,
   },
 });
