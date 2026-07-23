@@ -19,6 +19,7 @@ from api.auth import get_current_user_id
 from api.db import get_conn, put_conn
 from billing.subscription_store import is_user_premium
 from contracts.alerts import FREE_ALERT_LIMIT, Alert, AlertConstraints, AlertStatus, AlertType
+from notifications.notification_store import count_missed_deals
 
 _LOG = logging.getLogger("swipewear.api.alerts")
 
@@ -54,6 +55,7 @@ class AlertsListResponse(BaseModel):
     alerts: list[AlertResponse]
     active_count: int
     free_limit: int = FREE_ALERT_LIMIT
+    missed_deals_count: int = 0
 
 
 def _to_response(alert: Alert) -> AlertResponse:
@@ -108,9 +110,11 @@ def list_alerts_endpoint(user_id: UUID = Depends(get_current_user_id)):
         conn = get_conn()
         alerts = list_alerts(conn, user_id)
         active_count = sum(1 for a in alerts if a.status == AlertStatus.active)
+        missed = count_missed_deals(conn, user_id)
         return AlertsListResponse(
             alerts=[_to_response(a) for a in alerts],
             active_count=active_count,
+            missed_deals_count=missed,
         )
     except Exception:
         _LOG.exception("Failed to list alerts for user %s", user_id)
