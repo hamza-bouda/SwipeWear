@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, type Variants } from "framer-motion";
 import { useRef } from "react";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { PhoneMockup } from "@/components/PhoneMockup";
@@ -11,7 +11,7 @@ import { PriceScale } from "@/components/PriceScale";
 import { FAQ } from "@/components/FAQ";
 import { Footer } from "@/components/Footer";
 
-const letterVariants = {
+const letterVariants: Variants = {
   hidden: { opacity: 0, y: 40, rotateX: -40 },
   visible: (i: number) => ({
     opacity: 1,
@@ -20,7 +20,7 @@ const letterVariants = {
     transition: {
       duration: 0.6,
       delay: i * 0.03,
-      ease: [0.16, 1, 0.3, 1],
+      ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
     },
   }),
 };
