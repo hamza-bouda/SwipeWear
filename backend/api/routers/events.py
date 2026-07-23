@@ -8,11 +8,11 @@ from api.auth import get_current_user_id
 from api.schemas import EventRequest, EventResponse
 from api.store import append_event, get_or_create_profile, save_profile
 from contracts.events import InteractionEvent
-from preferences.updater import PreferenceUpdater
+from preferences.fallback_updater import FallbackUpdater
 
 router = APIRouter(prefix="/events", tags=["events"])
 
-_updater = PreferenceUpdater()
+_updater = FallbackUpdater()
 
 
 @router.post("", response_model=EventResponse, status_code=201)
