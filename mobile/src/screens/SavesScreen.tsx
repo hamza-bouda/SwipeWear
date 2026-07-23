@@ -37,6 +37,8 @@ export function SavesScreen() {
       style={styles.card}
       onPress={() => navigation.navigate('ProductDetail', { productId: item.id })}
       activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.brand} ${item.title}, ${item.price} ${item.currency}`}
     >
       <Image source={{ uri: item.imageUrls[0] }} style={styles.cardImage} />
       <View style={styles.cardInfo}>
@@ -44,7 +46,7 @@ export function SavesScreen() {
         <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
         <Text style={styles.cardPrice}>{item.price} {item.currency}</Text>
       </View>
-      <TouchableOpacity style={styles.removeButton} onPress={() => toggleSave(item)}>
+      <TouchableOpacity style={styles.removeButton} onPress={() => toggleSave(item)} accessibilityRole="button" accessibilityLabel={`Remove ${item.title} from saves`}>
         <Text style={styles.removeText}>✕</Text>
       </TouchableOpacity>
     </TouchableOpacity>

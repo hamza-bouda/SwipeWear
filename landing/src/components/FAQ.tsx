@@ -38,6 +38,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
     >
       <button
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
         className="flex items-center justify-between w-full py-5 text-left group cursor-pointer"
       >
         <span className="text-sm sm:text-base font-medium pr-4 text-black group-hover:text-yellow-600 transition-colors">

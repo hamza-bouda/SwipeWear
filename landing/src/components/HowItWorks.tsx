@@ -56,7 +56,7 @@ export function HowItWorks() {
   const lineHeight = useTransform(scrollYProgress, [0.1, 0.8], ["0%", "100%"]);
 
   return (
-    <section id="comment-ca-marche" ref={containerRef} className="relative py-28 sm:py-36 px-4 overflow-hidden">
+    <section id="comment-ca-marche" aria-labelledby="how-it-works-heading" ref={containerRef} className="relative py-28 sm:py-36 px-4 overflow-hidden">
       {/* Background blob */}
       <div className="absolute top-1/4 -right-32 w-96 h-96 bg-yellow-400/[0.04] rounded-full blur-[100px] animate-blob pointer-events-none" />
 
@@ -76,7 +76,7 @@ export function HowItWorks() {
           >
             Comment ca marche
           </motion.span>
-          <h2 className="text-3xl sm:text-4xl lg:text-[3.2rem] font-black text-black leading-tight">
+          <h2 id="how-it-works-heading" className="text-3xl sm:text-4xl lg:text-[3.2rem] font-black text-black leading-tight">
             Trois etapes.{" "}
             <span className="relative inline-block">
               <span className="relative z-10">Zero prise de tete.</span>
