@@ -138,7 +138,7 @@ class TestNormalizationErrors:
 
     def test_unknown_source_raises(self):
         with pytest.raises(NormalizationError, match="source"):
-            normalize("vinted", _raw())
+            normalize("depop", _raw())
 
     def test_unsupported_currency_raises(self):
         with pytest.raises(NormalizationError, match="currency"):

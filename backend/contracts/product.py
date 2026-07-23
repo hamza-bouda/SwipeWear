@@ -14,6 +14,7 @@ class ProductSource(str, Enum):
     awin = "awin"
     cj = "cj"
     etsy = "etsy"
+    vinted = "vinted"
 
 
 class ProductCondition(str, Enum):
