@@ -41,6 +41,8 @@ export const RejectSheet = forwardRef<BottomSheet, RejectSheetProps>(
             style={styles.option}
             onPress={() => onSelect('swipe_left_style')}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Not my style"
           >
             <Text style={styles.optionIcon}>{'🚫'}</Text>
             <Text style={styles.optionText}>Not my style</Text>
@@ -49,6 +51,8 @@ export const RejectSheet = forwardRef<BottomSheet, RejectSheetProps>(
             style={styles.option}
             onPress={() => onSelect('swipe_left_price')}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Too expensive"
           >
             <Text style={styles.optionIcon}>{'💸'}</Text>
             <Text style={styles.optionText}>Too expensive</Text>
