@@ -12,7 +12,7 @@ backend/
   contracts/          ← schémas Pydantic partagés (source de vérité des types)
   ingestion/          ← connecteurs eBay / Awin / CJ
   vision/             ← Qwen3-VL-2B-Instruct (analyse d'images d'inspiration)
-  embeddings/         ← FashionSigLIP 512-dim (Marqo / OpenCLIP)
+  embeddings/         ← FashionSigLIP 768-dim (Marqo / OpenCLIP)
   preferences/        ← profil utilisateur vivant, reconstruit depuis l'event log
   retrieval/          ← ANN pgvector HNSW cosinus
   ranking/            ← score Python transparent (LightGBM gelé)
