@@ -9,3 +9,4 @@ export { PriceLadderScreen } from './PriceLadderScreen';
 export { LoginScreen } from './LoginScreen';
 export { ProductDetailScreen } from './ProductDetailScreen';
 export { AlgorithmScreen } from './AlgorithmScreen';
+export { default as PaywallScreen } from './PaywallScreen';

@@ -88,7 +88,8 @@ class TestCreateAlert:
     def test_free_tier_cap_at_3_active(self, client, user_id, auth_headers):
         with patch("api.routers.alerts.get_conn") as mock_get, \
              patch("api.routers.alerts.put_conn"), \
-             patch("api.routers.alerts.count_active_alerts", return_value=3):
+             patch("api.routers.alerts.count_active_alerts", return_value=3), \
+             patch("api.routers.alerts.is_user_premium", return_value=False):
             mock_get.return_value = _mock_conn()
 
             resp = client.post(

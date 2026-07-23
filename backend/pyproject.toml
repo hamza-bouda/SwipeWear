@@ -53,4 +53,5 @@ testpaths = [
     "api/tests",
     "alerts/tests",
     "notifications/tests",
+    "billing/tests",
 ]
