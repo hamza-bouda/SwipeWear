@@ -49,6 +49,7 @@ export function WaitlistForm({ className = "" }: { className?: string }) {
         {status === "success" ? (
           <motion.div
             key="success"
+            role="status"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
@@ -81,6 +82,7 @@ export function WaitlistForm({ className = "" }: { className?: string }) {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="ton@email.com"
                 required
+                aria-label="Adresse email"
                 className="w-full rounded-xl bg-black/[0.03] border border-black/[0.08] px-5 py-3.5 text-black placeholder:text-black/25 outline-none transition-all duration-300 focus:border-yellow-500/40 focus:ring-2 focus:ring-yellow-400/15 focus:bg-white"
               />
             </div>
@@ -110,6 +112,7 @@ export function WaitlistForm({ className = "" }: { className?: string }) {
       <AnimatePresence>
         {status === "error" && (
           <motion.p
+            role="alert"
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
