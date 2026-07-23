@@ -1,6 +1,7 @@
 """Integration test: full onboarding → feed → swipe → updated feed scenario."""
 from __future__ import annotations
 
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
@@ -66,6 +67,7 @@ class TestOnboarding:
         resp = client.post(
             "/onboarding/styles",
             json={
+                "style_ids": ["streetwear", "techwear"],
                 "liked_brands": ["Nike", "Carhartt"],
                 "sizes": ["M", "L"],
                 "max_price_eur": 100.0,
@@ -77,10 +79,40 @@ class TestOnboarding:
         assert body["user_id"] == str(user_id)
         assert body["profile_initialized"] is True
 
-    def test_post_images(self, client, auth_headers, user_id):
+        profile_resp = client.get("/profile", headers=auth_headers)
+        assert profile_resp.json()["is_cold_start"] is False
+
+    def test_post_images(self, client, auth_headers, user_id, monkeypatch):
+        fake_service = MagicMock()
+        fake_service.encode_image.return_value = [1.0, 0.0, 0.0, 0.0]
+        monkeypatch.setattr("api.routers.onboarding.get_service", lambda: fake_service)
+        monkeypatch.setattr(
+            "api.routers.onboarding.download_image", lambda url: b"fake-image-bytes"
+        )
+
         resp = client.post(
             "/onboarding/images",
             json={"image_urls": ["https://example.com/img1.jpg"]},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 201
+        assert resp.json()["profile_initialized"] is True
+
+        profile_resp = client.get("/profile", headers=auth_headers)
+        assert profile_resp.json()["is_cold_start"] is False
+
+    def test_post_images_unreachable_url_does_not_crash(
+        self, client, auth_headers, monkeypatch
+    ):
+        def _raise(url):
+            raise ConnectionError("boom")
+
+        monkeypatch.setattr("api.routers.onboarding.get_service", lambda: MagicMock())
+        monkeypatch.setattr("api.routers.onboarding.download_image", _raise)
+
+        resp = client.post(
+            "/onboarding/images",
+            json={"image_urls": ["https://example.com/broken.jpg"]},
             headers=auth_headers,
         )
         assert resp.status_code == 201
