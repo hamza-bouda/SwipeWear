@@ -57,15 +57,15 @@ def _load_events(
 
     return [
         InteractionEvent(
-            event_id=event_id,
-            user_id=row_user_id,
-            product_id=product_id,
-            event_type=event_type,
-            payload=_as_dict(payload),
-            timestamp=timestamp,
-            schema_version=schema_version,
+            event_id=row[0],
+            user_id=row[1],
+            product_id=row[2],
+            event_type=row[3],
+            payload=_as_dict(row[4]),
+            timestamp=row[5],
+            schema_version=row[6],
         )
-        for event_id, row_user_id, product_id, event_type, payload, timestamp, schema_version in rows
+        for row in rows
     ]
 
 
