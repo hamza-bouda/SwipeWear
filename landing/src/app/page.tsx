@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, type Variants } from "framer-motion";
 import { useRef } from "react";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { PhoneMockup } from "@/components/PhoneMockup";
@@ -11,7 +11,7 @@ import { PriceScale } from "@/components/PriceScale";
 import { FAQ } from "@/components/FAQ";
 import { Footer } from "@/components/Footer";
 
-const letterVariants = {
+const letterVariants: Variants = {
   hidden: { opacity: 0, y: 40, rotateX: -40 },
   visible: (i: number) => ({
     opacity: 1,
@@ -20,7 +20,7 @@ const letterVariants = {
     transition: {
       duration: 0.6,
       delay: i * 0.03,
-      ease: [0.16, 1, 0.3, 1],
+      ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
     },
   }),
 };
@@ -68,9 +68,9 @@ export default function Home() {
 
       {/* ─── Animated background blobs ─── */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-32 left-1/3 w-[500px] h-[500px] bg-yellow-400/[0.05] rounded-full blur-[120px] animate-blob" />
-        <div className="absolute top-1/3 -right-32 w-[400px] h-[400px] bg-yellow-300/[0.03] rounded-full blur-[100px] animate-blob" style={{ animationDelay: "-3s" }} />
-        <div className="absolute bottom-1/4 -left-32 w-[350px] h-[350px] bg-amber-400/[0.03] rounded-full blur-[100px] animate-blob" style={{ animationDelay: "-5s" }} />
+        <div className="absolute -top-32 left-1/3 w-[500px] h-[500px] bg-accent/[0.05] rounded-full blur-[120px] animate-blob" />
+        <div className="absolute top-1/3 -right-32 w-[400px] h-[400px] bg-accent/[0.03] rounded-full blur-[100px] animate-blob" style={{ animationDelay: "-3s" }} />
+        <div className="absolute bottom-1/4 -left-32 w-[350px] h-[350px] bg-accent/[0.03] rounded-full blur-[100px] animate-blob" style={{ animationDelay: "-5s" }} />
       </div>
 
       {/* ─── Navbar ─── */}
@@ -82,7 +82,7 @@ export default function Home() {
             transition={{ duration: 0.5 }}
             className="text-lg font-black tracking-tight"
           >
-            Swipe<span className="text-yellow-500">Wear</span>
+            Swipe<span className="text-accent-dim">Wear</span>
           </motion.span>
           <motion.div
             initial={{ opacity: 0 }}
@@ -128,13 +128,13 @@ export default function Home() {
                 initial={{ opacity: 0, y: 20, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="inline-flex items-center gap-2 rounded-full bg-yellow-400/10 border border-yellow-400/20 px-4 py-1.5 mb-6"
+                className="inline-flex items-center gap-2 rounded-full bg-accent/10 border border-accent/20 px-4 py-1.5 mb-6"
               >
                 <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-500 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-yellow-500" />
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-dim opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent-dim" />
                 </span>
-                <span className="text-xs font-semibold text-yellow-600">
+                <span className="text-xs font-semibold text-accent-deep">
                   Bientot disponible
                 </span>
               </motion.div>
@@ -149,7 +149,7 @@ export default function Home() {
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: 1 }}
                     transition={{ duration: 0.8, delay: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute bottom-1 left-0 right-0 h-3 bg-yellow-400/40 -z-0 rounded-sm origin-left"
+                    className="absolute bottom-1 left-0 right-0 h-3 bg-accent/40 -z-0 rounded-sm origin-left"
                   />
                 </span>
                 <br />
@@ -185,14 +185,19 @@ export default function Home() {
               className="mt-8 flex items-center gap-3"
             >
               <div className="flex -space-x-2">
-                {["#facc15", "#0a0a0a", "#a3a3a3", "#fde047"].map((color, i) => (
+                {[
+                  { bg: "var(--color-accent)", text: "#000" },
+                  { bg: "var(--color-foreground)", text: "#fff" },
+                  { bg: "var(--color-muted)", text: "#fff" },
+                  { bg: "var(--color-accent-light)", text: "#000" },
+                ].map((avatar, i) => (
                   <motion.div
                     key={i}
                     initial={{ scale: 0, x: -10 }}
                     animate={{ scale: 1, x: 0 }}
                     transition={{ delay: 1.3 + i * 0.1, type: "spring", stiffness: 200 }}
                     className="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-bold shadow-sm"
-                    style={{ background: color, color: color === "#0a0a0a" || color === "#a3a3a3" ? "#fff" : "#000" }}
+                    style={{ background: avatar.bg, color: avatar.text }}
                   >
                     {String.fromCharCode(65 + i)}
                   </motion.div>
@@ -223,7 +228,7 @@ export default function Home() {
             transition={{ duration: 2, repeat: Infinity }}
             className="w-5 h-8 rounded-full border border-black/10 flex items-start justify-center pt-1.5"
           >
-            <div className="w-1 h-2 rounded-full bg-yellow-500/50" />
+            <div className="w-1 h-2 rounded-full bg-accent-dim/50" />
           </motion.div>
         </motion.div>
       </motion.section>
@@ -243,8 +248,8 @@ export default function Home() {
       {/* ─── CTA band ─── */}
       <section className="relative py-28 px-4 overflow-hidden">
         {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white via-yellow-50/50 to-white pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-yellow-400/[0.06] rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white via-accent-bg/50 to-white pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-accent/[0.06] rounded-full blur-[120px] pointer-events-none" />
 
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -258,7 +263,7 @@ export default function Home() {
             whileInView={{ scale: 1 }}
             viewport={{ once: true }}
             transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-yellow-50 border border-yellow-200/50 mb-6 shadow-sm"
+            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent-bg border border-accent-light/50 mb-6 shadow-sm"
           >
             <span className="text-3xl">&#128293;</span>
           </motion.div>
@@ -271,7 +276,7 @@ export default function Home() {
                 whileInView={{ scaleX: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: 0.3 }}
-                className="absolute bottom-1 left-0 right-0 h-3 bg-yellow-400/40 -z-0 rounded-sm origin-left"
+                className="absolute bottom-1 left-0 right-0 h-3 bg-accent/40 -z-0 rounded-sm origin-left"
               />
             </span>{" "}?
           </h2>

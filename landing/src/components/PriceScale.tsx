@@ -13,7 +13,7 @@ export function PriceScale() {
   return (
     <section aria-labelledby="price-scale-heading" className="relative py-28 sm:py-36 px-4 bg-neutral-50/50">
       {/* Background accents */}
-      <div className="absolute top-0 left-1/4 w-72 h-72 bg-yellow-400/[0.03] rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-0 left-1/4 w-72 h-72 bg-accent/[0.03] rounded-full blur-[100px] pointer-events-none" />
 
       <div className="relative max-w-4xl mx-auto">
         <motion.div
@@ -35,7 +35,7 @@ export function PriceScale() {
                 whileInView={{ width: "100%" }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8, delay: 0.3 }}
-                className="absolute bottom-1 left-0 h-3 bg-yellow-400/30 -z-0 rounded-sm"
+                className="absolute bottom-1 left-0 h-3 bg-accent/30 -z-0 rounded-sm"
               />
             </span>
           </h2>
@@ -56,9 +56,9 @@ export function PriceScale() {
           <div className="flex items-center gap-4 mb-10 pb-6 border-b border-black/[0.04]">
             <motion.div
               whileHover={{ rotate: 5, scale: 1.05 }}
-              className="w-14 h-14 rounded-2xl bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200/50 flex items-center justify-center shadow-sm"
+              className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-bg to-accent-light border border-accent-light/50 flex items-center justify-center shadow-sm"
             >
-              <svg viewBox="0 0 24 24" className="w-7 h-7 text-yellow-500" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <svg viewBox="0 0 24 24" className="w-7 h-7 text-accent-dim" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M2 18l4-4 4 4 8-12 4 4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </motion.div>
@@ -67,7 +67,7 @@ export function PriceScale() {
               <p className="text-sm text-black/35">Taille 42 &middot; Coloris blanc/noir</p>
             </div>
             <div className="ml-auto hidden sm:block">
-              <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full uppercase tracking-wider">
+              <span className="text-[10px] font-bold bg-accent-light text-accent-deep px-3 py-1 rounded-full uppercase tracking-wider">
                 4 offres trouvees
               </span>
             </div>
@@ -92,7 +92,7 @@ export function PriceScale() {
                         whileInView={{ scale: 1 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.5, type: "spring" }}
-                        className="text-[10px] font-bold bg-yellow-400 text-black px-2.5 py-0.5 rounded-full uppercase tracking-wider"
+                        className="text-[10px] font-bold bg-accent text-black px-2.5 py-0.5 rounded-full uppercase tracking-wider"
                       >
                         Meilleur prix
                       </motion.span>
@@ -100,7 +100,7 @@ export function PriceScale() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-black/20">{item.condition}</span>
-                    <span className={`text-base font-bold tabular-nums ${item.best ? "text-yellow-600" : "text-black/40"}`}>
+                    <span className={`text-base font-bold tabular-nums ${item.best ? "text-accent-dim" : "text-black/40"}`}>
                       {item.price}
                     </span>
                   </div>
@@ -113,7 +113,7 @@ export function PriceScale() {
                     transition={{ duration: 0.8, delay: 0.3 + i * 0.12, ease: [0.16, 1, 0.3, 1] }}
                     className={`h-full rounded-full ${
                       item.best
-                        ? "bg-gradient-to-r from-yellow-400 to-yellow-500 shadow-sm shadow-yellow-400/30"
+                        ? "bg-gradient-to-r from-accent to-accent-dim shadow-sm shadow-accent/30"
                         : "bg-black/[0.06]"
                     }`}
                   />
@@ -131,7 +131,7 @@ export function PriceScale() {
             className="mt-10 pt-6 border-t border-black/[0.04] flex items-center justify-between"
           >
             <p className="text-sm text-black/30">
-              Economie potentielle : <span className="text-yellow-600 font-bold text-base">30 &euro;</span>
+              Economie potentielle : <span className="text-accent-dim font-bold text-base">30 &euro;</span>
             </p>
             <div className="flex items-center gap-2 text-xs text-black/15 font-mono tracking-wider">
               <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />

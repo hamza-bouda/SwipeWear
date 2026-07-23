@@ -52,7 +52,7 @@ export function Stats() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="text-center p-6 rounded-2xl bg-neutral-50/50 border border-black/[0.03] hover:border-yellow-400/20 transition-colors"
+              className="text-center p-6 rounded-2xl bg-neutral-50/50 border border-black/[0.03] hover:border-accent/20 transition-colors"
             >
               <div className="text-2xl mb-3" dangerouslySetInnerHTML={{ __html: stat.icon }} />
               <div className="text-3xl sm:text-4xl font-black text-black mb-1 tabular-nums">

@@ -41,13 +41,13 @@ function FAQItem({ q, a }: { q: string; a: string }) {
         aria-expanded={open}
         className="flex items-center justify-between w-full py-5 text-left group cursor-pointer"
       >
-        <span className="text-sm sm:text-base font-medium pr-4 text-black group-hover:text-yellow-600 transition-colors">
+        <span className="text-sm sm:text-base font-medium pr-4 text-black group-hover:text-accent-deep transition-colors">
           {q}
         </span>
         <motion.span
           animate={{ rotate: open ? 45 : 0 }}
           transition={{ duration: 0.2 }}
-          className="text-black/20 text-xl shrink-0 group-hover:text-yellow-500 transition-colors"
+          className="text-black/20 text-xl shrink-0 group-hover:text-accent-dim transition-colors"
         >
           +
         </motion.span>
