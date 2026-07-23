@@ -31,11 +31,12 @@ const conditionLabels: Record<string, string> = {
 
 export function SwipeCard({ product, onTap, onSave }: SwipeCardProps) {
   return (
-    <View style={styles.card}>
+    <View style={styles.card} accessible accessibilityLabel={`${product.brand} ${product.title}, ${product.price} ${product.currency}, ${conditionLabels[product.condition] ?? product.condition}`}>
       <Image
         source={{ uri: product.imageUrls[0] }}
         style={styles.image}
         resizeMode="cover"
+        accessibilityIgnoresInvertColors
       />
       <View style={styles.overlay}>
         <View style={styles.badges}>
@@ -57,7 +58,7 @@ export function SwipeCard({ product, onTap, onSave }: SwipeCardProps) {
           ) : null}
           <View style={styles.priceRow}>
             <Text style={styles.price}>{product.price} {product.currency}</Text>
-            <Pressable onPress={onSave} style={styles.saveButton}>
+            <Pressable onPress={onSave} style={styles.saveButton} accessibilityRole="button" accessibilityLabel="Save item">
               <Text style={styles.saveIcon}>{'♡'}</Text>
             </Pressable>
           </View>
