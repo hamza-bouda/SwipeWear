@@ -66,16 +66,26 @@ def _apply_positive_signal(data: dict[str, Any], event: InteractionEvent, alpha:
 
     brand = event.payload.get("brand")
     if brand:
+        # weighted lock attribute for AI ranking
         _increment_locked_attribute(data, "brand", brand, alpha)
+        # explicit user preference list for UI display
+        liked = data["editable_preferences"]["liked_brands"]
+        if brand not in liked:
+            data["editable_preferences"]["liked_brands"] = [*liked, brand]
 
 
 def _apply_negative_style_signal(data: dict[str, Any], event: InteractionEvent) -> None:
     embedding = event.payload.get("product_embedding")
-    if not embedding:
-        return
-    data["vectors"]["negative"] = _accumulate(
-        data["vectors"]["negative"], embedding, BETA,
-    )
+    if embedding:
+        data["vectors"]["negative"] = _accumulate(
+            data["vectors"]["negative"], embedding, BETA,
+        )
+
+    brand = event.payload.get("brand")
+    if brand:
+        rejected = data["editable_preferences"]["rejected_brands"]
+        if brand not in rejected:
+            data["editable_preferences"]["rejected_brands"] = [*rejected, brand]
 
 
 def _apply_price_signal(data: dict[str, Any], event: InteractionEvent) -> None:

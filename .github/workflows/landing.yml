@@ -1,0 +1,48 @@
+name: Landing CI
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "landing/**"
+      - ".github/workflows/landing.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "landing/**"
+      - ".github/workflows/landing.yml"
+
+jobs:
+  lint-and-build:
+    name: Landing — lint + type-check + build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: landing
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: landing/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: TypeScript type-check
+        run: npx tsc --noEmit
+
+      - name: Next.js build
+        run: npm run build
+        env:
+          # Build succeeds without DB: waitlist uses DB only at runtime
+          DATABASE_URL: "postgresql://noop:noop@localhost:5432/noop"
+          RESEND_API_KEY: "re_noop"
+          NEXT_PUBLIC_BASE_URL: "https://swipewear.fr"
