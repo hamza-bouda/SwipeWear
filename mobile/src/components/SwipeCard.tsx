@@ -7,6 +7,7 @@ import {
   Dimensions,
   Pressable,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Product } from '../types';
 import { Badge } from './Badge';
 import { colors, typography, spacing, borderRadius } from '../theme';
@@ -59,7 +60,7 @@ export function SwipeCard({ product, onTap, onSave }: SwipeCardProps) {
           <View style={styles.priceRow}>
             <Text style={styles.price}>{product.price} {product.currency}</Text>
             <Pressable onPress={onSave} style={styles.saveButton} accessibilityRole="button" accessibilityLabel="Save item">
-              <Text style={styles.saveIcon}>{'♡'}</Text>
+              <Ionicons name="heart-outline" size={20} color={colors.textInverse} />
             </Pressable>
           </View>
         </View>
@@ -127,12 +128,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  saveIcon: {
-    fontSize: 22,
-    color: colors.textInverse,
   },
 });
