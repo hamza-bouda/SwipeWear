@@ -4,7 +4,7 @@ export function Footer() {
       <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <span className="text-lg font-black">
-            Swipe<span className="text-yellow-500">Wear</span>
+            Swipe<span className="text-accent-dim">Wear</span>
           </span>
           <span className="text-xs text-black/20">
             &copy; {new Date().getFullYear()}

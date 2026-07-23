@@ -94,7 +94,7 @@ function SwipeCard({
             draggable={false}
           />
           <div className="absolute top-2.5 right-2.5 z-10">
-            <span className="bg-yellow-400 text-black text-[7px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+            <span className="bg-accent text-black text-[7px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide">
               NEW
             </span>
           </div>
@@ -112,7 +112,7 @@ function SwipeCard({
           <p className="text-[8px] text-neutral-400 uppercase tracking-wider font-medium">{card.brand}</p>
           <p className="text-[11px] font-semibold text-black leading-tight">{card.title}</p>
           <div className="flex justify-between items-center mt-1">
-            <span className="text-sm font-bold text-yellow-500">
+            <span className="text-sm font-bold text-accent-dim">
               {card.price}
             </span>
             <div className="w-5 h-5 rounded-full bg-neutral-100 flex items-center justify-center">
@@ -123,12 +123,12 @@ function SwipeCard({
 
         {isTop && (
           <motion.div
-            className="absolute top-4 left-3 z-20 border-2 border-yellow-400 rounded-lg px-2 py-0.5 bg-yellow-400/10 pointer-events-none"
+            className="absolute top-4 left-3 z-20 border-2 border-accent rounded-lg px-2 py-0.5 bg-accent/10 pointer-events-none"
             initial={{ opacity: 0 }}
             style={{ opacity: 0 }}
             whileDrag={{ opacity: 1 }}
           >
-            <span className="text-xs font-extrabold text-yellow-500">
+            <span className="text-xs font-extrabold text-accent-dim">
               LIKE
             </span>
           </motion.div>
@@ -165,7 +165,7 @@ export function PhoneMockup() {
       className="relative mx-auto w-[280px] sm:w-[300px]"
     >
       {/* Glow behind phone */}
-      <div className="absolute -inset-8 rounded-full bg-gradient-to-br from-yellow-400/10 to-amber-500/5 blur-3xl animate-pulse-glow" />
+      <div className="absolute -inset-8 rounded-full bg-gradient-to-br from-accent/10 to-accent-dim/5 blur-3xl animate-pulse-glow" />
 
       {/* Phone frame */}
       <div className="relative rounded-[2.5rem] border border-neutral-200 bg-gradient-to-b from-neutral-800 to-neutral-900 p-3 shadow-2xl shadow-black/15">
@@ -186,7 +186,7 @@ export function PhoneMockup() {
           {/* App header */}
           <div className="px-4 py-1.5 text-center relative z-20">
             <span className="text-sm font-bold text-black tracking-wide">
-              Swipe<span className="text-yellow-500">Wear</span>
+              Swipe<span className="text-accent-dim">Wear</span>
             </span>
           </div>
 
@@ -217,8 +217,8 @@ export function PhoneMockup() {
             <div className="w-8 h-8 rounded-full border border-neutral-200 flex items-center justify-center bg-white shadow-sm">
               <span className="text-neutral-400 text-xs">&times;</span>
             </div>
-            <div className="w-8 h-8 rounded-full border border-yellow-300 flex items-center justify-center bg-yellow-50 shadow-sm">
-              <span className="text-yellow-500 text-xs">&hearts;</span>
+            <div className="w-8 h-8 rounded-full border border-accent-light flex items-center justify-center bg-accent-bg shadow-sm">
+              <span className="text-accent-dim text-xs">&hearts;</span>
             </div>
           </div>
 
@@ -244,12 +244,12 @@ export function PhoneMockup() {
       <motion.div
         animate={{ y: [-10, 10, -10], x: [-5, 5, -5] }}
         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -top-4 -right-4 w-2 h-2 rounded-full bg-yellow-400/40 blur-[2px]"
+        className="absolute -top-4 -right-4 w-2 h-2 rounded-full bg-accent/40 blur-[2px]"
       />
       <motion.div
         animate={{ y: [10, -10, 10], x: [5, -5, 5] }}
         transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -bottom-2 -left-6 w-3 h-3 rounded-full bg-yellow-300/20 blur-[2px]"
+        className="absolute -bottom-2 -left-6 w-3 h-3 rounded-full bg-accent/20 blur-[2px]"
       />
     </motion.div>
   );
