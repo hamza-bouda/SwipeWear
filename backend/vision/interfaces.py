@@ -75,6 +75,11 @@ async def analyze_scene(image_bytes: bytes) -> SceneAnalysisResult:
     raise NotImplementedError
 
 
+# Re-export instance-matcher public API so callers outside vision/ only
+# ever import from vision.interfaces (import-boundary rule).
+from vision.instance_matcher import MatchResult, MatchTier, match  # noqa: E402, F401
+
+
 def get_active_image_transform(
     report_path: Path | None = None,
 ) -> ImageTransform | None:
