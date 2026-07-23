@@ -1,5 +1,10 @@
 # Contracts Changelog
 
+## v1.9 — 2026-07-23 — Hamza Bouda (KAN-70)
+- `contracts/alerts.py`: added `Alert.reference_dinov2_embedding: list[float] | None` (default None).
+  Non-breaking — new optional field; existing alerts unaffected.
+  Stores DINOv2 CLS-token embedding computed at alert creation time for specific_item alerts.
+
 ## v1.8 — 2026-07-23 — Hamza Bouda (KAN-69)
 - `contracts/alerts.py` (new): `Alert`, `AlertType` (specific_item | style),
   `AlertConstraints` (max_price_eur, sizes, min_condition), `AlertStatus` (active | paused).
