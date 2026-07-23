@@ -83,7 +83,7 @@ export function WaitlistForm({ className = "" }: { className?: string }) {
                 placeholder="ton@email.com"
                 required
                 aria-label="Adresse email"
-                className="w-full rounded-xl bg-black/[0.03] border border-black/[0.08] px-5 py-3.5 text-black placeholder:text-black/25 outline-none transition-all duration-300 focus:border-yellow-500/40 focus:ring-2 focus:ring-yellow-400/15 focus:bg-white"
+                className="w-full rounded-xl bg-black/[0.03] border border-black/[0.08] px-5 py-3.5 text-black placeholder:text-black/25 outline-none transition-all duration-300 focus:border-accent-dim/40 focus:ring-2 focus:ring-accent/15 focus:bg-white"
               />
             </div>
             <motion.button
