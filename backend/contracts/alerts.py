@@ -33,6 +33,7 @@ class Alert(BaseModel):
     alert_type: AlertType
     label: str
     reference_embedding: list[float] | None = None
+    reference_dinov2_embedding: list[float] | None = None
     reference_product_id: str | None = None
     constraints: AlertConstraints = Field(default_factory=AlertConstraints)
     status: AlertStatus = AlertStatus.active
