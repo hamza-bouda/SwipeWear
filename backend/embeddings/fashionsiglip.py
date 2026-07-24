@@ -27,14 +27,21 @@ _tokenizer: Any = None
 
 
 def _load() -> tuple[Any, Any, Any]:
-    """Load model exactly once; subsequent calls return the cached objects."""
+    """Load model exactly once; subsequent calls return the cached objects.
+
+    The globals are published only once every component has loaded: assigning
+    them as they arrive would leave a half-initialised singleton behind after a
+    failure, and every later call would silently reuse it (a missing tokenizer
+    surfacing much later, inside encode_text).
+    """
     global _model, _preprocess, _tokenizer
     if _model is None:
         import open_clip  # type: ignore[import]
 
-        _model, _, _preprocess = open_clip.create_model_and_transforms(_HF_REPO)
-        _tokenizer = open_clip.get_tokenizer(_HF_REPO)
-        _model.eval()
+        model, _, preprocess = open_clip.create_model_and_transforms(_HF_REPO)
+        tokenizer = open_clip.get_tokenizer(_HF_REPO)
+        model.eval()
+        _model, _preprocess, _tokenizer = model, preprocess, tokenizer
         _LOG.info(
             "FashionSigLIP loaded: %s  dim=%d",
             _HF_REPO,
