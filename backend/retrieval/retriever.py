@@ -18,20 +18,34 @@ from retrieval.watcher_filter import get_disabled_watcher_sources
 
 _LOG = logging.getLogger("swipewear.retrieval.retriever")
 
+# Only columns that exist in the products table (see backend/migrations/).
+# ProductRecord's remaining fields (model, currency, affiliate_url,
+# enriched_attrs, schema_version) carry contract defaults and are not stored.
 _PRODUCT_COLUMNS = [
-    "id", "source", "source_record_id", "title", "brand", "model",
-    "price", "currency", "condition", "size_raw", "size_eu",
-    "category", "image_urls", "affiliate_url", "available",
-    "enriched_attrs", "schema_version", "embedding_version",
+    "id", "source", "source_record_id", "title", "brand",
+    "price", "condition", "size_raw", "size_eu",
+    "category", "image_urls", "available", "embedding_version",
 ]
 
+# Vectors live in product_embeddings, not products — the JOIN is what makes
+# the pgvector HNSW index reachable from a product query.
 _QUERY_TEMPLATE = """\
 SELECT {columns},
-       1 - (embedding <=> %(style_vector)s) AS similarity_score
-FROM products
+       1 - (e.embedding <=> %(style_vector)s::vector) AS similarity_score
+FROM products AS p
+JOIN product_embeddings AS e ON e.product_id = p.id
 {where}
-ORDER BY embedding <=> %(style_vector)s
+ORDER BY e.embedding <=> %(style_vector)s::vector
 LIMIT %(k)s"""
+
+
+def _to_pgvector_literal(vector: list[float]) -> str:
+    """Render a Python vector as the '[a,b,c]' literal pgvector expects.
+
+    A plain list would be adapted by psycopg2 as a Postgres ARRAY, which does
+    not cast to `vector`.
+    """
+    return "[" + ",".join(str(float(v)) for v in vector) + "]"
 
 
 class VectorRetriever:
@@ -46,10 +60,14 @@ class VectorRetriever:
         request_id = uuid4()
         start = time.monotonic()
 
-        if profile.is_cold_start:
+        # An empty positive vector is not always cold start: a profile can
+        # carry events whose payload never included a product embedding.
+        # Either way there is nothing to search with — let the caller fall back.
+        if profile.is_cold_start or not profile.vectors.positive:
             _LOG.info(
-                "Cold-start user %s, no style vector available",
+                "No style vector available for user %s (event_count=%d)",
                 profile.user_id,
+                profile.event_count,
             )
             return CandidateSet(
                 request_id=request_id,
@@ -59,12 +77,12 @@ class VectorRetriever:
             )
 
         conn = self._get_conn()
-        style_vector = profile.vectors.positive
+        style_vector = _to_pgvector_literal(profile.vectors.positive)
         blocked = get_disabled_watcher_sources(conn)
         filter_result = apply_hard_filters(profile, blocked_sources=blocked or None)
 
         query = _QUERY_TEMPLATE.format(
-            columns=", ".join(_PRODUCT_COLUMNS),
+            columns=", ".join(f"p.{c}" for c in _PRODUCT_COLUMNS),
             where=filter_result.where_sql,
         )
         params: dict[str, object] = {
@@ -85,6 +103,8 @@ class VectorRetriever:
             similarity = float(row_dict.pop("similarity_score"))
             row_dict["source"] = ProductSource(row_dict["source"])
             row_dict["condition"] = ProductCondition(row_dict["condition"])
+            row_dict["price"] = float(row_dict["price"])
+            row_dict["image_urls"] = list(row_dict["image_urls"] or [])
             product = ProductRecord(**row_dict)
             candidates.append(CandidateItem(
                 product=product,
