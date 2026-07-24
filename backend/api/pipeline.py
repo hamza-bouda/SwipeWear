@@ -51,6 +51,10 @@ def _random_catalogue_sample(
         return products
     except Exception:
         _LOG.warning("Exploration sample fetch failed — skipping inject", exc_info=True)
+        try:
+            get_conn().rollback()
+        except Exception:  # noqa: BLE001 - never mask the original failure
+            pass
         return []
 
 
@@ -58,8 +62,21 @@ class RetrieverAdapter:
     """Adapts VectorRetriever (profile, k) to RetrieverProtocol (request)."""
 
     def __init__(self, get_conn: Callable[[], Any]) -> None:
+        self._get_conn = get_conn
         self._vector = VectorRetriever(get_conn)
         self._fallback = FallbackRetriever(get_conn)
+
+    def _rollback(self) -> None:
+        """Clear an aborted transaction so the fallback query can still run.
+
+        A failed statement leaves psycopg2 in InFailedSqlTransaction: without
+        this, the fallback fails too and the feed comes back empty instead of
+        degraded (blueprint §12).
+        """
+        try:
+            self._get_conn().rollback()
+        except Exception:  # noqa: BLE001 - rollback must never mask the real error
+            _LOG.warning("Rollback failed before fallback retrieval", exc_info=True)
 
     def retrieve(self, request: RecoRequest) -> CandidateSet:
         try:
@@ -74,6 +91,7 @@ class RetrieverAdapter:
             return result
         except Exception:
             _LOG.warning("Vector retriever failed, using fallback", exc_info=True)
+            self._rollback()
             return self._fallback.retrieve(
                 request.user_profile, k=request.n_results,
             )

@@ -296,7 +296,11 @@ class TestVectorRetrieverQuery:
         cursor.execute.assert_called_once()
         sql, params = cursor.execute.call_args[0]
         assert "embedding <=>" in sql
-        assert params["style_vector"] == profile.vectors.positive
+        # pgvector needs the '[a,b,c]' literal: a Python list is adapted as a
+        # Postgres ARRAY, which does not cast to vector.
+        assert params["style_vector"] == "[" + ",".join(
+            str(v) for v in profile.vectors.positive
+        ) + "]"
         assert params["k"] == 50
 
     def test_hard_filters_in_where_clause(self) -> None:
