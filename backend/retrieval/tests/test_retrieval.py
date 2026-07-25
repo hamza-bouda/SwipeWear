@@ -77,7 +77,9 @@ def _make_db_row(
         size_eu="M",
         category="sneakers",
         image_urls=["https://example.com/img.jpg"],
-        affiliate_url=None,
+        # The stored column is the raw seller URL; the retriever maps it onto
+        # the contract's affiliate_url field.
+        listing_url=None,
         available=True,
         enriched_attrs={},
         schema_version=1,
@@ -414,7 +416,9 @@ def _make_fallback_row(product_id: str = "p1", **overrides) -> tuple:
         size_raw="M",
         size_eu="M",
         brand="Nike",
+        model="AF1",
         embedding_version="fashionsiglip-v1",
+        listing_url=None,
     )
     defaults.update(overrides)
     return tuple(defaults[c] for c in _DB_COLUMNS)
