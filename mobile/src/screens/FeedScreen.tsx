@@ -9,7 +9,7 @@ import { SwipeDeck, RejectSheet, Button } from '../components';
 import type { RejectReason } from '../components';
 import { trackEvent } from '../analytics';
 import { Product } from '../types';
-import { useFeed, usePostEvent } from '../api';
+import { useFeed, usePostEvent, useAlerts, ApiError } from '../api';
 import { colors, typography, spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { useSaves } from '../context/SavesContext';
@@ -19,6 +19,8 @@ export function FeedScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { toggleSave } = useSaves();
+  const { create: createAlert } = useAlerts();
+  const [alertToast, setAlertToast] = useState<string | null>(null);
   const { preferences, revision } = useAlgorithm();
   const { products: feedProducts, loading, error, reload } = useFeed();
   const postEvent = usePostEvent();
@@ -68,15 +70,40 @@ export function FeedScreen() {
     navigation.navigate('ProductDetail', { productId: product.id, product });
   }, [navigation, postEvent]);
 
-  const handleAlert = useCallback((_product: Product) => {
-    (navigation as any).navigate('Alerts');
-  }, [navigation]);
+  const handleAlert = useCallback(async (product: Product) => {
+    // This used to navigate to the Alerts tab and nothing else — the bell
+    // looked like it did something and never created an alert.
+    setAlertToast(null);
+    try {
+      await createAlert({
+        alert_type: 'specific_item',
+        label: product.title,
+        reference_product_id: product.id,
+      });
+      trackEvent({ name: 'alert_created', properties: { product_id: product.id } });
+      setAlertToast(`Alerte créée pour « ${product.title.slice(0, 30)} »`);
+    } catch (e) {
+      // The free tier caps active alerts at three, so a refusal is expected
+      // traffic and has to be readable rather than silent.
+      setAlertToast(
+        e instanceof ApiError && e.status === 403
+          ? 'Limite de 3 alertes atteinte — passe en Premium ou supprime-en une.'
+          : "L'alerte n'a pas pu être créée.",
+      );
+    }
+  }, [createAlert]);
 
   const handleSave = useCallback((product: Product) => {
     trackEvent({ name: 'save', properties: { product_id: product.id } });
     postEvent(product.id, 'save');
     toggleSave(product);
   }, [toggleSave, postEvent]);
+
+  useEffect(() => {
+    if (!alertToast) return;
+    const timer = setTimeout(() => setAlertToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [alertToast]);
 
   const handleDeckEmpty = useCallback(() => {
     setDeckEmpty(true);
@@ -139,7 +166,15 @@ export function FeedScreen() {
           onSave={handleSave}
           onDeckEmpty={handleDeckEmpty}
           onAlert={handleAlert}
+          onSwipeUp={handleAlert}
         />
+      )}
+
+      {alertToast && (
+        <View style={styles.toast} pointerEvents="none">
+          <Ionicons name="notifications" size={16} color={colors.textPrimary} />
+          <Text style={styles.toastText} numberOfLines={2}>{alertToast}</Text>
+        </View>
       )}
 
       <RejectSheet ref={bottomSheetRef} onSelect={handleRejectSelect} />
@@ -148,6 +183,25 @@ export function FeedScreen() {
 }
 
 const styles = StyleSheet.create({
+  toast: {
+    position: 'absolute',
+    left: spacing.lg,
+    right: spacing.lg,
+    bottom: spacing.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.accent,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 12,
+  },
+  toastText: {
+    ...typography.caption,
+    color: colors.textPrimary,
+    flex: 1,
+    fontWeight: '600',
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,

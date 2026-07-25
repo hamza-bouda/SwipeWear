@@ -15,17 +15,22 @@ import { Product } from '../types';
 import { SwipeCard } from './SwipeCard';
 import { spacing, colors, borderRadius } from '../theme';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
 const SWIPE_VELOCITY = 500;
+// Vertical needs its own, smaller threshold: a card is far taller than it is
+// wide, so reusing the horizontal one would make "up" a much longer drag.
+const SWIPE_UP_THRESHOLD = SCREEN_HEIGHT * 0.15;
 const TAP_MAX_DISTANCE = 8;
 
-export type SwipeDirection = 'left' | 'right';
+export type SwipeDirection = 'left' | 'right' | 'up';
 
 interface SwipeDeckProps {
   products: Product[];
   onSwipeRight: (product: Product) => void;
   onSwipeLeft: (product: Product) => void;
+  /** Swipe up — create an alert for this product. */
+  onSwipeUp?: (product: Product) => void;
   onTap: (product: Product) => void;
   onSave: (product: Product) => void;
   onDeckEmpty: () => void;
@@ -36,6 +41,7 @@ export function SwipeDeck({
   products,
   onSwipeRight,
   onSwipeLeft,
+  onSwipeUp,
   onTap,
   onSave,
   onDeckEmpty,
@@ -52,8 +58,8 @@ export function SwipeDeck({
   const productsRef = useRef(products);
   productsRef.current = products;
 
-  const callbacksRef = useRef({ onSwipeRight, onSwipeLeft, onTap, onDeckEmpty, onSave, onAlert });
-  callbacksRef.current = { onSwipeRight, onSwipeLeft, onTap, onDeckEmpty, onSave, onAlert };
+  const callbacksRef = useRef({ onSwipeRight, onSwipeLeft, onSwipeUp, onTap, onDeckEmpty, onSave, onAlert });
+  callbacksRef.current = { onSwipeRight, onSwipeLeft, onSwipeUp, onTap, onDeckEmpty, onSave, onAlert };
 
   const handleSwipeComplete = useCallback((direction: SwipeDirection) => {
     translateX.value = 0;
@@ -65,6 +71,8 @@ export function SwipeDeck({
 
     if (direction === 'right') {
       callbacksRef.current.onSwipeRight(product);
+    } else if (direction === 'up') {
+      callbacksRef.current.onSwipeUp?.(product);
     } else {
       callbacksRef.current.onSwipeLeft(product);
     }
@@ -81,6 +89,14 @@ export function SwipeDeck({
 
   const animateOut = useCallback(
     (direction: SwipeDirection) => {
+      if (direction === 'up') {
+        translateY.value = withTiming(-SCREEN_HEIGHT, { duration: 300 }, (finished) => {
+          if (finished) {
+            runOnJS(handleSwipeComplete)(direction);
+          }
+        });
+        return;
+      }
       const toX = direction === 'right' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
       translateX.value = withTiming(toX, { duration: 300 }, (finished) => {
         if (finished) {
@@ -105,7 +121,9 @@ export function SwipeDeck({
   const handleDrag = useCallback(
     (dx: number, dy: number) => {
       translateX.value = dx;
-      translateY.value = dy * 0.5;
+      // Upward drags follow the finger; downward ones stay damped, since only
+      // up is a gesture — down is just the card resisting.
+      translateY.value = dy < 0 ? dy : dy * 0.5;
       rotation.value = interpolate(
         dx,
         [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
@@ -117,8 +135,22 @@ export function SwipeDeck({
   );
 
   const handleRelease = useCallback(
-    (dx: number, velocityX: number) => {
+    (dx: number, velocityX: number, dy = 0, velocityY = 0) => {
       if (isAnimating.current) return;
+
+      // Vertical is judged first, and only when it dominates the horizontal
+      // movement: every real swipe drifts a little sideways, and without the
+      // comparison a hurried left-swipe would raise an alert instead.
+      const wantsUp =
+        dy < 0
+        && (Math.abs(dy) > SWIPE_UP_THRESHOLD || velocityY < -SWIPE_VELOCITY)
+        && Math.abs(dy) > Math.abs(dx);
+      if (wantsUp && callbacksRef.current.onSwipeUp) {
+        isAnimating.current = true;
+        animateOut('up');
+        return;
+      }
+
       const shouldSwipe =
         Math.abs(dx) > SWIPE_THRESHOLD || Math.abs(velocityX) > SWIPE_VELOCITY;
       if (shouldSwipe) {
@@ -150,8 +182,10 @@ export function SwipeDeck({
       let startX = 0;
       let startY = 0;
       let lastX = 0;
+      let lastY = 0;
       let lastT = 0;
       let velocityX = 0;
+      let velocityY = 0;
 
       const onDown = (e: PointerEvent) => {
         if (isAnimating.current) return;
@@ -161,8 +195,10 @@ export function SwipeDeck({
         startX = e.clientX;
         startY = e.clientY;
         lastX = e.clientX;
+        lastY = e.clientY;
         lastT = e.timeStamp;
         velocityX = 0;
+        velocityY = 0;
         try {
           node.setPointerCapture(e.pointerId);
         } catch {
@@ -174,8 +210,12 @@ export function SwipeDeck({
       const onMove = (e: PointerEvent) => {
         if (!dragging || isAnimating.current) return;
         const dt = e.timeStamp - lastT;
-        if (dt > 0) velocityX = ((e.clientX - lastX) / dt) * 1000;
+        if (dt > 0) {
+          velocityX = ((e.clientX - lastX) / dt) * 1000;
+          velocityY = ((e.clientY - lastY) / dt) * 1000;
+        }
         lastX = e.clientX;
+        lastY = e.clientY;
         lastT = e.timeStamp;
         handleDrag(e.clientX - startX, e.clientY - startY);
       };
@@ -190,7 +230,7 @@ export function SwipeDeck({
           handleTapOnCard();
           return;
         }
-        handleRelease(dx, velocityX);
+        handleRelease(dx, velocityX, dy, velocityY);
       };
 
       const onCancel = () => {
@@ -224,13 +264,16 @@ export function SwipeDeck({
 
   const gesture = useMemo(() => {
     const pan = Gesture.Pan()
+      // failOffsetY used to abort the pan as soon as it moved 20px vertically,
+      // which is precisely why swiping up did nothing. Both axes activate now.
       .activeOffsetX([-10, 10])
-      .failOffsetY([-20, 20])
+      .activeOffsetY([-10, 10])
       .shouldCancelWhenOutside(false)
       .onUpdate((event) => {
         'worklet';
         translateX.value = event.translationX;
-        translateY.value = event.translationY * 0.5;
+        translateY.value =
+          event.translationY < 0 ? event.translationY : event.translationY * 0.5;
         rotation.value = interpolate(
           event.translationX,
           [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
@@ -240,7 +283,10 @@ export function SwipeDeck({
       })
       .onEnd((event) => {
         'worklet';
-        runOnJS(handleRelease)(event.translationX, event.velocityX);
+        runOnJS(handleRelease)(
+          event.translationX, event.velocityX,
+          event.translationY, event.velocityY,
+        );
       });
 
     const tap = Gesture.Tap().onEnd(() => {

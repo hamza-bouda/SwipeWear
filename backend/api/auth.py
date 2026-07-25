@@ -69,7 +69,13 @@ def _decode_token(token: str) -> dict:
     return payload
 
 
-def get_current_user_id(authorization: str = Header(...)) -> UUID:
+def get_current_user_id(authorization: str | None = Header(default=None)) -> UUID:
+    # A required Header makes FastAPI answer 422 when it is absent, which says
+    # "your request is malformed" for what is plainly a missing credential.
+    # Clients cannot then treat an expired session uniformly — they would have
+    # to special-case 422 alongside 401.
+    if not authorization:
+        error_response(401, "MISSING_AUTH", "Authorization header is required.")
     scheme, _, token = authorization.partition(" ")
     if scheme.lower() != "bearer" or not token:
         error_response(401, "INVALID_AUTH", "Expected 'Bearer <token>' header.")
