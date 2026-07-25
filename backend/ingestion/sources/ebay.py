@@ -4,11 +4,13 @@ Credentials (never in code — read from environment):
     EBAY_CLIENT_ID      OAuth app client ID
     EBAY_CLIENT_SECRET  OAuth app client secret
     EBAY_ENV            'sandbox' (default) or 'production'
+    EBAY_IMAGE_SIZE     eBay image variant to request (default '500')
 """
 from __future__ import annotations
 
 import logging
 import os
+import re
 import time
 from typing import Any
 
@@ -38,6 +40,24 @@ _CONDITION_MAP: dict[str, str] = {
 
 _DAILY_LIMIT = 5_000
 _OAUTH_SCOPE = "https://api.ebay.com/oauth/api_scope"
+
+# eBay refuses offset + limit > 10 000 on a single query, so one query can
+# never yield more than that many items — breadth has to come from more
+# queries, not deeper paging.
+MAX_OFFSET = 10_000
+MAX_LIMIT = 200
+
+# eBay serves any image at s-l<N>.jpg. The API hands back s-l225, whose short
+# edge (164 px) is below FashionSigLIP's 224 px input: the preprocessor would
+# upscale it and embed blur. s-l500 clears 224 on both edges at ~67 KB, where
+# s-l1600 costs ~505 KB for detail the model discards when it resizes anyway.
+_IMAGE_SIZE = os.getenv("EBAY_IMAGE_SIZE", "500")
+_IMAGE_SIZE_RE = re.compile(r"/s-l\d+\.jpg$")
+
+
+def _upgrade_image_url(url: str) -> str:
+    """Rewrite an eBay image URL to the configured resolution variant."""
+    return _IMAGE_SIZE_RE.sub(f"/s-l{_IMAGE_SIZE}.jpg", url)
 
 
 class _TokenCache:
@@ -99,9 +119,11 @@ class EbaySource:
         """Search eBay items and return raw normalised dicts.
 
         Respects the 5 000 req/day sandbox limit and retries on 429.
+
+        Supported filters: limit, offset, category_id, min_price, max_price.
         """
         filters = filters or {}
-        limit = min(int(filters.get("limit", 50)), 200)
+        limit = min(int(filters.get("limit", 50)), MAX_LIMIT)
 
         token = self._token_cache.get(
             self._client_id, self._client_secret, self._env, self._session
@@ -139,6 +161,16 @@ class EbaySource:
             "limit": limit,
             "fieldgroups": "MATCHING_ITEMS",
         }
+        offset = int(filters.get("offset", 0))
+        if offset:
+            # Past the cap eBay returns an error rather than an empty page,
+            # which would abort a bulk run mid-query.
+            if offset + limit > MAX_OFFSET:
+                raise ValueError(
+                    f"offset + limit must be <= {MAX_OFFSET}, "
+                    f"got {offset} + {limit}"
+                )
+            params["offset"] = offset
         if filters.get("category_id"):
             params["category_ids"] = filters["category_id"]
         min_p = filters.get("min_price")
@@ -196,6 +228,7 @@ class EbaySource:
                 images.append(url)
         if not images and item.get("thumbnailImages"):
             images = [img["imageUrl"] for img in item["thumbnailImages"]]
+        images = [_upgrade_image_url(u) for u in images]
 
         cat_ids = item.get("categories", [])
         category_id = str(cat_ids[0]["categoryId"]) if cat_ids else None
