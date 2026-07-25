@@ -26,6 +26,20 @@ class ClickContext(str, Enum):
     detail = "detail"
 
 
+_TRUTHY = {"1", "true", "yes", "on"}
+
+
+def _affiliate_enabled() -> bool:
+    """Whether outgoing links should be wrapped for affiliate tracking.
+
+    Off by default: the credentials being present in the environment is not the
+    same as the programme being live, and a deep link built against a
+    programme that has not approved the account yet is a broken link for the
+    user. Set AFFILIATE_LINKS_ENABLED=true once each network is confirmed.
+    """
+    return os.environ.get("AFFILIATE_LINKS_ENABLED", "").strip().lower() in _TRUTHY
+
+
 def _get_env(key: str) -> str | None:
     return os.environ.get(key)
 
@@ -108,6 +122,9 @@ def build_affiliate_url(
     product: ProductRecord,
     context: ClickContext = ClickContext.ladder,
 ) -> str:
+    if not _affiliate_enabled():
+        return product.affiliate_url or ""
+
     builder = _BUILDERS.get(product.source)
     if builder is None:
         _LOG.info(
@@ -120,6 +137,8 @@ def build_affiliate_url(
 
 
 def is_monetized(product: ProductRecord) -> bool:
+    if not _affiliate_enabled():
+        return False
     if product.source == ProductSource.ebay:
         return bool(_get_env("EPN_PROGRAM_ID") and _get_env("EPN_CAMPAIGN_ID"))
     if product.source == ProductSource.awin:
