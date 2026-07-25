@@ -51,7 +51,15 @@ def apply_hard_filters(
         applied.append("watcher_kill_switch")
 
     if hc.sizes:
-        clauses.append("size_eu = ANY(%(filter_sizes)s)")
+        # An unknown size is not a wrong size. eBay's item summaries almost
+        # never carry one: 43 of 50 870 ingested products have size_eu set, so
+        # a strict `size_eu = ANY(...)` cut a 50 000-product catalogue down to
+        # 15 matches and the feed ran dry after a single screen of swipes.
+        # Products whose size is unrecorded are kept — the listing itself
+        # states it — and the filter still excludes a known mismatch.
+        clauses.append(
+            "(size_eu IS NULL OR size_eu = ANY(%(filter_sizes)s))"
+        )
         params["filter_sizes"] = hc.sizes
         applied.append("size")
 
@@ -84,7 +92,14 @@ def matches_hard_filters(
     if not product.available:
         return False
 
-    if constraints.sizes and product.size_eu not in constraints.sizes:
+    # Same rule as the SQL clause above: an unrecorded size is kept, a known
+    # mismatch is dropped. The two must agree or the in-memory path would
+    # reject candidates the query deliberately let through.
+    if (
+        constraints.sizes
+        and product.size_eu is not None
+        and product.size_eu not in constraints.sizes
+    ):
         return False
 
     if (
