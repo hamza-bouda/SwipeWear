@@ -9,16 +9,17 @@ import {
   TouchableOpacity,
   FlatList,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { colors, typography, spacing, borderRadius } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { Badge, Button } from '../components';
-import { MOCK_PRODUCTS } from '../data/mockProducts';
+
 import { Product } from '../types';
 import { useSaves } from '../context/SavesContext';
-import { usePostEvent } from '../api';
+import { usePostEvent, useProduct } from '../api';
 
 const { width } = Dimensions.get('window');
 
@@ -29,7 +30,11 @@ interface Props {
 
 export function ProductDetailScreen({ navigation, route }: Props) {
   const { productId, product: passedProduct } = route.params;
-  const product: Product | undefined = passedProduct ?? MOCK_PRODUCTS.find((p) => p.id === productId);
+  // The fallback used to be a hardcoded MOCK_PRODUCTS lookup, so opening an
+  // item from the wardrobe or an alert showed an invented product under a real
+  // id. The request is skipped when the feed already handed us the product.
+  const { product: fetched, loading } = useProduct(productId, Boolean(passedProduct));
+  const product: Product | undefined = passedProduct ?? fetched ?? undefined;
   const { isSaved, toggleSave } = useSaves();
   const postEvent = usePostEvent();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -38,16 +43,24 @@ export function ProductDetailScreen({ navigation, route }: Props) {
     postEvent(productId, 'open');
   }, [productId, postEvent]);
 
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={colors.accent} />
+      </View>
+    );
+  }
+
   if (!product) {
     return (
       <View style={styles.container}>
         <View style={styles.soldBanner}>
-          <Text style={styles.soldText}>Product unavailable</Text>
+          <Text style={styles.soldText}>Produit indisponible</Text>
         </View>
         <View style={styles.soldContent}>
-          <Text style={styles.soldTitle}>This item is no longer available</Text>
-          <Text style={styles.soldSubtitle}>Check out similar items in your feed</Text>
-          <Button title="Back to feed" onPress={() => navigation.goBack()} />
+          <Text style={styles.soldTitle}>Cet article n'est plus en ligne</Text>
+          <Text style={styles.soldSubtitle}>Regarde des pièces similaires dans ton feed</Text>
+          <Button title="Retour au feed" onPress={() => navigation.goBack()} />
         </View>
       </View>
     );
@@ -56,10 +69,10 @@ export function ProductDetailScreen({ navigation, route }: Props) {
   const saved = isSaved(product.id);
 
   const conditionLabel: Record<string, { text: string; variant: 'success' | 'warning' | 'default' }> = {
-    new: { text: 'New', variant: 'success' },
-    like_new: { text: 'Like new', variant: 'success' },
-    good: { text: 'Good', variant: 'default' },
-    fair: { text: 'Fair', variant: 'warning' },
+    new: { text: 'Neuf', variant: 'success' },
+    like_new: { text: 'Comme neuf', variant: 'success' },
+    good: { text: 'Bon état', variant: 'default' },
+    fair: { text: 'État correct', variant: 'warning' },
   };
   const cond = conditionLabel[product.condition] ?? { text: product.condition, variant: 'default' as const };
 
@@ -126,7 +139,7 @@ export function ProductDetailScreen({ navigation, route }: Props) {
 
           <Text style={styles.brand}>{product.brand}</Text>
           <Text style={styles.title}>{product.title}</Text>
-          <Text style={styles.price}>{product.price} {product.currency}</Text>
+          <Text style={styles.price}>{product.price.toFixed(2)} {product.currency}</Text>
           <Text style={styles.category}>{product.category}</Text>
         </View>
       </ScrollView>
@@ -149,6 +162,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  centered: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   imageContainer: {
     width,
