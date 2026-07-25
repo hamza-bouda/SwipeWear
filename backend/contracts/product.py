@@ -24,6 +24,20 @@ class ProductCondition(str, Enum):
     fair = "fair"
 
 
+class Gender(str, Enum):
+    """Who a garment is cut for.
+
+    `unisex` is a value, not an absence: the item suits any shopper and belongs
+    in every feed. A product whose gender was never recorded is None, and is
+    also shown to everybody — eBay item summaries rarely state it, so treating
+    unknown as a mismatch would discard most of the catalogue.
+    """
+
+    men = "men"
+    women = "women"
+    unisex = "unisex"
+
+
 class ProductRecord(BaseModel):
     # ── Identity ──────────────────────────────────────────────────────────────
     id: str
@@ -34,6 +48,7 @@ class ProductRecord(BaseModel):
     title: str
     brand: str | None = None
     model: str | None = None
+    gender: Gender | None = None
 
     # ── Price ─────────────────────────────────────────────────────────────────
     price: Annotated[float, Field(gt=0)]

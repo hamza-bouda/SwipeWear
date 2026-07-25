@@ -28,7 +28,7 @@ LATENCY_BUDGET_MS = 800
 # ProductRecord's remaining fields (model, currency, enriched_attrs,
 # schema_version) carry contract defaults and are not stored.
 _PRODUCT_COLUMNS = [
-    "id", "source", "source_record_id", "title", "brand", "model",
+    "id", "source", "source_record_id", "title", "brand", "model", "gender",
     "price", "condition", "size_raw", "size_eu",
     "category", "image_urls", "available", "embedding_version",
     "listing_url",

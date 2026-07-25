@@ -24,7 +24,7 @@ _LOG = logging.getLogger("swipewear.api.pipeline")
 _SAMPLE_COLUMNS = [
     "id", "source", "source_record_id", "title", "price",
     "condition", "category", "image_urls", "size_raw", "size_eu",
-    "brand", "model", "embedding_version", "listing_url",
+    "brand", "model", "gender", "embedding_version", "listing_url",
 ]
 
 

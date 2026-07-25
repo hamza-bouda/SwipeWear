@@ -21,7 +21,7 @@ _LOG = logging.getLogger("swipewear.retrieval.fallback")
 _DB_COLUMNS = [
     "id", "source", "source_record_id", "title", "price",
     "condition", "category", "image_urls", "size_raw", "size_eu",
-    "brand", "model", "embedding_version", "listing_url",
+    "brand", "model", "gender", "embedding_version", "listing_url",
 ]
 
 # Degraded, not broken: the fallback still owes the user a deck that advances,
