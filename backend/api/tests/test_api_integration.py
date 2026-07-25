@@ -38,6 +38,30 @@ def auth_headers(user_id):
     return {"Authorization": f"Bearer {token}"}
 
 
+@pytest.fixture()
+def catalogue_product_ids(database_available):
+    """Two product ids that actually exist in the catalogue.
+
+    interaction_events.product_id is a foreign key onto products, so the
+    invented "prod-1" these tests used to post could only ever work against
+    the in-memory store they were written for.
+    """
+    if not database_available:
+        pytest.skip("no reachable PostgreSQL instance")
+    from api.db import get_conn, put_conn
+
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM products WHERE available = true LIMIT 2")
+            rows = cur.fetchall()
+    finally:
+        put_conn(conn)
+    if len(rows) < 2:
+        pytest.skip("catalogue is empty — run scripts/ingest_catalogue.py")
+    return [row[0] for row in rows]
+
+
 class TestHealthCheck:
     def test_health(self, client):
         resp = client.get("/health")
@@ -172,28 +196,43 @@ class TestPreferencesApi:
         assert client.get("/profile/preferences", headers=auth_headers).json()["preferences"] == []
 
 
+@pytest.mark.requires_db
 class TestFeed:
-    def test_get_feed_default(self, client, auth_headers):
+    """Exercises the real pipeline.
+
+    These assertions used to hardcode the shape of the mock feed (exactly 8
+    items, next_cursor "3"), so they only passed while the database was
+    unreachable — they were testing the fallback fiction, not the feed. They
+    now describe the contract the API actually owes a client.
+    """
+
+    def test_get_feed_returns_real_catalogue_products(self, client, auth_headers):
         resp = client.get("/feed", headers=auth_headers)
         assert resp.status_code == 200
-        body = resp.json()
-        assert len(body["items"]) == 8
-        assert body["next_cursor"] is None
-        assert body["items"][0]["explanation"]["grounded"] is False
-        assert body["items"][0]["explanation"]["editable_tags"]
+        items = resp.json()["items"]
+        assert items, "the feed must not come back empty on a stocked catalogue"
+        assert not any(
+            item["product"]["id"].startswith("prod-") for item in items
+        ), "mock products leaked into a real feed response"
 
-    def test_get_feed_paginated(self, client, auth_headers):
-        resp = client.get("/feed?n_results=3", headers=auth_headers)
-        assert resp.status_code == 200
-        body = resp.json()
-        assert len(body["items"]) == 3
-        assert body["next_cursor"] == "3"
+    def test_every_item_carries_what_the_client_renders(self, client, auth_headers):
+        items = client.get("/feed?n_results=5", headers=auth_headers).json()["items"]
+        for item in items:
+            product = item["product"]
+            assert product["id"] and product["title"]
+            assert product["price"] > 0
+            assert product["image_urls"], "a card with no image cannot render"
+            assert item["explanation"]["editable_tags"]
 
-        resp2 = client.get(f"/feed?n_results=3&cursor={body['next_cursor']}", headers=auth_headers)
-        body2 = resp2.json()
-        assert len(body2["items"]) == 3
-        assert body2["next_cursor"] == "6"
+    def test_n_results_is_honoured(self, client, auth_headers):
+        body = client.get("/feed?n_results=3", headers=auth_headers).json()
+        assert len(body["items"]) <= 3
 
+    def test_ranks_are_contiguous_and_ordered(self, client, auth_headers):
+        items = client.get("/feed?n_results=10", headers=auth_headers).json()["items"]
+        assert [i["rank"] for i in items] == list(range(1, len(items) + 1))
+
+    @pytest.mark.requires_db
     def test_feed_exposes_owner_only_debug_trace(self, client, auth_headers):
         feed = client.get("/feed", headers=auth_headers)
         trace_id = feed.headers["x-trace-id"]
@@ -203,12 +242,13 @@ class TestFeed:
         assert trace.json()["trace_id"] == trace_id
 
 
+@pytest.mark.requires_db
 class TestEvents:
-    def test_post_swipe_right(self, client, auth_headers, user_id):
+    def test_post_swipe_right(self, client, auth_headers, catalogue_product_ids):
         resp = client.post(
             "/events",
             json={
-                "product_id": "prod-1",
+                "product_id": catalogue_product_ids[0],
                 "event_type": "swipe_right",
                 "payload": {"brand": "Nike"},
             },
@@ -219,11 +259,11 @@ class TestEvents:
         assert body["accepted"] is True
         assert "event_id" in body
 
-    def test_swipe_updates_profile(self, client, auth_headers, user_id):
+    def test_swipe_updates_profile(self, client, auth_headers, catalogue_product_ids):
         client.post(
             "/events",
             json={
-                "product_id": "prod-1",
+                "product_id": catalogue_product_ids[0],
                 "event_type": "swipe_right",
                 "payload": {"brand": "Nike"},
             },
@@ -235,11 +275,11 @@ class TestEvents:
         assert body["event_count"] == 1
         assert body["is_cold_start"] is False
 
-    def test_swipe_left_style_rejects_brand(self, client, auth_headers, user_id):
+    def test_swipe_left_style_rejects_brand(self, client, auth_headers, catalogue_product_ids):
         client.post(
             "/events",
             json={
-                "product_id": "prod-6",
+                "product_id": catalogue_product_ids[1],
                 "event_type": "swipe_left_style",
                 "payload": {"brand": "Stussy"},
             },
@@ -250,6 +290,7 @@ class TestEvents:
         assert "Stussy" in body["editable_preferences"]["rejected_brands"]
 
 
+@pytest.mark.requires_db
 class TestFullScenario:
     """Full integration: onboarding → feed → swipe → profile updated."""
 
@@ -267,7 +308,7 @@ class TestFullScenario:
         feed_resp = client.get("/feed?n_results=3", headers=headers)
         assert feed_resp.status_code == 200
         items = feed_resp.json()["items"]
-        assert len(items) == 3
+        assert 0 < len(items) <= 3
         first_product_id = items[0]["product"]["id"]
 
         client.post(

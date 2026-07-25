@@ -3,9 +3,10 @@ from __future__ import annotations
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 
 from api.auth import get_current_user_id
+from api.config import app_env, mock_data_allowed
 from api.db import get_conn, put_conn
 from api.pipeline import build_orchestrator
 from api.schemas import FeedResponse
@@ -135,12 +136,33 @@ def get_feed(
         )
 
     except Exception:
+        trace = RequestTrace(user_id=user_id)
+        save(trace)
+        if response is not None:
+            response.headers["X-Trace-Id"] = str(trace.trace_id)
+
+        if not mock_data_allowed():
+            # Returning invented products here would answer 200 with fiction:
+            # the user browses items that do not exist, and monitoring counts
+            # a success. The pipeline already has a real degraded mode
+            # (FallbackRetriever, blueprint §12) — reaching this handler means
+            # even that failed, which is an outage and must read as one.
+            _LOG.error(
+                "Feed pipeline failed in %s — returning 503",
+                app_env(), exc_info=True,
+            )
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "error": "feed_unavailable",
+                    "message": "Le feed est temporairement indisponible.",
+                    "trace_id": str(trace.trace_id),
+                },
+            )
+
         _LOG.warning(
             "Pipeline unavailable, falling back to mock feed", exc_info=True,
         )
-        trace = RequestTrace(user_id=user_id)
-        save(trace)
-        response.headers["X-Trace-Id"] = str(trace.trace_id)
         return _get_mock_feed(n_results, cursor)
 
     finally:
