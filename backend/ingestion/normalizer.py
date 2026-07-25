@@ -149,8 +149,35 @@ _CATEGORY_KEYWORDS: list[tuple[list[str], str]] = [
     (["sneaker", "basket", "chaussure", "shoe", "trainer"], "sneakers"),
     (["veste", "manteau", "jacket", "coat", "blouson"], "vestes"),
     (["jean", "denim", "pantalon", "trouser", "chino"], "jeans"),
-    (["tee-shirt", "t-shirt", "tshirt", "polo", "top", "blouse"], "tee-shirts"),
+    (["tee-shirt", "t-shirt", "tshirt", "polo", "top", "blouse",
+      # Common French garment words that were simply absent, so anything
+      # described only by them fell through to "accessoires".
+      "chemise", "sweat", "pull", "hoodie", "sweatshirt", "gilet",
+      "robe", "jupe", "debardeur"], "tee-shirts"),
 ]
+
+
+# Brands whose own name contains a garment word. Left in the title, they are
+# read as the garment: 793 products from these labels were filed as jeans
+# without being jeans — "CALVIN KLEIN JEANS Sweatshirt" among them, which then
+# anchored a price ladder full of sweatshirts sold as jeans.
+_BRAND_NOISE = (
+    "calvin klein jeans", "pepe jeans", "guess jeans", "tommy jeans",
+    "armani jeans", "versace jeans", "jack & jones jeans", "mustang jeans",
+    "lee jeans", "wrangler jeans", "levi's jeans", "levis jeans",
+)
+
+
+def _strip_brand_noise(title: str) -> str:
+    """Remove brand names that contain a garment word.
+
+    The brand is dropped rather than the whole title trusted, because the rest
+    of the title is exactly what says what the item is.
+    """
+    cleaned = title.lower()
+    for brand in _BRAND_NOISE:
+        cleaned = cleaned.replace(brand, " ")
+    return cleaned
 
 
 def _normalize_category(cat_id: str | None, category: str | None, title: str) -> str:
@@ -163,8 +190,8 @@ def _normalize_category(cat_id: str | None, category: str | None, title: str) ->
     # 3. Already an internal category value
     if category and category.lower() in _VALID_CATEGORIES:
         return category.lower()
-    # 4. Title keyword fallback
-    title_lower = title.lower()
+    # 4. Title keyword fallback, with brand names removed first
+    title_lower = _strip_brand_noise(title)
     for keywords, cat in _CATEGORY_KEYWORDS:
         if any(kw in title_lower for kw in keywords):
             return cat
