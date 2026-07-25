@@ -256,7 +256,13 @@ class RecoOrchestrator:
         # ingest one complete trace object per recommendation request.
         logger.info("%s", trace.model_dump_json())
         for module in severe_budget_breaches(trace):
-            logger.error("latency budget severely exceeded", extra={"module": module})
+            # 'module' is a reserved LogRecord attribute: passing it in extra
+            # makes logging raise KeyError, so the breach warning killed the
+            # very request it was meant to flag. Every other call site in this
+            # file already uses pipe_module for exactly this reason.
+            logger.error(
+                "latency budget severely exceeded", extra={"pipe_module": module},
+            )
         return ranked_feed, trace
 
 

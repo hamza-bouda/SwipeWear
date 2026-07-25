@@ -22,9 +22,10 @@ _LOG = logging.getLogger("swipewear.retrieval.retriever")
 # ProductRecord's remaining fields (model, currency, affiliate_url,
 # enriched_attrs, schema_version) carry contract defaults and are not stored.
 _PRODUCT_COLUMNS = [
-    "id", "source", "source_record_id", "title", "brand",
+    "id", "source", "source_record_id", "title", "brand", "model",
     "price", "condition", "size_raw", "size_eu",
     "category", "image_urls", "available", "embedding_version",
+    "listing_url",
 ]
 
 # Vectors live in product_embeddings, not products — the JOIN is what makes
@@ -105,6 +106,9 @@ class VectorRetriever:
             row_dict["condition"] = ProductCondition(row_dict["condition"])
             row_dict["price"] = float(row_dict["price"])
             row_dict["image_urls"] = list(row_dict["image_urls"] or [])
+            # The column holds the raw seller URL; affiliate deep links are
+            # derived from it at serve time.
+            row_dict["affiliate_url"] = row_dict.pop("listing_url", None)
             product = ProductRecord(**row_dict)
             candidates.append(CandidateItem(
                 product=product,

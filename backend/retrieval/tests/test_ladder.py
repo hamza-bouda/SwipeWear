@@ -39,7 +39,9 @@ def _make_product_row(
         size_eu="M",
         category="sneakers",
         image_urls=["https://example.com/img.jpg"],
-        affiliate_url=f"https://affiliate.example.com/{product_id}",
+        # The stored column is the raw seller URL; _row_to_product maps it
+        # onto the contract's affiliate_url field.
+        listing_url=f"https://listing.example.com/{product_id}",
         available=True,
         enriched_attrs={},
         schema_version=1,
