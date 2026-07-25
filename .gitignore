@@ -24,3 +24,7 @@ Thumbs.db
 
 # Local agent tooling
 .claude/
+
+# Local runtime artefacts
+backend/uvicorn.log
+backend/.ingest_state.json
