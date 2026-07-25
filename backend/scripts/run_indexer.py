@@ -10,9 +10,12 @@ Usage:
     python scripts/run_indexer.py --limit 20     # first 20 of them
     python scripts/run_indexer.py --all          # re-encode the whole catalogue
     python scripts/run_indexer.py --dry-run      # list, encode nothing
+    python scripts/run_indexer.py --workers 16   # more parallel downloads
 
-Loading FashionSigLIP takes ~30 s and each image ~285 ms on CPU, so a full
-30 000-product run is measured in hours: prefer --limit for a smoke test.
+Loading FashionSigLIP takes ~60 s, then each product costs ~236 ms of CPU to
+encode and ~520 ms of network to fetch its image. Those overlap: --workers
+keeps downloads in flight while the encoder works, which is what separates a
+~3 h run over 50 000 products from a ~10 h one. Prefer --limit for a smoke test.
 """
 from __future__ import annotations
 
@@ -82,6 +85,10 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=None, help="cap the number of products")
     parser.add_argument("--all", action="store_true", help="re-encode even up-to-date products")
     parser.add_argument("--dry-run", action="store_true", help="list products, encode nothing")
+    parser.add_argument(
+        "--workers", type=int, default=8,
+        help="parallel image downloads (default 8; 1 disables prefetching)",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -105,7 +112,7 @@ def main() -> int:
         print("Dry run — no embedding computed.")
         return 0
 
-    result = index_batch(records)
+    result = index_batch(records, max_workers=args.workers)
     print(
         f"Done: attempted={result.attempted} indexed={result.indexed} "
         f"failed={result.failed} marked_for_reindex={result.marked_for_reindex}"
