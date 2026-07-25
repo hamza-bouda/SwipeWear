@@ -169,8 +169,10 @@ class TestDeleteAccount:
         assert len(store.get_events_for_user(UUID(user_id))) == 0
 
     def test_delete_unauthenticated(self, client):
+        """401, not 422: a missing credential is not a malformed request, and
+        the client needs one status to key session expiry off."""
         resp = client.delete("/auth/account")
-        assert resp.status_code == 422
+        assert resp.status_code == 401
 
 
 class TestAnonymousToSignup:

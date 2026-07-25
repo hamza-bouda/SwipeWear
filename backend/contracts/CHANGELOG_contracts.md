@@ -1,5 +1,14 @@
 # Contracts Changelog
 
+## v2.2 — 2026-07-25 — Hamza Bouda (KAN-89)
+- `contracts/events.py`: added `EventType.unsave = "unsave"`.
+  Non-breaking — new enum value, like `ProductSource.vinted` in v2.0.
+  The wardrobe ("Mon dressing") is derived from the event log, which is the
+  source of truth (§6), so removing a saved item has to be recorded as an
+  event. With only `save` available the list could grow but never shrink, and
+  the heart toggle in the app was therefore local-only state that vanished on
+  restart and never reached the server at all.
+
 ## v2.1 — 2026-07-25 — Hamza Bouda (KAN-88)
 - `contracts/profile.py`: added `Gender` enum (men | women | unisex) and
   `HardConstraints.gender: Gender | None = None`.
