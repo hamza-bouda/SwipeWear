@@ -5,6 +5,8 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
+from contracts.product import Gender
+
 
 SCHEMA_VERSION = 1
 
@@ -19,6 +21,10 @@ class HardConstraints(BaseModel):
     max_price_eur: float | None = None
     regions: list[str] = Field(default_factory=list)
     excluded_conditions: list[str] = Field(default_factory=list)
+    # None means the shopper has not said, and everything is shown. Set, it
+    # filters at retrieval so the wrong-gender items never enter the candidate
+    # set — filtering afterwards would waste the pool and empty the feed.
+    gender: Gender | None = None
 
 
 # ─────────────────────────────────────────────────────────────────────────────

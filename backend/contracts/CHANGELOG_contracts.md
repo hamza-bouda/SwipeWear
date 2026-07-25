@@ -1,6 +1,18 @@
 # Contracts Changelog
 
-## v2.0 — 2026-07-23 — Hamza Bouda (KAN-72)
+## v2.1 — 2026-07-25 — Hamza Bouda (KAN-88)
+- `contracts/profile.py`: added `Gender` enum (men | women | unisex) and
+  `HardConstraints.gender: Gender | None = None`.
+  Non-breaking — new optional field defaulting to None, which preserves the
+  current behaviour of showing everything to everybody.
+  The feed was mixing menswear and womenswear with no way to say which you
+  wanted. It belongs in the hard constraints so the filter is applied during
+  retrieval: filtering the candidate set afterwards would spend the pool on
+  items that are then discarded and leave the deck short.
+  `unisex` is a value, not an absence — those items must reach every feed —
+  while a product whose gender was never recorded is NULL and is also shown,
+  the same rule already used for size (28 295 of 50 927 ingested titles say
+  neither "homme" nor "femme").
 - `contracts/product.py`: added `ProductSource.vinted = "vinted"`.
   Non-breaking — new enum value; existing sources (ebay, awin, cj, etsy) unaffected.
   Required for the isolated Vinted watcher which writes products with source='vinted'.

@@ -5,6 +5,7 @@ No module downstream knows the raw format of eBay or Awin.
 """
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from contracts.product import ProductCondition, ProductRecord, ProductSource
@@ -170,6 +171,59 @@ def _normalize_category(cat_id: str | None, category: str | None, title: str) ->
     return "accessoires"
 
 
+# ── Gender inference ──────────────────────────────────────────────────────────
+# eBay item summaries almost never carry a gender field, but sellers put it in
+# the title. Word boundaries, and women before men: "women" contains "men", so
+# a naive substring test files every women's listing under menswear.
+_UNISEX_RE = re.compile(r"\b(unisexe?|mixte)\b", re.IGNORECASE)
+_WOMEN_RE = re.compile(
+    r"\b(femmes?|f[ée]minin(?:e|es)?|dames?|filles?|women'?s?|woman|ladies|girls?)\b",
+    re.IGNORECASE,
+)
+_MEN_RE = re.compile(
+    r"\b(hommes?|masculin(?:e|s)?|gar[çc]ons?|men'?s?|man|boys?)\b",
+    re.IGNORECASE,
+)
+
+# eBay France category ids, which are unambiguous where a title is not.
+_EBAY_GENDER_BY_CATEGORY: dict[str, str] = {
+    "15709": "men",    # Chaussures homme
+    "57988": "men",    # Vestes homme
+    "57990": "men",    # Manteaux homme
+    "11483": "men",    # Jeans homme
+    "15687": "men",    # Tee-shirts homme
+    "63889": "women",  # Chaussures femme
+    "57991": "women",  # Vestes femme
+    "15724": "women",  # Manteaux femme
+    "15689": "women",  # Jeans femme
+    "53159": "women",  # Tee-shirts femme
+}
+
+
+def infer_gender(title: str, category_id: str | None = None) -> str | None:
+    """Return 'men', 'women', 'unisex', or None when nothing says.
+
+    None is deliberate rather than a guess: an unknown gender is shown to
+    everybody, so inventing one would hide items from the shopper it belongs to.
+    """
+    if category_id and category_id in _EBAY_GENDER_BY_CATEGORY:
+        return _EBAY_GENDER_BY_CATEGORY[category_id]
+
+    text = title or ""
+    if _UNISEX_RE.search(text):
+        return "unisex"
+    women = bool(_WOMEN_RE.search(text))
+    men = bool(_MEN_RE.search(text))
+    if women and men:
+        # "veste homme ou femme" — the seller means either.
+        return "unisex"
+    if women:
+        return "women"
+    if men:
+        return "men"
+    return None
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def normalize(source: str, raw: dict[str, Any]) -> ProductRecord:
@@ -253,6 +307,9 @@ def normalize(source: str, raw: dict[str, Any]) -> ProductRecord:
             affiliate_url=raw.get("listing_url") or raw.get("affiliate_url"),
             brand=raw.get("brand") or None,
             model=raw.get("model") or None,
+            # Sellers state it in the title; eBay's category id is used first
+            # where it is unambiguous.
+            gender=infer_gender(title, raw.get("category_id")),
         )
     except Exception as exc:
         raise NormalizationError(

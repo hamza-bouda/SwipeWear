@@ -50,6 +50,17 @@ def apply_hard_filters(
         params["filter_blocked_sources"] = blocked_sources
         applied.append("watcher_kill_switch")
 
+    if hc.gender is not None:
+        # Show the shopper's gender, plus unisex and anything unrecorded.
+        # 'unisex' is a real value that belongs in every feed, and 22 443 of
+        # 50 927 products state no gender at all — excluding those would throw
+        # away nearly half the catalogue to enforce a guess.
+        clauses.append(
+            "(gender IS NULL OR gender = ANY(%(filter_genders)s))"
+        )
+        params["filter_genders"] = [hc.gender.value, "unisex"]
+        applied.append("gender")
+
     if hc.sizes:
         # An unknown size is not a wrong size. eBay's item summaries almost
         # never carry one: 43 of 50 870 ingested products have size_eu set, so
@@ -90,6 +101,13 @@ def matches_hard_filters(
     constraints: HardConstraints,
 ) -> bool:
     if not product.available:
+        return False
+
+    if (
+        constraints.gender is not None
+        and product.gender is not None
+        and product.gender.value not in (constraints.gender.value, "unisex")
+    ):
         return False
 
     # Same rule as the SQL clause above: an unrecorded size is kept, a known
