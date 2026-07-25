@@ -20,7 +20,7 @@ export function FeedScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { toggleSave } = useSaves();
   const { preferences, revision } = useAlgorithm();
-  const { products: feedProducts, loading, reload } = useFeed();
+  const { products: feedProducts, loading, error, reload } = useFeed();
   const postEvent = usePostEvent();
   const [products, setProducts] = useState<Product[]>([]);
   const [deckEmpty, setDeckEmpty] = useState(false);
@@ -106,7 +106,18 @@ export function FeedScreen() {
         <View style={styles.emptyState}>
           <ActivityIndicator size="large" color={colors.accent} />
         </View>
-      ) : deckEmpty ? (
+      ) : error ? (
+        // The feed used to swap in fabricated products here, so an outage
+        // looked exactly like a working app — with items nobody could buy.
+        <View style={styles.emptyState}>
+          <Ionicons name="cloud-offline-outline" size={56} color={colors.disabled} style={styles.emptyIcon} />
+          <Text style={styles.emptyTitle}>Connexion impossible</Text>
+          <Text style={styles.emptySubtitle}>
+            Impossible de charger tes pièces pour le moment.
+          </Text>
+          <Button title="Réessayer" onPress={handleReload} style={styles.reloadButton} />
+        </View>
+      ) : deckEmpty || products.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="checkmark-circle-outline" size={56} color={colors.disabled} style={styles.emptyIcon} />
           <Text style={styles.emptyTitle}>Tout vu !</Text>
