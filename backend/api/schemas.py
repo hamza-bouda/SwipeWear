@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from contracts.events import EventType
 from contracts.pipeline import RankedItem
-from contracts.product import Gender
+from contracts.product import Gender, ProductRecord
 from contracts.profile import EditablePreferences, HardConstraints
 
 
@@ -71,6 +71,10 @@ class PreferenceMutationRequest(BaseModel):
 
 class PreferenceMutationResponse(BaseModel):
     preference: PreferenceItem
+
+
+class SavesResponse(BaseModel):
+    products: list[ProductRecord] = Field(default_factory=list)
 
 
 class OnboardingStylesRequest(BaseModel):

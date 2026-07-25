@@ -13,6 +13,9 @@ class EventType(str, Enum):
     swipe_left_style = 'swipe_left_style'
     swipe_left_price = 'swipe_left_price'
     save = 'save'
+    # The wardrobe is derived from the event log (blueprint §6), so removing an
+    # item has to be an event too. Without this the list could only ever grow.
+    unsave = 'unsave'
     open = 'open'
     edit_preference = 'edit_preference'
 

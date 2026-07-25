@@ -78,8 +78,9 @@ class TestAuthToken:
         assert body["token_type"] == "bearer"
 
     def test_missing_auth_header(self, client):
+        """401, not 422 — see get_current_user_id."""
         resp = client.get("/feed")
-        assert resp.status_code == 422
+        assert resp.status_code == 401
 
     def test_invalid_token(self, client):
         resp = client.get("/feed", headers={"Authorization": "Bearer bad.token.here"})
