@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-from uuid import UUID
 from typing import Any, Callable
 
 from contracts.pipeline import (
@@ -17,6 +16,7 @@ from explainability.explainer import GroundedExplainer, fallback_explanation
 from orchestration.orchestrator import RecoOrchestrator
 from policy.interfaces import epsilon_greedy_inject, mmr_rerank
 from ranking.interfaces import TransparentRanker
+from retrieval.filters import apply_hard_filters
 from retrieval.interfaces import FallbackRetriever, VectorRetriever
 
 _LOG = logging.getLogger("swipewear.api.pipeline")
@@ -29,27 +29,36 @@ _SAMPLE_COLUMNS = [
 
 
 def _random_catalogue_sample(
-    get_conn: Callable[[], Any], user_id: UUID, n: int = 20,
+    get_conn: Callable[[], Any],
+    profile: UserPreferenceProfile,
+    n: int = 20,
 ) -> list[ProductRecord]:
     """Fetch a random product sample for epsilon-greedy exploration (blueprint §8).
 
     Exploration means showing something the ranker would not have picked — not
-    something the user has already swiped away. Without the exclusion this path
-    quietly reintroduced seen products into a feed the retriever had just
-    filtered them out of.
+    something the user has already swiped away, and not something they told us
+    they cannot wear. This query used to filter on availability alone, so it
+    bypassed every hard constraint the retriever had just applied: measured on
+    a men's profile, the sample put one women's product back into the feed.
+    Exploration varies style; it does not override a hard filter.
     """
     try:
         conn = get_conn()
+        filter_result = apply_hard_filters(profile)
         with conn.cursor() as cur:
             cur.execute(
                 f"SELECT {', '.join('p.' + c for c in _SAMPLE_COLUMNS)}"
                 " FROM products AS p"
-                " WHERE p.available = true"
+                f" {filter_result.where_sql}"
                 "   AND NOT EXISTS ("
                 "     SELECT 1 FROM interaction_events AS ie"
-                "     WHERE ie.user_id = %s AND ie.product_id = p.id)"
-                " ORDER BY RANDOM() LIMIT %s",
-                (str(user_id), n),
+                "     WHERE ie.user_id = %(user_id)s AND ie.product_id = p.id)"
+                " ORDER BY RANDOM() LIMIT %(n)s",
+                {
+                    **filter_result.params,
+                    "user_id": str(profile.user_id),
+                    "n": n,
+                },
             )
             rows = cur.fetchall()
         products = []
@@ -129,7 +138,7 @@ class PolicyAdapter:
         self, feed: RankedFeed, profile: UserPreferenceProfile,
     ) -> RankedFeed:
         feed = mmr_rerank(feed)
-        sample = _random_catalogue_sample(self._get_conn, profile.user_id)
+        sample = _random_catalogue_sample(self._get_conn, profile)
         return epsilon_greedy_inject(feed, sample)
 
 

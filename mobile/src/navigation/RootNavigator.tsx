@@ -1,6 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
+  GenderLanguageScreen,
   OnboardingScreen,
   StyleSelectionScreen,
   ImageImportScreen,
@@ -18,9 +19,10 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export function RootNavigator() {
   return (
     <Stack.Navigator
-      initialRouteName="Onboarding"
+      initialRouteName="GenderLanguage"
       screenOptions={{ headerShown: false }}
     >
+      <Stack.Screen name="GenderLanguage" component={GenderLanguageScreen} />
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="StyleSelection" component={StyleSelectionScreen} />
       <Stack.Screen name="ImageImport" component={ImageImportScreen} />

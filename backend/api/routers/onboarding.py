@@ -38,6 +38,9 @@ def post_onboarding_styles(
         update={
             "sizes": body.sizes,
             "max_price_eur": body.max_price_eur,
+            # None leaves the existing choice alone: onboarding can be replayed
+            # and must not silently clear a gender set from the settings screen.
+            "gender": body.gender or profile.hard_constraints.gender,
         }
     )
     updated = profile.model_copy(
