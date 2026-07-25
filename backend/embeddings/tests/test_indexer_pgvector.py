@@ -148,4 +148,21 @@ def test_ten_products_are_indexed_with_recall_at_one_for_three_queries() -> None
                     "DELETE FROM products WHERE id = ANY(%s)",
                     (product_ids,),
                 )
+                # index_batch calls mark_stale_products with this test's own
+                # embedding version, which flags every product in the database
+                # whose version differs — the entire real catalogue. Deleting
+                # this test's rows does not undo that, and the run it sabotages
+                # is a multi-hour one. Restore the invariant it broke: a
+                # product whose stored vector matches its recorded version does
+                # not need reindexing.
+                cursor.execute(
+                    """
+                    UPDATE products AS p
+                       SET needs_reindex = FALSE
+                      FROM product_embeddings AS e
+                     WHERE e.product_id = p.id
+                       AND e.embedding_version = p.embedding_version
+                       AND p.needs_reindex = TRUE
+                    """
+                )
         connection.close()

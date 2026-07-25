@@ -1,6 +1,7 @@
 import type { Product } from '../types';
 
 export type RootStackParamList = {
+  GenderLanguage: undefined;
   Onboarding: undefined;
   StyleSelection: undefined;
   ImageImport: undefined;

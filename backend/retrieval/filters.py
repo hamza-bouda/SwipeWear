@@ -50,8 +50,27 @@ def apply_hard_filters(
         params["filter_blocked_sources"] = blocked_sources
         applied.append("watcher_kill_switch")
 
+    if hc.gender is not None:
+        # Show the shopper's gender, plus unisex and anything unrecorded.
+        # 'unisex' is a real value that belongs in every feed, and 22 443 of
+        # 50 927 products state no gender at all — excluding those would throw
+        # away nearly half the catalogue to enforce a guess.
+        clauses.append(
+            "(gender IS NULL OR gender = ANY(%(filter_genders)s))"
+        )
+        params["filter_genders"] = [hc.gender.value, "unisex"]
+        applied.append("gender")
+
     if hc.sizes:
-        clauses.append("size_eu = ANY(%(filter_sizes)s)")
+        # An unknown size is not a wrong size. eBay's item summaries almost
+        # never carry one: 43 of 50 870 ingested products have size_eu set, so
+        # a strict `size_eu = ANY(...)` cut a 50 000-product catalogue down to
+        # 15 matches and the feed ran dry after a single screen of swipes.
+        # Products whose size is unrecorded are kept — the listing itself
+        # states it — and the filter still excludes a known mismatch.
+        clauses.append(
+            "(size_eu IS NULL OR size_eu = ANY(%(filter_sizes)s))"
+        )
         params["filter_sizes"] = hc.sizes
         applied.append("size")
 
@@ -84,7 +103,21 @@ def matches_hard_filters(
     if not product.available:
         return False
 
-    if constraints.sizes and product.size_eu not in constraints.sizes:
+    if (
+        constraints.gender is not None
+        and product.gender is not None
+        and product.gender.value not in (constraints.gender.value, "unisex")
+    ):
+        return False
+
+    # Same rule as the SQL clause above: an unrecorded size is kept, a known
+    # mismatch is dropped. The two must agree or the in-memory path would
+    # reject candidates the query deliberately let through.
+    if (
+        constraints.sizes
+        and product.size_eu is not None
+        and product.size_eu not in constraints.sizes
+    ):
         return False
 
     if (

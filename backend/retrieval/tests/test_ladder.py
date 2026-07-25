@@ -32,6 +32,7 @@ def _make_product_row(
         title=f"Product {product_id}",
         brand=brand,
         model=model,
+        gender="men",
         price=price,
         currency="EUR",
         condition=condition,

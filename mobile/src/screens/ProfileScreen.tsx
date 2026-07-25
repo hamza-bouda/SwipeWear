@@ -6,14 +6,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../components';
 import { useAuth } from '../context/AuthContext';
+import { usePreferences } from '../context/PreferencesContext';
 import { colors, typography, spacing, borderRadius } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
+
+const GENDER_LABELS = {
+  men: 'Homme',
+  women: 'Femme',
+  unisex: 'Tout',
+} as const;
 
 export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const rootNav = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
   const { isAuthenticated, email, logout } = useAuth();
+  const { gender, language } = usePreferences();
 
   const handleLogout = () => {
     Alert.alert('Se déconnecter', 'Confirmer la déconnexion ?', [
@@ -75,6 +83,18 @@ export function ProfileScreen() {
               <Button
                 title="Mon algorithme"
                 onPress={() => (rootNav ?? navigation).navigate('Algorithm' as never)}
+              />
+              <Button
+                title={`Je cherche : ${GENDER_LABELS[gender ?? 'unisex']}`}
+                variant="outline"
+                onPress={() => (rootNav ?? navigation).navigate('GenderLanguage' as never)}
+                style={styles.settingButton}
+              />
+              <Button
+                title={`Langue : ${language === 'fr' ? 'Français' : 'English'}`}
+                variant="outline"
+                onPress={() => (rootNav ?? navigation).navigate('GenderLanguage' as never)}
+                style={styles.settingButton}
               />
             </View>
           </View>
@@ -172,6 +192,9 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.sm,
     gap: spacing.sm,
+  },
+  settingButton: {
+    marginTop: 0,
   },
   deleteButton: {
     opacity: 0.55,

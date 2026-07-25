@@ -111,10 +111,18 @@ def patch_profile(
 ):
     profile = get_or_create_profile(user_id)
     updates: dict = {"last_updated": datetime.now(timezone.utc)}
+    # Merge, don't replace. PATCH means a partial update, and the settings
+    # screen sends one field at a time: assigning the parsed object wholesale
+    # would fill every omitted field with its default, so changing gender would
+    # silently wipe the shopper's sizes and budget.
     if body.hard_constraints is not None:
-        updates["hard_constraints"] = body.hard_constraints
+        updates["hard_constraints"] = profile.hard_constraints.model_copy(
+            update=body.hard_constraints.model_dump(exclude_unset=True),
+        )
     if body.editable_preferences is not None:
-        updates["editable_preferences"] = body.editable_preferences
+        updates["editable_preferences"] = profile.editable_preferences.model_copy(
+            update=body.editable_preferences.model_dump(exclude_unset=True),
+        )
     updated = profile.model_copy(update=updates)
     save_profile(updated)
     return ProfileResponse(

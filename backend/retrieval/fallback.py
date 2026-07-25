@@ -21,13 +21,19 @@ _LOG = logging.getLogger("swipewear.retrieval.fallback")
 _DB_COLUMNS = [
     "id", "source", "source_record_id", "title", "price",
     "condition", "category", "image_urls", "size_raw", "size_eu",
-    "brand", "model", "embedding_version", "listing_url",
+    "brand", "model", "gender", "embedding_version", "listing_url",
 ]
 
+# Degraded, not broken: the fallback still owes the user a deck that advances,
+# so it excludes already-seen products exactly like the vector path does.
 _FALLBACK_QUERY = """\
 SELECT {columns}
-FROM products
+FROM products AS p
 {where}
+  AND NOT EXISTS (
+      SELECT 1 FROM interaction_events AS ie
+      WHERE ie.user_id = %(user_id)s AND ie.product_id = p.id
+  )
 ORDER BY created_at DESC
 LIMIT %(k)s"""
 
@@ -53,7 +59,11 @@ class FallbackRetriever:
             columns=", ".join(_DB_COLUMNS),
             where=filter_result.where_sql,
         )
-        params: dict[str, object] = {**filter_result.params, "k": k}
+        params: dict[str, object] = {
+            **filter_result.params,
+            "user_id": str(profile.user_id),
+            "k": k,
+        }
 
         conn = self._get_conn()
         with conn.cursor() as cur:

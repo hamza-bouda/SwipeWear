@@ -22,7 +22,7 @@ _LOG = logging.getLogger("swipewear.retrieval.retriever")
 # ProductRecord's remaining fields (model, currency, affiliate_url,
 # enriched_attrs, schema_version) carry contract defaults and are not stored.
 _PRODUCT_COLUMNS = [
-    "id", "source", "source_record_id", "title", "brand", "model",
+    "id", "source", "source_record_id", "title", "brand", "model", "gender",
     "price", "condition", "size_raw", "size_eu",
     "category", "image_urls", "available", "embedding_version",
     "listing_url",
@@ -30,12 +30,21 @@ _PRODUCT_COLUMNS = [
 
 # Vectors live in product_embeddings, not products — the JOIN is what makes
 # the pgvector HNSW index reachable from a product query.
+#
+# The NOT EXISTS drops anything the user has already acted on. Without it a
+# swipe app never advances: measured before this clause, reloading after
+# swiping through a 15-card feed returned 13 of the same 15 cards, because the
+# top-ranked products stay top-ranked no matter how many times you see them.
 _QUERY_TEMPLATE = """\
 SELECT {columns},
        1 - (e.embedding <=> %(style_vector)s::vector) AS similarity_score
 FROM products AS p
 JOIN product_embeddings AS e ON e.product_id = p.id
 {where}
+  AND NOT EXISTS (
+      SELECT 1 FROM interaction_events AS ie
+      WHERE ie.user_id = %(user_id)s AND ie.product_id = p.id
+  )
 ORDER BY e.embedding <=> %(style_vector)s::vector
 LIMIT %(k)s"""
 
@@ -89,6 +98,7 @@ class VectorRetriever:
         params: dict[str, object] = {
             **filter_result.params,
             "style_vector": style_vector,
+            "user_id": str(profile.user_id),
             "k": k,
         }
 
