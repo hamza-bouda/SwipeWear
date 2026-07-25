@@ -3,15 +3,24 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-import os
 import time
 from uuid import UUID
 
 from fastapi import Header
 
+from api.config import require_secret
 from api.errors import error_response
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "swipewear-dev-secret-change-in-prod")
+# .env has always called this JWT_SECRET while this module read JWT_SECRET_KEY,
+# so the configured value was never loaded and every token was signed with the
+# development literal below — which is public in this repository, and lets
+# anyone forge a token for any user. JWT_SECRET_KEY stays accepted so an
+# existing deployment that did set it keeps working.
+SECRET_KEY = require_secret(
+    "JWT_SECRET",
+    "JWT_SECRET_KEY",
+    dev_default="swipewear-dev-secret-change-in-prod",
+)
 TOKEN_TTL_SECONDS = 86400 * 30
 
 

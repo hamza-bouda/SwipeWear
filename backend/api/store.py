@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 import hashlib
-import os
 from dataclasses import dataclass
 from uuid import UUID
 
+from api.config import require_secret
 from contracts.events import InteractionEvent
 from contracts.profile import UserPreferenceProfile
 
@@ -18,7 +18,7 @@ class UserRecord:
 
 
 def _hash_password(password: str) -> str:
-    salt = os.getenv("PASSWORD_SALT", "swipewear-dev-salt")
+    salt = require_secret("PASSWORD_SALT", dev_default="swipewear-dev-salt")
     return hashlib.sha256(f"{salt}:{password}".encode()).hexdigest()
 
 
