@@ -196,7 +196,38 @@ class TestPreferencesApi:
         assert client.get("/profile/preferences", headers=auth_headers).json()["preferences"] == []
 
 
+@pytest.fixture()
+def stocked_catalogue():
+    """Put a handful of products in the catalogue, and take them out after.
+
+    These tests read whatever the database happened to contain, so they passed
+    on a developer machine holding 50 000 ingested products and failed on CI's
+    empty one. A test that depends on ambient data is not testing the feed, it
+    is testing the machine — so it brings its own.
+    """
+    from api.db import get_conn, put_conn
+
+    ids = [f"feedtest-{uuid4().hex}" for _ in range(5)]
+    conn = get_conn()
+    with conn.cursor() as cur:
+        for index, product_id in enumerate(ids):
+            cur.execute(
+                "INSERT INTO products (id, source, source_record_id, title,"
+                " price, condition, category, image_urls, size_eu, available)"
+                " VALUES (%s, 'ebay', %s, %s, %s, 'good', 'sneakers',"
+                " ARRAY['https://example.com/i.jpg'], 'M', true)",
+                (product_id, product_id, f"Test sneaker {index}", 40.0 + index),
+            )
+    conn.commit()
+    yield ids
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM products WHERE id = ANY(%s)", (ids,))
+    conn.commit()
+    put_conn(conn)
+
+
 @pytest.mark.requires_db
+@pytest.mark.usefixtures("stocked_catalogue")
 class TestFeed:
     """Exercises the real pipeline.
 
@@ -291,6 +322,7 @@ class TestEvents:
 
 
 @pytest.mark.requires_db
+@pytest.mark.usefixtures("stocked_catalogue")
 class TestFullScenario:
     """Full integration: onboarding → feed → swipe → profile updated."""
 
