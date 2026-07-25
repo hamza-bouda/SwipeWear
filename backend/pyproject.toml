@@ -39,6 +39,10 @@ where = ["."]
 
 [tool.pytest.ini_options]
 testpaths = [
+    # Cross-cutting guards (schema drift, logging extras, feed advancement).
+    # This directory was missing from the list, so the very tests written to
+    # stop the vector-retrieval defect from recurring had never once run in CI.
+    "tests",
     "contracts/tests",
     "ingestion/tests",
     "vision/tests",

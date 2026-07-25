@@ -88,7 +88,8 @@ _NOUNS: dict[str, list[str]] = {
 _INSERT_SQL = """
 INSERT INTO products
     (id, source, source_record_id, title, price, condition, category,
-     image_urls, size_raw, size_eu, brand, model, listing_url, available)
+     image_urls, size_raw, size_eu, brand, model, gender, listing_url,
+     available)
 VALUES %s
 ON CONFLICT (id) DO UPDATE SET
     price       = EXCLUDED.price,
@@ -100,7 +101,8 @@ ON CONFLICT (id) DO UPDATE SET
     -- and only some of them can attribute a brand. A plain EXCLUDED.brand
     -- would let a later NULL erase a value an earlier query resolved.
     brand       = COALESCE(EXCLUDED.brand, products.brand),
-    model       = COALESCE(EXCLUDED.model, products.model)
+    model       = COALESCE(EXCLUDED.model, products.model),
+    gender      = COALESCE(EXCLUDED.gender, products.gender)
 """
 
 
@@ -187,6 +189,7 @@ def _to_row(record) -> tuple:
         record.size_eu,
         record.brand,
         record.model,
+        record.gender.value if record.gender else None,
         # normalize() parks the seller URL on the contract's affiliate_url;
         # the column stores it raw so affiliate links stay a serve-time concern.
         record.affiliate_url,

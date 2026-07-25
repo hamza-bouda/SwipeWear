@@ -4,3 +4,4 @@ export { useFeed } from './useFeed';
 export { usePostEvent } from './usePostEvent';
 export { useAlerts } from './useAlerts';
 export type { AlertItem, AlertConstraints } from './useAlerts';
+export { useSubmitOnboarding } from './useOnboarding';

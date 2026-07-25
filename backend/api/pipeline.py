@@ -16,6 +16,7 @@ from explainability.explainer import GroundedExplainer, fallback_explanation
 from orchestration.orchestrator import RecoOrchestrator
 from policy.interfaces import epsilon_greedy_inject, mmr_rerank
 from ranking.interfaces import TransparentRanker
+from retrieval.filters import apply_hard_filters
 from retrieval.interfaces import FallbackRetriever, VectorRetriever
 
 _LOG = logging.getLogger("swipewear.api.pipeline")
@@ -23,21 +24,41 @@ _LOG = logging.getLogger("swipewear.api.pipeline")
 _SAMPLE_COLUMNS = [
     "id", "source", "source_record_id", "title", "price",
     "condition", "category", "image_urls", "size_raw", "size_eu",
-    "brand", "model", "embedding_version", "listing_url",
+    "brand", "model", "gender", "embedding_version", "listing_url",
 ]
 
 
 def _random_catalogue_sample(
-    get_conn: Callable[[], Any], n: int = 20,
+    get_conn: Callable[[], Any],
+    profile: UserPreferenceProfile,
+    n: int = 20,
 ) -> list[ProductRecord]:
-    """Fetch a random product sample for epsilon-greedy exploration (blueprint §8)."""
+    """Fetch a random product sample for epsilon-greedy exploration (blueprint §8).
+
+    Exploration means showing something the ranker would not have picked — not
+    something the user has already swiped away, and not something they told us
+    they cannot wear. This query used to filter on availability alone, so it
+    bypassed every hard constraint the retriever had just applied: measured on
+    a men's profile, the sample put one women's product back into the feed.
+    Exploration varies style; it does not override a hard filter.
+    """
     try:
         conn = get_conn()
+        filter_result = apply_hard_filters(profile)
         with conn.cursor() as cur:
             cur.execute(
-                f"SELECT {', '.join(_SAMPLE_COLUMNS)} FROM products"
-                " WHERE available = true ORDER BY RANDOM() LIMIT %s",
-                (n,),
+                f"SELECT {', '.join('p.' + c for c in _SAMPLE_COLUMNS)}"
+                " FROM products AS p"
+                f" {filter_result.where_sql}"
+                "   AND NOT EXISTS ("
+                "     SELECT 1 FROM interaction_events AS ie"
+                "     WHERE ie.user_id = %(user_id)s AND ie.product_id = p.id)"
+                " ORDER BY RANDOM() LIMIT %(n)s",
+                {
+                    **filter_result.params,
+                    "user_id": str(profile.user_id),
+                    "n": n,
+                },
             )
             rows = cur.fetchall()
         products = []
@@ -81,23 +102,30 @@ class RetrieverAdapter:
         except Exception:  # noqa: BLE001 - rollback must never mask the real error
             _LOG.warning("Rollback failed before fallback retrieval", exc_info=True)
 
+    @staticmethod
+    def _candidate_pool(n_results: int) -> int:
+        """How many candidates to retrieve to return n_results.
+
+        Retrieving exactly n_results left ranking and MMR nothing to choose
+        from — they could only drop items, never substitute — so a feed asked
+        for 20 came back with 7 once diversification had done its work. The
+        blueprint sizes retrieval at ~100 candidates for a 30-item feed
+        (§9: retrieve 100 ms), which is what this restores.
+        """
+        return max(100, n_results * 5)
+
     def retrieve(self, request: RecoRequest) -> CandidateSet:
+        k = self._candidate_pool(request.n_results)
         try:
-            result = self._vector.retrieve(
-                request.user_profile, k=request.n_results,
-            )
+            result = self._vector.retrieve(request.user_profile, k=k)
             if not result.candidates:
                 _LOG.info("Vector retriever returned 0 candidates, trying fallback")
-                return self._fallback.retrieve(
-                    request.user_profile, k=request.n_results,
-                )
+                return self._fallback.retrieve(request.user_profile, k=k)
             return result
         except Exception:
             _LOG.warning("Vector retriever failed, using fallback", exc_info=True)
             self._rollback()
-            return self._fallback.retrieve(
-                request.user_profile, k=request.n_results,
-            )
+            return self._fallback.retrieve(request.user_profile, k=k)
 
 
 class PolicyAdapter:
@@ -110,7 +138,7 @@ class PolicyAdapter:
         self, feed: RankedFeed, profile: UserPreferenceProfile,
     ) -> RankedFeed:
         feed = mmr_rerank(feed)
-        sample = _random_catalogue_sample(self._get_conn)
+        sample = _random_catalogue_sample(self._get_conn, profile)
         return epsilon_greedy_inject(feed, sample)
 
 
