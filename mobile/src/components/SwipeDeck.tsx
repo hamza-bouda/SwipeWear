@@ -190,7 +190,10 @@ export function SwipeDeck({
       const onDown = (e: PointerEvent) => {
         if (isAnimating.current) return;
         const target = e.target as HTMLElement;
-        if (target.closest('[data-swipe-action]') || target.closest('[aria-label="Save item"]')) return;
+        // Must stay in sync with SwipeCard's save button accessibilityLabel —
+        // on web it renders as aria-label, and this is what stops a tap on the
+        // heart from also starting a card drag.
+        if (target.closest('[data-swipe-action]') || target.closest('[aria-label="Sauvegarder la pièce"]')) return;
         dragging = true;
         startX = e.clientX;
         startY = e.clientY;

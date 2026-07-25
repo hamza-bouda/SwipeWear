@@ -29,11 +29,11 @@ export function LoginScreen() {
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please fill in all fields.');
+      Alert.alert('Erreur', 'Remplis tous les champs.');
       return;
     }
     if (mode === 'register' && password.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters.');
+      Alert.alert('Erreur', 'Le mot de passe doit faire au moins 8 caractères.');
       return;
     }
 
@@ -53,7 +53,7 @@ export function LoginScreen() {
       login(stubUserId, stubToken, email.trim().toLowerCase());
       navigation.replace('Main');
     } catch {
-      Alert.alert('Error', 'Authentication failed. Please try again.');
+      Alert.alert('Erreur', 'La connexion a échoué. Réessaie.');
     } finally {
       setLoading(false);
     }
@@ -71,7 +71,7 @@ export function LoginScreen() {
       <View style={styles.content}>
         <Text style={styles.logo}>Swipe<Text style={styles.logoAccent}>Wear</Text></Text>
         <Text style={styles.subtitle}>
-          {mode === 'login' ? 'Welcome back' : 'Create your account'}
+          {mode === 'login' ? 'Content de te revoir' : 'Crée ton compte'}
         </Text>
 
         <View style={styles.form}>
@@ -89,17 +89,17 @@ export function LoginScreen() {
           />
           <TextInput
             style={styles.input}
-            placeholder="Password"
+            placeholder="Mot de passe"
             placeholderTextColor={colors.disabled}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            accessibilityLabel="Password"
+            accessibilityLabel="Mot de passe"
             textContentType="password"
           />
 
           <Button
-            title={mode === 'login' ? 'Log in' : 'Create account'}
+            title={mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
             onPress={handleSubmit}
             loading={loading}
             disabled={loading}
@@ -108,19 +108,19 @@ export function LoginScreen() {
 
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
+          <Text style={styles.dividerText}>ou</Text>
           <View style={styles.dividerLine} />
         </View>
 
         <Button
-          title="Continue with Apple"
-          onPress={() => Alert.alert('Coming soon', 'Sign in with Apple will be available soon.')}
+          title="Continuer avec Apple"
+          onPress={() => Alert.alert('Bientôt disponible', 'La connexion avec Apple arrive bientôt.')}
           variant="outline"
           style={styles.socialButton}
         />
         <Button
-          title="Continue with Google"
-          onPress={() => Alert.alert('Coming soon', 'Google Sign-In will be available soon.')}
+          title="Continuer avec Google"
+          onPress={() => Alert.alert('Bientôt disponible', 'La connexion avec Google arrive bientôt.')}
           variant="outline"
           style={styles.socialButton}
         />
@@ -129,17 +129,17 @@ export function LoginScreen() {
           style={styles.switchMode}
           onPress={() => setMode(mode === 'login' ? 'register' : 'login')}
           accessibilityRole="button"
-          accessibilityLabel={mode === 'login' ? 'Switch to sign up' : 'Switch to log in'}
+          accessibilityLabel={mode === 'login' ? 'Passer à la création de compte' : 'Passer à la connexion'}
         >
           <Text style={styles.switchText}>
             {mode === 'login'
-              ? "Don't have an account? Sign up"
-              : 'Already have an account? Log in'}
+              ? "Pas encore de compte ? Inscris-toi"
+              : 'Déjà un compte ? Connecte-toi'}
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.skipButton} onPress={handleSkip} accessibilityRole="button" accessibilityLabel="Skip login">
-          <Text style={styles.skipText}>Skip for now</Text>
+        <TouchableOpacity style={styles.skipButton} onPress={handleSkip} accessibilityRole="button" accessibilityLabel="Passer la connexion">
+          <Text style={styles.skipText}>Passer pour l'instant</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
