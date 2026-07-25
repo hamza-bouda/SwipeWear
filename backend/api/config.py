@@ -13,10 +13,37 @@ from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
 
 _LOG = logging.getLogger("swipewear.api.config")
 
 _PRODUCTION_NAMES = {"production", "prod"}
+_ENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
+
+
+def load_dotenv() -> None:
+    """Make the project's .env visible when nothing else supplies the env.
+
+    Railway injects variables directly, so this is for local runs — where
+    otherwise nothing read .env at all and every secret silently resolved to
+    its development default no matter what the file said.
+
+    setdefault, never overwrite: a real deployment's variables must always win
+    over a stray .env that happened to be copied into the image.
+    """
+    if not _ENV_PATH.exists():
+        return
+    for line in _ENV_PATH.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip())
+
+
+# On import, not on a call: api.auth resolves its signing key at module level,
+# so any later hook would run after the secret had already been read.
+load_dotenv()
 
 
 def app_env() -> str:

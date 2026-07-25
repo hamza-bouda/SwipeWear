@@ -1,13 +1,26 @@
-"""In-memory stores for MVP. Will be replaced by PostgreSQL + pgvector."""
+"""User accounts, profiles and the event log, backed by PostgreSQL.
+
+This module used to hold everything in process memory with the note "will be
+replaced by PostgreSQL". It never was, which meant accounts existed only until
+the next restart, a second replica could not see the first one's users, and
+POST /events wrote the profile to user_profiles while GET /profile read the
+dict — so a swipe and the profile screen disagreed by construction.
+
+The function signatures are unchanged so the routers keep working; only where
+the data lives has moved.
+"""
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass
 from uuid import UUID
 
-from api.config import require_secret
-from contracts.events import InteractionEvent
+from api.config import is_production, require_secret
+from api.db import get_conn, put_conn
+from contracts.events import EventType, InteractionEvent
 from contracts.profile import UserPreferenceProfile
+from preferences.interfaces import ProfileStore
 
 
 @dataclass
@@ -26,29 +39,104 @@ def verify_password(password: str, password_hash: str) -> bool:
     return _hash_password(password) == password_hash
 
 
-_profiles: dict[UUID, UserPreferenceProfile] = {}
-_events: list[InteractionEvent] = []
-_users: dict[UUID, UserRecord] = {}
-_email_index: dict[str, UUID] = {}
+class _Connection:
+    """Borrow a pooled connection and always hand it back."""
 
+    def __enter__(self):
+        self._conn = get_conn()
+        return self._conn
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        if exc_type is not None:
+            # A failed statement leaves psycopg2 in InFailedSqlTransaction, so
+            # the next borrower of this pooled connection would fail too.
+            try:
+                self._conn.rollback()
+            except Exception:  # noqa: BLE001 - never mask the original error
+                pass
+        put_conn(self._conn)
+        return False
+
+
+# ── Profiles ─────────────────────────────────────────────────────────────────
 
 def get_or_create_profile(user_id: UUID) -> UserPreferenceProfile:
-    if user_id not in _profiles:
-        _profiles[user_id] = UserPreferenceProfile(user_id=user_id)
-    return _profiles[user_id]
+    """Return the stored profile, or an empty one for a first-time user."""
+    with _Connection() as conn:
+        # ProfileStore.load already returns a blank profile when the row is
+        # absent, so there is nothing to create here — the row appears on the
+        # first save, which is what keeps a browsing visitor out of the table.
+        return ProfileStore(lambda: conn).load(user_id)
 
 
 def save_profile(profile: UserPreferenceProfile) -> None:
-    _profiles[profile.user_id] = profile
+    with _Connection() as conn:
+        ProfileStore(lambda: conn).save(profile)
+        conn.commit()
+
+
+# ── Event log ────────────────────────────────────────────────────────────────
+
+_INSERT_EVENT_SQL = """\
+INSERT INTO interaction_events
+    (event_id, user_id, product_id, event_type, payload, timestamp,
+     schema_version)
+VALUES (%(event_id)s, %(user_id)s, %(product_id)s, %(event_type)s,
+        %(payload)s::jsonb, %(timestamp)s, %(schema_version)s)
+ON CONFLICT (event_id) DO NOTHING"""
+
+_SELECT_EVENTS_SQL = """\
+SELECT event_id, user_id, product_id, event_type, payload, timestamp,
+       schema_version
+FROM interaction_events
+WHERE user_id = %(user_id)s
+ORDER BY timestamp"""
+
+# profile.py records preference edits, which concern no product. The column is
+# nullable (migration 014) rather than carrying a sentinel that the foreign key
+# onto products would reject.
+_NO_PRODUCT = "profile"
 
 
 def append_event(event: InteractionEvent) -> None:
-    _events.append(event)
+    product_id = event.product_id
+    if not product_id or product_id == _NO_PRODUCT:
+        product_id = None
+    with _Connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(_INSERT_EVENT_SQL, {
+                "event_id": str(event.event_id),
+                "user_id": str(event.user_id),
+                "product_id": product_id,
+                "event_type": event.event_type.value,
+                "payload": json.dumps(event.payload),
+                "timestamp": event.timestamp,
+                "schema_version": event.schema_version,
+            })
+        conn.commit()
 
 
 def get_events_for_user(user_id: UUID) -> list[InteractionEvent]:
-    return [e for e in _events if e.user_id == user_id]
+    with _Connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(_SELECT_EVENTS_SQL, {"user_id": str(user_id)})
+            rows = cur.fetchall()
 
+    events: list[InteractionEvent] = []
+    for event_id, uid, product_id, event_type, payload, timestamp, version in rows:
+        events.append(InteractionEvent(
+            event_id=event_id,
+            user_id=uid,
+            product_id=product_id or _NO_PRODUCT,
+            event_type=EventType(event_type),
+            payload=payload if isinstance(payload, dict) else json.loads(payload),
+            timestamp=timestamp,
+            schema_version=version,
+        ))
+    return events
+
+
+# ── Accounts ─────────────────────────────────────────────────────────────────
 
 def create_user(user_id: UUID, email: str, password: str) -> UserRecord:
     record = UserRecord(
@@ -56,47 +144,111 @@ def create_user(user_id: UUID, email: str, password: str) -> UserRecord:
         email=email.lower(),
         password_hash=_hash_password(password),
     )
-    _users[user_id] = record
-    _email_index[email.lower()] = user_id
+    with _Connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO users (user_id, email, password_hash)"
+                " VALUES (%s, %s, %s)",
+                (str(record.user_id), record.email, record.password_hash),
+            )
+        conn.commit()
     return record
 
 
+def _row_to_user(row) -> UserRecord:
+    # UserRecord declares a UUID; the driver may hand back the column as text
+    # depending on how the connection was set up, and a str/UUID mismatch
+    # compares unequal without ever raising.
+    user_id = row[0] if isinstance(row[0], UUID) else UUID(str(row[0]))
+    return UserRecord(user_id=user_id, email=row[1], password_hash=row[2])
+
+
 def get_user_by_email(email: str) -> UserRecord | None:
-    uid = _email_index.get(email.lower())
-    if uid is None:
-        return None
-    return _users.get(uid)
+    with _Connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT user_id, email, password_hash FROM users"
+                " WHERE email = %s",
+                (email.lower(),),
+            )
+            row = cur.fetchone()
+    return _row_to_user(row) if row else None
 
 
 def get_user(user_id: UUID) -> UserRecord | None:
-    return _users.get(user_id)
+    with _Connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT user_id, email, password_hash FROM users"
+                " WHERE user_id = %s",
+                (str(user_id),),
+            )
+            row = cur.fetchone()
+    return _row_to_user(row) if row else None
 
 
 def delete_user(user_id: UUID) -> bool:
-    user = _users.pop(user_id, None)
-    if user is None:
-        return False
-    _email_index.pop(user.email, None)
-    _profiles.pop(user_id, None)
-    _events[:] = [e for e in _events if e.user_id != user_id]
-    return True
+    """Erase the account and everything attached to it (GDPR right to erasure)."""
+    with _Connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM users WHERE user_id = %s", (str(user_id),))
+            deleted = cur.rowcount > 0
+            # Not ON DELETE CASCADE: profiles and events are keyed by user_id
+            # without a foreign key onto users, because a user can browse and
+            # accumulate a profile before ever creating an account.
+            cur.execute(
+                "DELETE FROM interaction_events WHERE user_id = %s",
+                (str(user_id),),
+            )
+            cur.execute(
+                "DELETE FROM user_profiles WHERE user_id = %s", (str(user_id),),
+            )
+        conn.commit()
+    return deleted
 
 
 def migrate_anonymous_profile(anonymous_id: UUID, new_id: UUID) -> bool:
-    profile = _profiles.pop(anonymous_id, None)
-    if profile is None:
-        return False
-    profile_data = profile.model_dump()
-    profile_data["user_id"] = new_id
-    _profiles[new_id] = UserPreferenceProfile(**profile_data)
-    for event in _events:
-        if event.user_id == anonymous_id:
-            object.__setattr__(event, "user_id", new_id)
+    """Carry an anonymous visitor's profile and events onto their new account."""
+    with _Connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT 1 FROM user_profiles WHERE user_id = %s",
+                (str(anonymous_id),),
+            )
+            if cur.fetchone() is None:
+                return False
+            # Move rather than copy: leaving the anonymous row behind would
+            # let the same profile be served under two identities.
+            cur.execute(
+                "DELETE FROM user_profiles WHERE user_id = %s", (str(new_id),),
+            )
+            cur.execute(
+                "UPDATE user_profiles SET user_id = %s WHERE user_id = %s",
+                (str(new_id), str(anonymous_id)),
+            )
+            cur.execute(
+                "UPDATE interaction_events SET user_id = %s WHERE user_id = %s",
+                (str(new_id), str(anonymous_id)),
+            )
+        conn.commit()
     return True
 
 
 def reset() -> None:
-    _profiles.clear()
-    _events.clear()
-    _users.clear()
-    _email_index.clear()
+    """Clear all accounts, profiles and events. Tests only.
+
+    Guarded rather than trusted: this used to empty four dicts, and now it
+    empties three tables. Called against a production database it would delete
+    every customer.
+    """
+    if is_production():
+        raise RuntimeError(
+            "store.reset() would delete every account — refusing to run in "
+            "production."
+        )
+    with _Connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM interaction_events")
+            cur.execute("DELETE FROM user_profiles")
+            cur.execute("DELETE FROM users")
+        conn.commit()
