@@ -100,6 +100,24 @@ class TestLogin:
         assert resp.status_code == 401
 
 
+@pytest.fixture()
+def catalogue_product_id():
+    """A product id that exists — interaction_events references products."""
+    from api.db import get_conn, put_conn
+
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM products WHERE available = true LIMIT 1")
+            row = cur.fetchone()
+    finally:
+        put_conn(conn)
+    if row is None:
+        pytest.skip("catalogue is empty — run scripts/ingest_catalogue.py")
+    return row[0]
+
+
+@pytest.mark.requires_db
 class TestDeleteAccount:
     def test_delete_account(self, client):
         reg = client.post(
@@ -119,7 +137,7 @@ class TestDeleteAccount:
         )
         assert login_resp.status_code == 401
 
-    def test_delete_removes_profile_and_events(self, client):
+    def test_delete_removes_profile_and_events(self, client, catalogue_product_id):
         reg = client.post(
             "/auth/register",
             json={"email": "alice@example.com", "password": "securepass123"},
@@ -136,7 +154,11 @@ class TestDeleteAccount:
         )
         client.post(
             "/events",
-            json={"product_id": "p-1", "event_type": "swipe_right", "payload": {"brand": "Nike"}},
+            json={
+                "product_id": catalogue_product_id,
+                "event_type": "swipe_right",
+                "payload": {"brand": "Nike"},
+            },
             headers=headers,
         )
 
