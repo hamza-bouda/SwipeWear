@@ -173,3 +173,48 @@ class TestResetGuard:
         with patch.dict(os.environ, {"APP_ENV": "production"}):
             with pytest.raises(RuntimeError, match="refusing to run in"):
                 store.reset()
+
+
+class TestPasswordHashing:
+    """Passwords were a single unsalted-per-user SHA-256 round: fast to guess
+    from a stolen dump, and two accounts sharing a password shared a hash."""
+
+    def test_the_same_password_yields_different_hashes(self):
+        first = store._hash_password("hunter2")
+        second = store._hash_password("hunter2")
+        assert first != second, "a per-account salt must make hashes unique"
+        assert store.verify_password("hunter2", first)
+        assert store.verify_password("hunter2", second)
+
+    def test_wrong_password_is_rejected(self):
+        stored = store._hash_password("hunter2")
+        assert not store.verify_password("hunter3", stored)
+
+    def test_hash_records_its_parameters(self):
+        """Cost can be raised later without invalidating existing passwords."""
+        stored = store._hash_password("hunter2")
+        algorithm, n, r, p, salt, digest = stored.split("$")
+        assert algorithm == "scrypt"
+        assert (int(n), int(r), int(p)) == (
+            store._SCRYPT_N, store._SCRYPT_R, store._SCRYPT_P,
+        )
+        assert len(bytes.fromhex(salt)) == 16
+        assert len(bytes.fromhex(digest)) == store._SCRYPT_DKLEN
+
+    def test_legacy_sha256_hashes_still_authenticate(self):
+        """An account created before the change must not be locked out."""
+        import hashlib
+        legacy = hashlib.sha256(
+            f"{store._pepper()}:hunter2".encode()
+        ).hexdigest()
+        assert store.verify_password("hunter2", legacy)
+        assert not store.verify_password("wrong", legacy)
+
+    def test_a_malformed_stored_hash_is_a_failed_login_not_a_crash(self):
+        for broken in ("scrypt$", "scrypt$a$b$c$d$e", "scrypt$1$2$3$zz$zz"):
+            assert store.verify_password("hunter2", broken) is False
+
+    def test_needs_rehash_flags_legacy_and_outdated_parameters(self):
+        assert store.needs_rehash("deadbeef" * 8) is True
+        assert store.needs_rehash("scrypt$1024$8$1$aa$bb") is True
+        assert store.needs_rehash(store._hash_password("hunter2")) is False

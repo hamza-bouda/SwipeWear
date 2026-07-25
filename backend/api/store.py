@@ -12,7 +12,9 @@ the data lives has moved.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
+import os
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -30,13 +32,77 @@ class UserRecord:
     password_hash: str
 
 
+# scrypt parameters. n=2^14 costs ~50 ms per hash here: slow enough that
+# guessing a stolen database is expensive, fast enough for a login request.
+# They are stored inside each hash so they can be raised later without
+# invalidating existing passwords.
+_SCRYPT_N = 1 << 14
+_SCRYPT_R = 8
+_SCRYPT_P = 1
+_SCRYPT_DKLEN = 32
+
+
+def _pepper() -> str:
+    """Secret mixed into every password, kept outside the database.
+
+    A stolen dump alone is then not enough to start guessing — the attacker
+    also needs the deployment's environment.
+    """
+    return require_secret("PASSWORD_SALT", dev_default="swipewear-dev-salt")
+
+
 def _hash_password(password: str) -> str:
-    salt = require_secret("PASSWORD_SALT", dev_default="swipewear-dev-salt")
-    return hashlib.sha256(f"{salt}:{password}".encode()).hexdigest()
+    """Hash a password with scrypt and a fresh per-account salt.
+
+    This was a single unsalted-per-user SHA-256 round: fast to brute-force,
+    and identical passwords produced identical hashes, so cracking one account
+    cracked every account that shared the password. scrypt is memory-hard and
+    comes from the standard library, so no new dependency is involved.
+    """
+    salt = os.urandom(16)
+    derived = hashlib.scrypt(
+        f"{_pepper()}:{password}".encode(),
+        salt=salt,
+        n=_SCRYPT_N, r=_SCRYPT_R, p=_SCRYPT_P, dklen=_SCRYPT_DKLEN,
+    )
+    return (
+        f"scrypt${_SCRYPT_N}${_SCRYPT_R}${_SCRYPT_P}$"
+        f"{salt.hex()}${derived.hex()}"
+    )
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    return _hash_password(password) == password_hash
+    """Check a password against either hash format, in constant time."""
+    if not password_hash.startswith("scrypt$"):
+        # Legacy single-round SHA-256. Kept only so an account created before
+        # this change can still sign in; new hashes are never written this way.
+        legacy = hashlib.sha256(f"{_pepper()}:{password}".encode()).hexdigest()
+        return hmac.compare_digest(legacy, password_hash)
+
+    try:
+        _, n, r, p, salt_hex, expected_hex = password_hash.split("$")
+        derived = hashlib.scrypt(
+            f"{_pepper()}:{password}".encode(),
+            salt=bytes.fromhex(salt_hex),
+            n=int(n), r=int(r), p=int(p),
+            dklen=len(expected_hex) // 2,
+        )
+    except (ValueError, TypeError):
+        # A malformed stored hash must read as "wrong password", not crash the
+        # login endpoint into a 500.
+        return False
+    return hmac.compare_digest(derived.hex(), expected_hex)
+
+
+def needs_rehash(password_hash: str) -> bool:
+    """Whether a stored hash uses outdated parameters and should be replaced."""
+    if not password_hash.startswith("scrypt$"):
+        return True
+    try:
+        _, n, r, p, _, _ = password_hash.split("$")
+    except ValueError:
+        return True
+    return (int(n), int(r), int(p)) != (_SCRYPT_N, _SCRYPT_R, _SCRYPT_P)
 
 
 class _Connection:
