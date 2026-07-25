@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from uuid import UUID
 from typing import Any, Callable
 
 from contracts.pipeline import (
@@ -28,16 +29,27 @@ _SAMPLE_COLUMNS = [
 
 
 def _random_catalogue_sample(
-    get_conn: Callable[[], Any], n: int = 20,
+    get_conn: Callable[[], Any], user_id: UUID, n: int = 20,
 ) -> list[ProductRecord]:
-    """Fetch a random product sample for epsilon-greedy exploration (blueprint §8)."""
+    """Fetch a random product sample for epsilon-greedy exploration (blueprint §8).
+
+    Exploration means showing something the ranker would not have picked — not
+    something the user has already swiped away. Without the exclusion this path
+    quietly reintroduced seen products into a feed the retriever had just
+    filtered them out of.
+    """
     try:
         conn = get_conn()
         with conn.cursor() as cur:
             cur.execute(
-                f"SELECT {', '.join(_SAMPLE_COLUMNS)} FROM products"
-                " WHERE available = true ORDER BY RANDOM() LIMIT %s",
-                (n,),
+                f"SELECT {', '.join('p.' + c for c in _SAMPLE_COLUMNS)}"
+                " FROM products AS p"
+                " WHERE p.available = true"
+                "   AND NOT EXISTS ("
+                "     SELECT 1 FROM interaction_events AS ie"
+                "     WHERE ie.user_id = %s AND ie.product_id = p.id)"
+                " ORDER BY RANDOM() LIMIT %s",
+                (str(user_id), n),
             )
             rows = cur.fetchall()
         products = []
@@ -81,23 +93,30 @@ class RetrieverAdapter:
         except Exception:  # noqa: BLE001 - rollback must never mask the real error
             _LOG.warning("Rollback failed before fallback retrieval", exc_info=True)
 
+    @staticmethod
+    def _candidate_pool(n_results: int) -> int:
+        """How many candidates to retrieve to return n_results.
+
+        Retrieving exactly n_results left ranking and MMR nothing to choose
+        from — they could only drop items, never substitute — so a feed asked
+        for 20 came back with 7 once diversification had done its work. The
+        blueprint sizes retrieval at ~100 candidates for a 30-item feed
+        (§9: retrieve 100 ms), which is what this restores.
+        """
+        return max(100, n_results * 5)
+
     def retrieve(self, request: RecoRequest) -> CandidateSet:
+        k = self._candidate_pool(request.n_results)
         try:
-            result = self._vector.retrieve(
-                request.user_profile, k=request.n_results,
-            )
+            result = self._vector.retrieve(request.user_profile, k=k)
             if not result.candidates:
                 _LOG.info("Vector retriever returned 0 candidates, trying fallback")
-                return self._fallback.retrieve(
-                    request.user_profile, k=request.n_results,
-                )
+                return self._fallback.retrieve(request.user_profile, k=k)
             return result
         except Exception:
             _LOG.warning("Vector retriever failed, using fallback", exc_info=True)
             self._rollback()
-            return self._fallback.retrieve(
-                request.user_profile, k=request.n_results,
-            )
+            return self._fallback.retrieve(request.user_profile, k=k)
 
 
 class PolicyAdapter:
@@ -110,7 +129,7 @@ class PolicyAdapter:
         self, feed: RankedFeed, profile: UserPreferenceProfile,
     ) -> RankedFeed:
         feed = mmr_rerank(feed)
-        sample = _random_catalogue_sample(self._get_conn)
+        sample = _random_catalogue_sample(self._get_conn, profile.user_id)
         return epsilon_greedy_inject(feed, sample)
 
 
