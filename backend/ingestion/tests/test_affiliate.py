@@ -32,16 +32,23 @@ def _product(
     )
 
 
+# Affiliate wrapping is opt-in (AFFILIATE_LINKS_ENABLED), so every test that
+# exercises a deep-link builder has to turn it on explicitly.
+_ON = {"AFFILIATE_LINKS_ENABLED": "true"}
+
 _EPN_ENV = {
+    **_ON,
     "EPN_PROGRAM_ID": "5338",
     "EPN_CAMPAIGN_ID": "1234567890",
 }
 
 _AWIN_ENV = {
+    **_ON,
     "AWIN_PUBLISHER_ID": "999888",
 }
 
 _CJ_ENV = {
+    **_ON,
     "CJ_PUBLISHER_ID": "7654321",
 }
 
@@ -182,3 +189,38 @@ class TestIsMonetized:
     @patch.dict(os.environ, _CJ_ENV)
     def test_cj_monetized(self) -> None:
         assert is_monetized(_product(ProductSource.cj)) is True
+
+
+# ── Kill switch ──────────────────────────────────────────────────────────────
+
+class TestAffiliateDisabled:
+    """Affiliate wrapping is opt-in.
+
+    Credentials sitting in the environment do not mean the programme has
+    approved the account; a deep link built against a pending programme is a
+    dead link for the user. Direct seller URLs are the safe default.
+    """
+
+    @patch.dict(os.environ, {**_EPN_ENV, "AFFILIATE_LINKS_ENABLED": "false"})
+    def test_returns_the_raw_listing_url(self) -> None:
+        product = _product(affiliate_url="https://www.ebay.fr/itm/123")
+        assert build_affiliate_url(product, ClickContext.feed) == (
+            "https://www.ebay.fr/itm/123"
+        )
+
+    @patch.dict(os.environ, _EPN_ENV)
+    def test_enabled_flag_restores_tracking(self) -> None:
+        product = _product(affiliate_url="https://www.ebay.fr/itm/123")
+        assert "campid" in build_affiliate_url(product, ClickContext.feed)
+
+    @patch.dict(os.environ, {**_EPN_ENV, "AFFILIATE_LINKS_ENABLED": "false"})
+    def test_is_monetized_is_false_when_disabled(self) -> None:
+        assert is_monetized(_product()) is False
+
+    def test_disabled_by_default(self) -> None:
+        """No AFFILIATE_LINKS_ENABLED set at all must not wrap."""
+        env = {k: v for k, v in _EPN_ENV.items() if k != "AFFILIATE_LINKS_ENABLED"}
+        with patch.dict(os.environ, env, clear=False):
+            os.environ.pop("AFFILIATE_LINKS_ENABLED", None)
+            product = _product(affiliate_url="https://www.ebay.fr/itm/123")
+            assert build_affiliate_url(product) == "https://www.ebay.fr/itm/123"
