@@ -190,7 +190,9 @@ export function SwipeDeck({
       const onDown = (e: PointerEvent) => {
         if (isAnimating.current) return;
         const target = e.target as HTMLElement;
-        if (target.closest('[data-swipe-action]') || target.closest('[aria-label="Save item"]')) return;
+        // Matched on data-swipe-action only: keying this off a visible label
+        // ties gesture behaviour to the wording, and the label is translated.
+        if (target.closest('[data-swipe-action]')) return;
         dragging = true;
         startX = e.clientX;
         startY = e.clientY;
@@ -369,10 +371,10 @@ export function SwipeDeck({
         onSave={() => callbacksRef.current.onSave(topProduct)}
       />
       <Animated.View style={[styles.label, styles.likeLabel, rightLabelStyle]}>
-        <Text style={styles.labelText}>LIKE</Text>
+        <Text style={styles.labelText}>J'AIME</Text>
       </Animated.View>
       <Animated.View style={[styles.label, styles.nopeLabel, leftLabelStyle]}>
-        <Text style={styles.labelText}>NOPE</Text>
+        <Text style={styles.labelText}>NON</Text>
       </Animated.View>
     </View>
   );
@@ -400,14 +402,14 @@ export function SwipeDeck({
         </Animated.View>
       </View>
 
-      <View style={styles.actionRow} data-swipe-action>
+      <View style={styles.actionRow} {...({ dataSet: { swipeAction: 'row' } } as object)}>
         <Pressable
           style={[styles.actionBtn, styles.actionReject]}
           onPress={handlePressLeft}
           accessibilityRole="button"
           accessibilityLabel="Passer"
           // @ts-ignore — web only
-          data-swipe-action="true"
+          {...({ dataSet: { swipeAction: 'true' } } as object)}
         >
           <Ionicons name="close" size={22} color={colors.textSecondary} />
         </Pressable>
@@ -417,7 +419,7 @@ export function SwipeDeck({
           accessibilityRole="button"
           accessibilityLabel="Créer une alerte"
           // @ts-ignore — web only
-          data-swipe-action="true"
+          {...({ dataSet: { swipeAction: 'true' } } as object)}
         >
           <Ionicons name="notifications" size={22} color={colors.gold} />
         </Pressable>
@@ -427,7 +429,7 @@ export function SwipeDeck({
           accessibilityRole="button"
           accessibilityLabel="J'aime"
           // @ts-ignore — web only
-          data-swipe-action="true"
+          {...({ dataSet: { swipeAction: 'true' } } as object)}
         >
           <Ionicons name="heart" size={22} color={colors.accentText} />
         </Pressable>

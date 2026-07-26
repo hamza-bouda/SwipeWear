@@ -105,7 +105,7 @@ export function PriceLadderScreen({ navigation, route }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Go back">
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Retour">
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Échelle de prix</Text>
@@ -125,7 +125,7 @@ export function PriceLadderScreen({ navigation, route }: Props) {
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : error ? (
-        // "No comparable offer" and "the request failed" mean different things
+        // "Aucune offre comparable" and "the request failed" mean different things
         // to someone deciding whether to buy.
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>Comparaison indisponible</Text>
