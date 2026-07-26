@@ -24,10 +24,10 @@ interface SwipeCardProps {
 }
 
 const conditionLabels: Record<string, string> = {
-  new: 'New',
-  like_new: 'Like new',
-  good: 'Good',
-  fair: 'Fair',
+  new: 'Neuf',
+  like_new: 'Comme neuf',
+  good: 'Bon état',
+  fair: 'État correct',
 };
 
 export function SwipeCard({ product, onTap, onSave }: SwipeCardProps) {
@@ -59,7 +59,20 @@ export function SwipeCard({ product, onTap, onSave }: SwipeCardProps) {
           ) : null}
           <View style={styles.priceRow}>
             <Text style={styles.price}>{product.price} {product.currency}</Text>
-            <Pressable onPress={onSave} style={styles.saveButton} accessibilityRole="button" accessibilityLabel="Save item">
+            <Pressable
+              onPress={onSave}
+              style={styles.saveButton}
+              accessibilityRole="button"
+              accessibilityLabel="Ajouter au dressing"
+              // The deck's web pointer handler must not start a drag here.
+              // It recognised this button by its English aria-label, so
+              // translating the label would have made it draggable instead of
+              // tappable. dataSet is the only prop React Native Web turns into
+              // a real data-* attribute — a plain `data-swipe-action` JSX prop
+              // is dropped, which is why the deck's own exclusion never matched
+              // anything (verified: zero such attributes in the DOM).
+              {...({ dataSet: { swipeAction: 'save' } } as object)}
+            >
               <Ionicons name="heart-outline" size={20} color={colors.textInverse} />
             </Pressable>
           </View>

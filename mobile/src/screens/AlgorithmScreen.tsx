@@ -9,24 +9,24 @@ import type { RootStackParamList } from '../navigation/types';
 const brandSuggestions = ['Adidas', 'Carhartt WIP', 'Dickies', 'Levi\'s', 'New Balance', 'Nike', 'Stussy', 'The North Face'];
 
 const sections: Array<{ title: string; kinds: PreferenceKind[] }> = [
-  { title: 'Liked brands', kinds: ['liked_brand'] },
-  { title: 'Excluded brands', kinds: ['excluded_brand'] },
-  { title: 'Colours & styles', kinds: ['color', 'style'] },
+  { title: 'Marques aimées', kinds: ['liked_brand'] },
+  { title: 'Marques exclues', kinds: ['excluded_brand'] },
+  { title: 'Couleurs et styles', kinds: ['color', 'style'] },
   { title: 'Budget', kinds: ['budget'] },
-  { title: 'Sizes', kinds: ['size'] },
+  { title: 'Tailles', kinds: ['size'] },
 ];
 
 function PreferenceChip({ item, onLock, onRemove }: { item: AlgorithmPreference; onLock: () => void; onRemove: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${item.label}, ${item.source}, ${item.locked ? 'locked' : 'unlocked'}. Tap to ${item.locked ? 'unlock' : 'lock'}; long press to remove.`}
+      accessibilityLabel={`${item.label}, ${item.source}, ${item.locked ? 'verrouillé' : 'déverrouillé'}. Touche pour ${item.locked ? 'déverrouiller' : 'verrouiller'} ; appui long pour retirer.`}
       onPress={onLock}
       onLongPress={onRemove}
       style={[styles.chip, item.locked && styles.chipLocked]}
     >
       <Text style={styles.chipText}>{item.label}</Text>
-      <Text accessibilityLabel={item.source === 'manual' ? 'Manual preference' : 'Learned from your swipes'} style={styles.chipMeta}>
+      <Text accessibilityLabel={item.source === 'manual' ? 'Préférence manuelle' : 'Appris de tes swipes'} style={styles.chipMeta}>
         {item.source === 'manual' ? '✎' : '✦'} {item.locked ? '🔒' : '🔓'}
       </Text>
     </Pressable>
@@ -54,22 +54,22 @@ export function AlgorithmScreen() {
   };
 
   const confirmRemoval = (item: AlgorithmPreference) => {
-    Alert.alert('Remove preference?', `Remove ${item.label} from your algorithm?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => removePreference(item.id) },
+    Alert.alert('Retirer cette préférence ?', `Retirer ${item.label} de ton algorithme ?`, [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Retirer', style: 'destructive', onPress: () => removePreference(item.id) },
     ]);
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Go back to profile" onPress={() => navigation.goBack()}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Retour au profil" onPress={() => navigation.goBack()}>
         <Text style={styles.back}>‹ Profile</Text>
       </Pressable>
-      <Text style={styles.title}>My algorithm</Text>
+      <Text style={styles.title}>Mon algorithme</Text>
       <View style={styles.summaryCard}>
         <Text style={styles.summaryLabel}>YOUR PROFILE, BASED ON YOUR SETTINGS</Text>
         <Text style={styles.summaryText}>{phrase}</Text>
-        <Text style={styles.summaryHint}>Changes shape your next feed refresh.</Text>
+        <Text style={styles.summaryHint}>Tes changements façonnent le prochain feed.</Text>
       </View>
 
       {sections.map((section) => {
@@ -80,33 +80,33 @@ export function AlgorithmScreen() {
             <View style={styles.chipRow}>
               {items.length ? items.map((item) => (
                 <PreferenceChip key={item.id} item={item} onLock={() => toggleLock(item.id)} onRemove={() => confirmRemoval(item)} />
-              )) : <Text style={styles.empty}>No preferences yet</Text>}
+              )) : <Text style={styles.empty}>Aucune préférence pour le moment</Text>}
             </View>
           </View>
         );
       })}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Add a brand</Text>
+        <Text style={styles.sectionTitle}>Ajouter une marque</Text>
         <TextInput
           value={brandQuery}
           onChangeText={setBrandQuery}
-          placeholder="Search brands"
+          placeholder="Rechercher une marque"
           placeholderTextColor={colors.textSecondary}
           style={styles.search}
           autoCapitalize="words"
           returnKeyType="done"
           onSubmitEditing={() => selectBrand(brandQuery)}
-          accessibilityLabel="Search and add a liked brand"
+          accessibilityLabel="Rechercher et ajouter une marque aimée"
         />
         {brandQuery.trim() ? (
           <View style={styles.suggestions}>
             {suggestions.map((brand) => (
               <Pressable key={brand} accessibilityRole="button" accessibilityLabel={`Add ${brand}`} onPress={() => selectBrand(brand)} style={styles.suggestion}>
-                <Text style={styles.suggestionText}>{brand}</Text><Text style={styles.add}>Add</Text>
+                <Text style={styles.suggestionText}>{brand}</Text><Text style={styles.add}>Ajouter</Text>
               </Pressable>
             ))}
-            {!suggestions.length ? <Pressable onPress={() => selectBrand(brandQuery)} style={styles.suggestion}><Text style={styles.suggestionText}>Add “{brandQuery.trim()}”</Text><Text style={styles.add}>Add</Text></Pressable> : null}
+            {!suggestions.length ? <Pressable onPress={() => selectBrand(brandQuery)} style={styles.suggestion}><Text style={styles.suggestionText}>Ajouter « {brandQuery.trim()} »</Text><Text style={styles.add}>Ajouter</Text></Pressable> : null}
           </View>
         ) : null}
       </View>

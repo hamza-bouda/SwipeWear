@@ -122,10 +122,10 @@ export function ProductDetailScreen({ navigation, route }: Props) {
               ))}
             </View>
           )}
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="Go back">
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="Retour">
             <Text style={styles.backText}>←</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.heartButton} onPress={handleSave} accessibilityRole="button" accessibilityLabel={saved ? 'Remove from saves' : 'Save item'}>
+          <TouchableOpacity style={styles.heartButton} onPress={handleSave} accessibilityRole="button" accessibilityLabel={saved ? 'Retirer du dressing' : 'Ajouter au dressing'}>
             <Text style={styles.heartText}>{saved ? '❤️' : '🤍'}</Text>
           </TouchableOpacity>
         </View>

@@ -27,13 +27,13 @@ export function ImageImportScreen({ navigation }: Props) {
   const pickImages = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission required', 'We need access to your photo library.');
+      Alert.alert('Autorisation requise', "On a besoin d'accéder à tes photos.");
       return;
     }
 
     const remaining = MAX_IMAGES - images.length;
     if (remaining <= 0) {
-      Alert.alert('Maximum reached', `You can select up to ${MAX_IMAGES} images.`);
+      Alert.alert('Maximum atteint', `Tu peux choisir jusqu'à ${MAX_IMAGES} images.`);
       return;
     }
 
@@ -66,9 +66,9 @@ export function ImageImportScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Import your inspirations</Text>
+        <Text style={styles.title}>Importe tes inspirations</Text>
         <Text style={styles.subtitle}>
-          Select {MIN_IMAGES} to {MAX_IMAGES} images from your gallery
+          Choisis entre {MIN_IMAGES} et {MAX_IMAGES} images de ta galerie
         </Text>
       </View>
 
@@ -85,20 +85,20 @@ export function ImageImportScreen({ navigation }: Props) {
       ) : (
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>📸</Text>
-          <Text style={styles.emptyText}>No images selected yet</Text>
+          <Text style={styles.emptyText}>Aucune image sélectionnée</Text>
         </View>
       )}
 
       <View style={styles.footer}>
         <Button
-          title={images.length < MAX_IMAGES ? 'Add images' : 'Maximum reached'}
+          title={images.length < MAX_IMAGES ? 'Ajouter des images' : 'Maximum atteint'}
           variant="outline"
           onPress={pickImages}
           disabled={images.length >= MAX_IMAGES}
           style={styles.addButton}
         />
         <Button
-          title={`Continue (${images.length}/${MIN_IMAGES}+)`}
+          title={`Continuer (${images.length}/${MIN_IMAGES}+)`}
           onPress={() =>
             navigation.navigate('Constraints', {
               route: 'images',
