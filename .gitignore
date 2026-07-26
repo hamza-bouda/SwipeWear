@@ -22,8 +22,13 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Local agent tooling
-.claude/
+# Local agent tooling — kept local except the shared agent team, whose
+# definitions and plan must be versioned: a cloud routine clones the repo and
+# would otherwise have no agents to delegate to.
+.claude/*
+!.claude/agents/
+!.claude/commands/
+!.claude/orchestration/
 
 # Local runtime artefacts
 backend/uvicorn.log
