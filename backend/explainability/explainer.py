@@ -42,7 +42,7 @@ def _reasons(
     if product.brand and product.brand.casefold() in liked_brands and brand_score > 0:
         reasons.append(_Reason(
             score=brand_score,
-            phrase=f"Vous aimez {product.brand}",
+            phrase=f"Tu aimes {product.brand}",
             evidence_ref=f"feature:brand_boost={brand_score:.3f}",
         ))
 
@@ -50,7 +50,7 @@ def _reasons(
     if similarity > 0:
         reasons.append(_Reason(
             score=similarity,
-            phrase="Proche de vos inspirations",
+            phrase="Proche de tes inspirations",
             evidence_ref=f"feature:similarity={similarity:.3f}",
         ))
 
@@ -58,7 +58,7 @@ def _reasons(
     if price_fit > 0:
         reasons.append(_Reason(
             score=price_fit,
-            phrase="Dans votre budget",
+            phrase="Dans ton budget",
             evidence_ref=f"feature:price_fit={price_fit:.3f}",
         ))
 

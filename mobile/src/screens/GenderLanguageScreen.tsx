@@ -4,7 +4,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button } from '../components';
 import { colors, typography, spacing, borderRadius } from '../theme';
 import { RootStackParamList } from '../navigation/types';
-import { usePreferences, Gender, Language } from '../context/PreferencesContext';
+import { usePreferences, Gender } from '../context/PreferencesContext';
 import { trackEvent } from '../analytics';
 
 interface Props {
@@ -17,19 +17,13 @@ const GENDERS: { id: Gender; label: string; hint: string }[] = [
   { id: 'unisex', label: 'Tout me va', hint: 'Aucun filtre de genre' },
 ];
 
-const LANGUAGES: { id: Language; label: string }[] = [
-  { id: 'fr', label: 'Français' },
-  { id: 'en', label: 'English' },
-];
-
 export function GenderLanguageScreen({ navigation }: Props) {
-  const { gender, language, setGender, setLanguage } = usePreferences();
+  const { gender, setGender } = usePreferences();
   const [selectedGender, setSelectedGender] = useState<Gender | null>(gender);
-  const [selectedLanguage, setSelectedLanguage] = useState<Language>(language);
 
   const handleContinue = async () => {
     if (!selectedGender) return;
-    await Promise.all([setGender(selectedGender), setLanguage(selectedLanguage)]);
+    await setGender(selectedGender);
     trackEvent({ name: 'onboarding_started' });
     navigation.navigate('Onboarding');
   };
@@ -61,25 +55,6 @@ export function GenderLanguageScreen({ navigation }: Props) {
                 <View style={[styles.radio, isSelected && styles.radioSelected]}>
                   {isSelected && <View style={styles.radioDot} />}
                 </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        <Text style={styles.sectionTitle}>Langue</Text>
-        <View style={styles.languageRow}>
-          {LANGUAGES.map((option) => {
-            const isSelected = selectedLanguage === option.id;
-            return (
-              <TouchableOpacity
-                key={option.id}
-                style={[styles.chip, isSelected && styles.chipSelected]}
-                onPress={() => setSelectedLanguage(option.id)}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.chipLabel, isSelected && styles.chipLabelSelected]}>
-                  {option.label}
-                </Text>
               </TouchableOpacity>
             );
           })}
@@ -128,24 +103,6 @@ const styles = StyleSheet.create({
   radioDot: {
     width: 12, height: 12, borderRadius: 6, backgroundColor: colors.accent,
   },
-  sectionTitle: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
-    marginTop: spacing.xl,
-    marginBottom: spacing.sm,
-  },
-  languageRow: { flexDirection: 'row', gap: spacing.sm },
-  chip: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.full,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  chipSelected: { borderColor: colors.accent, backgroundColor: colors.accent },
-  chipLabel: { ...typography.body, color: colors.textPrimary },
-  chipLabelSelected: { color: colors.textPrimary, fontWeight: '600' },
   note: {
     ...typography.caption,
     color: colors.textSecondary,
