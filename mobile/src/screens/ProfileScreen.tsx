@@ -21,7 +21,7 @@ export function ProfileScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const rootNav = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
   const { isAuthenticated, email, logout } = useAuth();
-  const { gender, language } = usePreferences();
+  const { gender } = usePreferences();
 
   const handleLogout = () => {
     Alert.alert('Se déconnecter', 'Confirmer la déconnexion ?', [
@@ -86,12 +86,6 @@ export function ProfileScreen() {
               />
               <Button
                 title={`Je cherche : ${GENDER_LABELS[gender ?? 'unisex']}`}
-                variant="outline"
-                onPress={() => (rootNav ?? navigation).navigate('GenderLanguage' as never)}
-                style={styles.settingButton}
-              />
-              <Button
-                title={`Langue : ${language === 'fr' ? 'Français' : 'English'}`}
                 variant="outline"
                 onPress={() => (rootNav ?? navigation).navigate('GenderLanguage' as never)}
                 style={styles.settingButton}

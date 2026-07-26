@@ -24,10 +24,10 @@ interface SwipeCardProps {
 }
 
 const conditionLabels: Record<string, string> = {
-  new: 'New',
-  like_new: 'Like new',
-  good: 'Good',
-  fair: 'Fair',
+  new: 'Neuf',
+  like_new: 'Comme neuf',
+  good: 'Bon état',
+  fair: 'État correct',
 };
 
 export function SwipeCard({ product, onTap, onSave }: SwipeCardProps) {
@@ -59,7 +59,7 @@ export function SwipeCard({ product, onTap, onSave }: SwipeCardProps) {
           ) : null}
           <View style={styles.priceRow}>
             <Text style={styles.price}>{product.price} {product.currency}</Text>
-            <Pressable onPress={onSave} style={styles.saveButton} accessibilityRole="button" accessibilityLabel="Save item">
+            <Pressable onPress={onSave} style={styles.saveButton} accessibilityRole="button" accessibilityLabel="Sauvegarder la pièce">
               <Ionicons name="heart-outline" size={20} color={colors.textInverse} />
             </Pressable>
           </View>

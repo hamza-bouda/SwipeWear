@@ -77,7 +77,7 @@ export function PriceLadderScreen({ navigation, route }: Props) {
   const renderItem = ({ item }: { item: LadderEntry }) => {
     const cond = conditionLabels[item.condition] ?? { text: item.condition, variant: 'default' as const };
     return (
-      <TouchableOpacity style={styles.row} onPress={() => handleOfferPress(item)} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`${item.title}, ${item.price} ${item.currency} on ${item.source}`}>
+      <TouchableOpacity style={styles.row} onPress={() => handleOfferPress(item)} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`${item.title}, ${item.price} ${item.currency} sur ${item.source}`}>
         {item.imageUrl ? (
           <Image source={{ uri: item.imageUrl }} style={styles.thumbnail} />
         ) : (
@@ -105,7 +105,7 @@ export function PriceLadderScreen({ navigation, route }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Go back">
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Retour">
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Échelle de prix</Text>
