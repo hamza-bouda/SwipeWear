@@ -27,7 +27,7 @@ def test_explanation_is_grounded_in_ranker_features() -> None:
     )
 
     assert result.grounded is True
-    assert result.reasons == ["Vous aimez Carhartt", "Proche de vos inspirations"]
+    assert result.reasons == ["Tu aimes Carhartt", "Proche de tes inspirations"]
     assert result.evidence_refs == [
         "feature:brand_boost=1.000", "feature:similarity=0.900",
     ]
