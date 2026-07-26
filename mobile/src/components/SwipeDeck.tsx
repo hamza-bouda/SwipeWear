@@ -193,7 +193,13 @@ export function SwipeDeck({
         // Must stay in sync with SwipeCard's save button accessibilityLabel —
         // on web it renders as aria-label, and this is what stops a tap on the
         // heart from also starting a card drag.
-        if (target.closest('[data-swipe-action]') || target.closest('[aria-label="Sauvegarder la pièce"]')) return;
+        // data-swipe-action only. The aria-label fallback that used to sit
+        // here was doing all the work: react-native-web drops unknown props,
+        // so the plain `data-swipe-action` props rendered nothing (verified in
+        // the DOM: zero matching elements) and the selector never matched.
+        // dataSet is the prop it actually converts to data-*, so the attribute
+        // is real now and behaviour no longer depends on the button's wording.
+        if (target.closest('[data-swipe-action]')) return;
         dragging = true;
         startX = e.clientX;
         startY = e.clientY;
@@ -372,10 +378,10 @@ export function SwipeDeck({
         onSave={() => callbacksRef.current.onSave(topProduct)}
       />
       <Animated.View style={[styles.label, styles.likeLabel, rightLabelStyle]}>
-        <Text style={styles.labelText}>LIKE</Text>
+        <Text style={styles.labelText}>J'AIME</Text>
       </Animated.View>
       <Animated.View style={[styles.label, styles.nopeLabel, leftLabelStyle]}>
-        <Text style={styles.labelText}>NOPE</Text>
+        <Text style={styles.labelText}>NON</Text>
       </Animated.View>
     </View>
   );
@@ -403,14 +409,14 @@ export function SwipeDeck({
         </Animated.View>
       </View>
 
-      <View style={styles.actionRow} data-swipe-action>
+      <View style={styles.actionRow} {...({ dataSet: { swipeAction: 'row' } } as object)}>
         <Pressable
           style={[styles.actionBtn, styles.actionReject]}
           onPress={handlePressLeft}
           accessibilityRole="button"
           accessibilityLabel="Passer"
           // @ts-ignore — web only
-          data-swipe-action="true"
+          {...({ dataSet: { swipeAction: 'true' } } as object)}
         >
           <Ionicons name="close" size={22} color={colors.textSecondary} />
         </Pressable>
@@ -420,7 +426,7 @@ export function SwipeDeck({
           accessibilityRole="button"
           accessibilityLabel="Créer une alerte"
           // @ts-ignore — web only
-          data-swipe-action="true"
+          {...({ dataSet: { swipeAction: 'true' } } as object)}
         >
           <Ionicons name="notifications" size={22} color={colors.gold} />
         </Pressable>
@@ -430,7 +436,7 @@ export function SwipeDeck({
           accessibilityRole="button"
           accessibilityLabel="J'aime"
           // @ts-ignore — web only
-          data-swipe-action="true"
+          {...({ dataSet: { swipeAction: 'true' } } as object)}
         >
           <Ionicons name="heart" size={22} color={colors.accentText} />
         </Pressable>
