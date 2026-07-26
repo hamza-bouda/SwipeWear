@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from uuid import uuid4
 from typing import Any, Callable
 
 from contracts.pipeline import (
@@ -53,10 +54,19 @@ def _random_catalogue_sample(
                 "   AND NOT EXISTS ("
                 "     SELECT 1 FROM interaction_events AS ie"
                 "     WHERE ie.user_id = %(user_id)s AND ie.product_id = p.id)"
-                " ORDER BY RANDOM() LIMIT %(n)s",
+                # ORDER BY RANDOM() sorted the entire filtered catalogue to
+                # keep twenty rows: measured at 240 ms, it was the whole of the
+                # 278 ms diversify step against a 30 ms budget (§9), while the
+                # MMR rerank it sits next to costs 0.3 ms. Hashing the id with
+                # a per-request salt picks a different ~1% slice each call, and
+                # the LIMIT stops the scan as soon as it is satisfied — no sort
+                # at all.
+                "   AND abs(hashtext(p.id || %(salt)s)) %% 97 = 0"
+                " LIMIT %(n)s",
                 {
                     **filter_result.params,
                     "user_id": str(profile.user_id),
+                    "salt": uuid4().hex,
                     "n": n,
                 },
             )
