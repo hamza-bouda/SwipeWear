@@ -49,6 +49,8 @@ FROM products AS p
 JOIN product_embeddings AS e ON e.product_id = p.id
 WHERE p.available = true
   AND p.id != %(source_id)s
+  AND p.category = %(category)s
+  AND (p.gender IS NULL OR %(gender)s IS NULL OR p.gender = %(gender)s)
   AND 1 - (e.embedding <=> %(style_vector)s::vector) >= %(min_similarity)s
 ORDER BY e.embedding <=> %(style_vector)s::vector
 LIMIT %(k)s"""
@@ -129,6 +131,15 @@ def build_price_ladder(
             {
                 "style_vector": style_vector,
                 "source_id": product_id,
+                # Vector similarity alone is too coarse for this promise.
+                # Measured on a pair of Calvin Klein heels, a 0.70 threshold
+                # returned an Adidas t-shirt at 0.735 and a Tommy Hilfiger
+                # trouser at 0.717 — and the headline saving was computed from
+                # them, advertising "95% cheaper" on a different garment.
+                # Category and gender are exact, cheap, and make the answer
+                # mean what the screen says it means.
+                "category": source_product.category,
+                "gender": source_product.gender.value if source_product.gender else None,
                 "min_similarity": min_similarity,
                 "k": max_results * 3,
             },

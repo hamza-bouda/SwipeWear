@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Linking,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -15,72 +16,15 @@ import { Badge, Button } from '../components';
 import { trackEvent } from '../analytics';
 import { colors, typography, spacing, borderRadius } from '../theme';
 import { RootStackParamList } from '../navigation/types';
-import { MOCK_PRODUCTS } from '../data/mockProducts';
-
-interface LadderEntry {
-  productId: string;
-  title: string;
-  price: number;
-  currency: string;
-  source: string;
-  condition: string;
-  isNew: boolean;
-  confidence: 'exact' | 'similar';
-  imageUrl: string | null;
-  affiliateUrl: string;
-}
+import { useLadder, useAlerts, ApiError } from '../api';
+import type { LadderEntry } from '../api';
 
 interface Props {
   navigation: NativeStackNavigationProp<RootStackParamList, 'PriceLadder'>;
   route: RouteProp<RootStackParamList, 'PriceLadder'>;
 }
 
-function buildMockLadder(productId: string): LadderEntry[] {
-  const source = MOCK_PRODUCTS.find((p) => p.id === productId);
-  if (!source) return [];
-
-  const entries: LadderEntry[] = [
-    {
-      productId: `${productId}-used-1`,
-      title: `${source.title} — Occasion`,
-      price: Math.round(source.price * 0.5),
-      currency: source.currency,
-      source: 'ebay',
-      condition: 'good',
-      isNew: false,
-      confidence: 'exact',
-      imageUrl: source.imageUrls[0],
-      affiliateUrl: `https://www.ebay.com/itm/${productId}-used`,
-    },
-    {
-      productId: `${productId}-used-2`,
-      title: `${source.title} — Comme neuf`,
-      price: Math.round(source.price * 0.7),
-      currency: source.currency,
-      source: 'ebay',
-      condition: 'like_new',
-      isNew: false,
-      confidence: 'exact',
-      imageUrl: source.imageUrls[0],
-      affiliateUrl: `https://www.ebay.com/itm/${productId}-likenew`,
-    },
-    {
-      productId: `${productId}-new`,
-      title: `${source.title} — Neuf`,
-      price: Math.round(source.price * 1.4),
-      currency: source.currency,
-      source: 'awin',
-      condition: 'new',
-      isNew: true,
-      confidence: 'exact',
-      imageUrl: source.imageUrls[0],
-      affiliateUrl: `https://shop.example.com/${productId}-new`,
-    },
-  ];
-  return entries.sort((a, b) => a.price - b.price);
-}
-
-const conditionLabels: Record<string, { text: string; variant: 'success' | 'warning' | 'default' }> = {
+const conditionLabels: Record<string, { text: string; variant: 'success' | 'default' | 'warning' }> = {
   new: { text: 'Neuf', variant: 'success' },
   like_new: { text: 'Comme neuf', variant: 'success' },
   good: { text: 'Bon état', variant: 'default' },
@@ -89,16 +33,32 @@ const conditionLabels: Record<string, { text: string; variant: 'success' | 'warn
 
 export function PriceLadderScreen({ navigation, route }: Props) {
   const { productId } = route.params;
-  const [entries, setEntries] = useState<LadderEntry[]>(() => buildMockLadder(productId));
-  const [refreshing, setRefreshing] = useState(false);
+  // The list used to be invented from MOCK_PRODUCTS: two fabricated offers
+  // around a hardcoded item, and a saving that was arithmetic on fiction.
+  const { entries, savingsPct, loading, error, reload } = useLadder(productId);
+  const { create: createAlert } = useAlerts();
+  const [alertLabel, setAlertLabel] = useState('Créer une alerte');
+  const [alertDone, setAlertDone] = useState(false);
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => {
-      setEntries(buildMockLadder(productId));
-      setRefreshing(false);
-    }, 800);
-  }, [productId]);
+  // The button in the empty state was onPress={() => {}} — no comparable offer
+  // today is exactly when someone wants to be told about one later.
+  const handleCreateAlert = useCallback(async () => {
+    try {
+      await createAlert({
+        alert_type: 'specific_item',
+        label: `Offre pour ${productId}`,
+        reference_product_id: productId,
+      });
+      setAlertLabel('Alerte créée');
+      setAlertDone(true);
+    } catch (e) {
+      setAlertLabel(
+        e instanceof ApiError && e.status === 403
+          ? 'Limite de 3 alertes atteinte'
+          : 'Échec — réessayer',
+      );
+    }
+  }, [createAlert, productId]);
 
   const handleOfferPress = useCallback((entry: LadderEntry) => {
     trackEvent({
@@ -108,9 +68,11 @@ export function PriceLadderScreen({ navigation, route }: Props) {
     Linking.openURL(entry.affiliateUrl);
   }, []);
 
+  // Entries arrive sorted by price, so the ends are the range. The saving
+  // comes from the server rather than being recomputed here — one definition,
+  // one number, whatever the client does with the list.
   const minPrice = entries.length > 0 ? entries[0].price : 0;
   const maxPrice = entries.length > 0 ? entries[entries.length - 1].price : 0;
-  const savingsPct = maxPrice > 0 ? Math.round((1 - minPrice / maxPrice) * 100) : 0;
 
   const renderItem = ({ item }: { item: LadderEntry }) => {
     const cond = conditionLabels[item.condition] ?? { text: item.condition, variant: 'default' as const };
@@ -133,7 +95,7 @@ export function PriceLadderScreen({ navigation, route }: Props) {
           </Text>
         </View>
         <View style={styles.rowPriceCol}>
-          <Text style={styles.rowPrice}>{item.price} {item.currency}</Text>
+          <Text style={styles.rowPrice}>{item.price.toFixed(2)} {item.currency}</Text>
           <Text style={styles.rowArrow}>→</Text>
         </View>
       </TouchableOpacity>
@@ -153,21 +115,36 @@ export function PriceLadderScreen({ navigation, route }: Props) {
       {entries.length > 0 && (
         <View style={styles.summary}>
           <Text style={styles.summaryText}>
-            De {minPrice} € (occasion) à {maxPrice} € (neuf) — jusqu'à {savingsPct} % d'économie
+            De {minPrice.toFixed(2)} € à {maxPrice.toFixed(2)} €{savingsPct ? ` — jusqu'à ${Math.round(savingsPct)} % d'économie` : ''}
           </Text>
         </View>
       )}
 
-      {entries.length === 0 ? (
+      {loading ? (
+        <View style={styles.emptyState}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : error ? (
+        // "No comparable offer" and "the request failed" mean different things
+        // to someone deciding whether to buy.
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyTitle}>Comparaison indisponible</Text>
+          <Text style={styles.emptySubtitle}>
+            Impossible de récupérer les offres pour le moment.
+          </Text>
+          <Button title="Réessayer" onPress={reload} style={styles.alertButton} />
+        </View>
+      ) : entries.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>Aucune offre comparable trouvée</Text>
           <Text style={styles.emptySubtitle}>
             Nous n'avons pas encore d'offres similaires pour ce produit
           </Text>
           <Button
-            title="Créer une alerte"
+            title={alertLabel}
             variant="outline"
-            onPress={() => {}}
+            onPress={handleCreateAlert}
+            disabled={alertDone}
             style={styles.alertButton}
           />
         </View>
@@ -179,7 +156,7 @@ export function PriceLadderScreen({ navigation, route }: Props) {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+            <RefreshControl refreshing={loading} onRefresh={reload} tintColor={colors.primary} />
           }
         />
       )}
