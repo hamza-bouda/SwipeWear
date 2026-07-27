@@ -10,4 +10,8 @@ from retrieval.filters import (  # noqa: F401
     apply_hard_filters,
     matches_hard_filters,
 )
+from retrieval.fallback import (  # noqa: F401
+    FallbackRetriever,
+    retrieve_with_fallback,
+)
 from retrieval.retriever import VectorRetriever  # noqa: F401
