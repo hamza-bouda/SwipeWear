@@ -1,0 +1,112 @@
+"""Vector retriever -- pgvector cosine top-K (blueprint SS8).
+
+Diagnostic: if a relevant style never enters the candidate set, check the
+similarity score of the first absent product via the debug log.
+"""
+from __future__ import annotations
+
+import logging
+import time
+from typing import Any, Callable
+from uuid import uuid4
+
+from contracts.pipeline import CandidateItem, CandidateSet
+from contracts.product import ProductCondition, ProductRecord, ProductSource
+from contracts.profile import UserPreferenceProfile
+from retrieval.filters import apply_hard_filters
+
+_LOG = logging.getLogger("swipewear.retrieval.retriever")
+
+_PRODUCT_COLUMNS = [
+    "id", "source", "source_record_id", "title", "brand", "model",
+    "price", "currency", "condition", "size_raw", "size_eu",
+    "category", "image_urls", "affiliate_url", "available",
+    "enriched_attrs", "schema_version", "embedding_version",
+]
+
+_QUERY_TEMPLATE = """\
+SELECT {columns},
+       1 - (embedding <=> %(style_vector)s) AS similarity_score
+FROM products
+{where}
+ORDER BY embedding <=> %(style_vector)s
+LIMIT %(k)s"""
+
+
+class VectorRetriever:
+    def __init__(self, get_conn: Callable[[], Any]) -> None:
+        self._get_conn = get_conn
+
+    def retrieve(
+        self,
+        profile: UserPreferenceProfile,
+        k: int = 100,
+    ) -> CandidateSet:
+        request_id = uuid4()
+        start = time.monotonic()
+
+        if profile.is_cold_start:
+            _LOG.info(
+                "Cold-start user %s, no style vector available",
+                profile.user_id,
+            )
+            return CandidateSet(
+                request_id=request_id,
+                candidates=[],
+                hard_filters_applied=[],
+                retrieval_latency_ms=0.0,
+            )
+
+        style_vector = profile.vectors.positive
+        filter_result = apply_hard_filters(profile)
+
+        query = _QUERY_TEMPLATE.format(
+            columns=", ".join(_PRODUCT_COLUMNS),
+            where=filter_result.where_sql,
+        )
+        params: dict[str, object] = {
+            **filter_result.params,
+            "style_vector": style_vector,
+            "k": k,
+        }
+
+        conn = self._get_conn()
+        with conn.cursor() as cur:
+            cur.execute(query, params)
+            rows = cur.fetchall()
+
+        candidates: list[CandidateItem] = []
+        for rank, row in enumerate(rows, start=1):
+            row_dict = dict(
+                zip([*_PRODUCT_COLUMNS, "similarity_score"], row),
+            )
+            similarity = float(row_dict.pop("similarity_score"))
+            row_dict["source"] = ProductSource(row_dict["source"])
+            row_dict["condition"] = ProductCondition(row_dict["condition"])
+            product = ProductRecord(**row_dict)
+            candidates.append(CandidateItem(
+                product=product,
+                similarity_score=similarity,
+                retrieval_rank=rank,
+            ))
+
+        elapsed_ms = (time.monotonic() - start) * 1000
+
+        if elapsed_ms > 100:
+            _LOG.warning(
+                "Retrieval latency %.1f ms exceeds 100 ms budget"
+                " (k=%d, user=%s)",
+                elapsed_ms, k, profile.user_id,
+            )
+
+        _LOG.debug(
+            "Retrieved %d candidates in %.1f ms (k=%d, user=%s)",
+            len(candidates), elapsed_ms, k, profile.user_id,
+        )
+
+        return CandidateSet(
+            request_id=request_id,
+            candidates=candidates,
+            hard_filters_applied=filter_result.applied,
+            retrieval_latency_ms=round(elapsed_ms, 1),
+        )
