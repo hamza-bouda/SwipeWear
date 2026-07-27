@@ -5,6 +5,11 @@ import pytest
 
 from contracts.product import ProductCondition, ProductRecord, ProductSource
 from contracts.profile import UserPreferenceProfile
+from evaluation.eval_ranking import (
+    RankingEvalReport,
+    compute_ndcg,
+    evaluate_ranking,
+)
 from evaluation.eval_retrieval import (
     RECALL_100_THRESHOLD,
     RetrievalEvalReport,
@@ -246,4 +251,106 @@ class TestGoldenRecall:
         )
         assert report.recall_at[10] == 1.0
         assert report.recall_at[100] >= RECALL_100_THRESHOLD
+        assert report.passed is True
+
+
+# -- Ranking evaluation -- NDCG@K (KAN-48) ----------------------------------
+
+class TestComputeNdcg:
+    def test_perfect_ranking(self) -> None:
+        relevance = {"a": 3.0, "b": 2.0, "c": 1.0}
+        assert compute_ndcg(["a", "b", "c"], relevance, k=3) == 1.0
+
+    def test_reversed_ranking(self) -> None:
+        relevance = {"a": 3.0, "b": 2.0, "c": 1.0}
+        score = compute_ndcg(["c", "b", "a"], relevance, k=3)
+        assert score < 1.0
+        assert score > 0.0
+
+    def test_empty_relevance(self) -> None:
+        assert compute_ndcg(["a", "b"], {}, k=3) == 1.0
+
+    def test_unknown_ids_get_zero_relevance(self) -> None:
+        relevance = {"a": 3.0}
+        score = compute_ndcg(["x", "y", "a"], relevance, k=3)
+        assert score < 1.0
+
+    def test_k_limits_ranking(self) -> None:
+        relevance = {"a": 3.0, "b": 2.0, "c": 1.0}
+        score_k1 = compute_ndcg(["a", "c", "b"], relevance, k=1)
+        assert score_k1 == 1.0
+
+    def test_single_item(self) -> None:
+        assert compute_ndcg(["a"], {"a": 1.0}, k=1) == 1.0
+
+
+class TestEvaluateRanking:
+    def test_returns_report(self) -> None:
+        relevance = {"a": 3.0, "b": 2.0, "c": 1.0}
+        baseline = ["a", "b", "c"]
+        ranker = ["a", "b", "c"]
+        report = evaluate_ranking(baseline, ranker, relevance, write_report=False)
+        assert isinstance(report, RankingEvalReport)
+
+    def test_ranker_better_passes(self) -> None:
+        relevance = {"a": 3.0, "b": 2.0, "c": 1.0}
+        baseline = ["c", "b", "a"]
+        ranker = ["a", "b", "c"]
+        report = evaluate_ranking(baseline, ranker, relevance, write_report=False)
+        assert report.passed is True
+        assert report.delta > 0
+
+    def test_ranker_equal_passes(self) -> None:
+        relevance = {"a": 3.0, "b": 2.0}
+        same = ["a", "b"]
+        report = evaluate_ranking(same, same, relevance, write_report=False)
+        assert report.passed is True
+        assert report.delta == 0.0
+
+    def test_ranker_worse_fails(self) -> None:
+        relevance = {"a": 3.0, "b": 2.0, "c": 1.0}
+        baseline = ["a", "b", "c"]
+        ranker = ["c", "b", "a"]
+        report = evaluate_ranking(baseline, ranker, relevance, write_report=False)
+        assert report.passed is False
+        assert "NDCG" in report.failure_reason
+
+    def test_evaluated_at_set(self) -> None:
+        report = evaluate_ranking(["a"], ["a"], {"a": 1.0}, write_report=False)
+        assert report.evaluated_at != ""
+
+    def test_write_report_creates_json(self, tmp_path) -> None:
+        import evaluation.eval_ranking as mod
+
+        original_dir = mod.REPORTS_DIR
+        original_path = mod.REPORT_PATH
+        mod.REPORTS_DIR = tmp_path
+        mod.REPORT_PATH = tmp_path / "ranking_eval.json"
+        try:
+            evaluate_ranking(["a"], ["a"], {"a": 1.0}, write_report=True)
+            assert mod.REPORT_PATH.exists()
+            data = json.loads(mod.REPORT_PATH.read_text(encoding="utf-8"))
+            assert "ndcg_baseline" in data
+            assert "ndcg_ranker" in data
+            assert "delta" in data
+        finally:
+            mod.REPORTS_DIR = original_dir
+            mod.REPORT_PATH = original_path
+
+
+class TestGoldenRanking:
+    def test_ndcg_on_golden_expected(self) -> None:
+        exp_data = json.loads(
+            (FIXTURES / "golden_expected.json").read_text(encoding="utf-8"),
+        )
+        relevance = {
+            e["product_id"]: e["baseline_score"]
+            for e in exp_data["top10"]
+        }
+        ideal_ids = [e["product_id"] for e in exp_data["top10"]]
+        report = evaluate_ranking(
+            ideal_ids, ideal_ids, relevance, write_report=False,
+        )
+        assert report.ndcg_baseline == 1.0
+        assert report.ndcg_ranker == 1.0
         assert report.passed is True
