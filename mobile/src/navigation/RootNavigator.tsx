@@ -1,4 +1,5 @@
 import React from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
   GenderLanguageScreen,
@@ -13,13 +14,37 @@ import {
 } from '../screens';
 import { MainTabs } from './MainTabs';
 import { RootStackParamList } from './types';
+import { useAuth } from '../context/AuthContext';
+import { usePreferences } from '../context/PreferencesContext';
+import { colors } from '../theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
+  const { gender, onboardingCompleted, ready: prefsReady } = usePreferences();
+  const { isAuthenticated, ready: authReady } = useAuth();
+
+  // The first route used to be hardcoded to GenderLanguage, so a returning
+  // user — signed in, gender chosen, profile built — was walked through the
+  // whole onboarding again on every single launch.
+  if (!prefsReady || !authReady) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.accent} />
+      </View>
+    );
+  }
+
+  let initialRouteName: keyof RootStackParamList = 'GenderLanguage';
+  if (gender !== null) {
+    // Being signed in implies the flow was completed at least once: the login
+    // screen is only reachable from the profile tab, which lives inside Main.
+    initialRouteName = onboardingCompleted || isAuthenticated ? 'Main' : 'Onboarding';
+  }
+
   return (
     <Stack.Navigator
-      initialRouteName="GenderLanguage"
+      initialRouteName={initialRouteName}
       screenOptions={{ headerShown: false }}
     >
       <Stack.Screen name="GenderLanguage" component={GenderLanguageScreen} />

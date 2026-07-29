@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button } from '../components';
 import { useAuth } from '../context/AuthContext';
+import { ApiError } from '../api/client';
 import { colors, typography, spacing } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
 
@@ -21,7 +22,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
 export function LoginScreen() {
   const navigation = useNavigation<Nav>();
-  const { login, getAnonymousId } = useAuth();
+  const { login, register } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,21 +40,25 @@ export function LoginScreen() {
 
     setLoading(true);
     try {
-      // Stub API call — will connect to real backend later
-      const anonId = getAnonymousId();
-      const stubUserId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-        const r = (Math.random() * 16) | 0;
-        const v = c === 'x' ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-      });
-      const stubToken = 'stub-jwt-token';
-
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      login(stubUserId, stubToken, email.trim().toLowerCase());
+      const address = email.trim().toLowerCase();
+      if (mode === 'register') {
+        await register(address, password);
+      } else {
+        await login(address, password);
+      }
       navigation.replace('Main');
-    } catch {
-      Alert.alert('Erreur', 'La connexion a échoué. Réessaie.');
+    } catch (e) {
+      // The status is data on ApiError, so the branch does not depend on the
+      // wording of a message.
+      if (e instanceof ApiError && e.status === 409) {
+        Alert.alert('Email déjà utilisé', 'Un compte existe déjà avec cet email. Connecte-toi.');
+      } else if (e instanceof ApiError && e.status === 401) {
+        Alert.alert('Identifiants incorrects', 'Email ou mot de passe invalide.');
+      } else if (e instanceof ApiError) {
+        Alert.alert('Erreur', `Le serveur a répondu ${e.status}. Réessaie plus tard.`);
+      } else {
+        Alert.alert('Serveur injoignable', "Impossible de contacter SwipeWear. Vérifie ta connexion.");
+      }
     } finally {
       setLoading(false);
     }

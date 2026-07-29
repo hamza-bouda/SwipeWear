@@ -6,6 +6,7 @@ import { Button } from '../components';
 import { trackEvent } from '../analytics';
 import { colors, typography, spacing, borderRadius } from '../theme';
 import { RootStackParamList } from '../navigation/types';
+import { usePreferences } from '../context/PreferencesContext';
 
 interface Props {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
@@ -13,6 +14,7 @@ interface Props {
 
 export function OnboardingScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { completeOnboarding } = usePreferences();
 
   useEffect(() => {
     trackEvent({ name: 'onboarding_started' });
@@ -54,8 +56,11 @@ export function OnboardingScreen({ navigation }: Props) {
         <Button
           title="Passer"
           variant="ghost"
-          onPress={() => {
+          onPress={async () => {
             trackEvent({ name: 'onboarding_completed', properties: { route: 'skip' } });
+            // Skipping is still a completed pass: without this the next launch
+            // would drop the user back here instead of on the feed.
+            await completeOnboarding();
             navigation.replace('Main');
           }}
           style={styles.skipButton}
