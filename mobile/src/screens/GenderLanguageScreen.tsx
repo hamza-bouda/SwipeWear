@@ -5,6 +5,7 @@ import { Button } from '../components';
 import { colors, typography, spacing, borderRadius } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { usePreferences, Gender } from '../context/PreferencesContext';
+import { useSyncGender } from '../api';
 import { trackEvent } from '../analytics';
 
 interface Props {
@@ -18,12 +19,31 @@ const GENDERS: { id: Gender; label: string; hint: string }[] = [
 ];
 
 export function GenderLanguageScreen({ navigation }: Props) {
-  const { gender, setGender } = usePreferences();
+  const { gender, onboardingCompleted, setGender } = usePreferences();
   const [selectedGender, setSelectedGender] = useState<Gender | null>(gender);
+  const [saving, setSaving] = useState(false);
+  const syncGender = useSyncGender();
 
   const handleContinue = async () => {
-    if (!selectedGender) return;
+    if (!selectedGender || saving) return;
+    setSaving(true);
     await setGender(selectedGender);
+    try {
+      // The choice used to stay on the device. The retrieval filter reads the
+      // server profile, so a gender it never received filtered nothing.
+      await syncGender(selectedGender);
+    } catch {
+      // Not worth blocking on: the local choice stands and the onboarding
+      // submit sends the gender again.
+    }
+    setSaving(false);
+
+    if (onboardingCompleted) {
+      // Reached from the settings row, where the only sensible next step is
+      // back to where the user was — not a replay of the whole onboarding.
+      navigation.goBack();
+      return;
+    }
     trackEvent({ name: 'onboarding_started' });
     navigation.navigate('Onboarding');
   };
@@ -64,7 +84,12 @@ export function GenderLanguageScreen({ navigation }: Props) {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Button title="Continuer" onPress={handleContinue} disabled={!selectedGender} />
+        <Button
+          title="Continuer"
+          onPress={handleContinue}
+          loading={saving}
+          disabled={!selectedGender || saving}
+        />
       </View>
     </View>
   );
