@@ -32,7 +32,7 @@ export function ConstraintsScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const submitOnboarding = useSubmitOnboarding();
-  const { gender } = usePreferences();
+  const { gender, completeOnboarding } = usePreferences();
 
   const toggleSize = (size: string) => {
     setSelectedSizes((prev) => {
@@ -68,6 +68,7 @@ export function ConstraintsScreen({ navigation, route }: Props) {
       return;
     }
     setLoading(false);
+    await completeOnboarding();
     navigation.replace('Main');
   };
 
