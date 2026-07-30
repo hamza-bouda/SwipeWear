@@ -33,3 +33,8 @@ Thumbs.db
 # Local runtime artefacts
 backend/uvicorn.log
 backend/.ingest_state.json
+
+# Journaux de la CLI Firebase — bruit local, parfois verbeux sur les jetons.
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
