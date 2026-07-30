@@ -80,6 +80,16 @@ python backend/scripts/run_migrations.py
 
 `017_users_external_auth.sql` rend `password_hash` et `email` nullables et ajoute `auth_provider`.
 
+### 6. Vérifier — par exécution, pas de confiance
+
+```bash
+python backend/scripts/check_supabase.py
+```
+
+Le script interroge réellement le projet : il récupère le JWKS et affiche les algorithmes de signature, teste la clé `service_role` contre l'API admin, et compare le projet visé par l'app à celui visé par le backend (viser deux projets différents ferait rejeter chaque jeton par l'émetteur). Il refuse aussi toute variable `EXPO_PUBLIC_` contenant une clé `service_role`, qui serait une fuite totale.
+
+Aucune clé n'est affichée. Le code de sortie est 1 tant qu'un point reste à corriger.
+
 ## Sans configuration
 
 L'application reste utilisable : la navigation fonctionne sous identité anonyme, et l'écran de connexion affiche « La connexion n'est pas configurée sur cet appareil » avec les champs désactivés. Côté API, `POST /auth/sync` répond **503 `AUTH_PROVIDER_UNCONFIGURED`** — il n'y a pas de repli silencieux vers une authentification plus faible.
