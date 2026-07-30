@@ -62,18 +62,18 @@ function mapProduct(p: ApiProduct): Product {
  * read it back. It now loads from GET /saves and records both directions.
  */
 export function SavesProvider({ children }: { children: React.ReactNode }) {
-  const { token, userId } = useAuth();
+  const { token } = useAuth();
   const [savedProducts, setSavedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const getToken = useCallback(async (): Promise<string> => {
-    if (token) return token;
-    const resp = await apiPost<{ access_token: string }>('/auth/token', {
-      user_id: userId,
-    });
-    return resp.access_token;
-  }, [token, userId]);
+    // AuthContext always holds a token — an account's, or the browsing
+    // identity it obtained at startup. This used to mint one from
+    // POST /auth/token, which signed any user_id without a credential.
+    if (!token) throw new Error('Session indisponible');
+    return token;
+  }, [token]);
 
   const reload = useCallback(async () => {
     setLoading(true);

@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { apiPatch, apiPost } from './client';
+import { apiPatch } from './client';
 import type { Gender } from '../context/PreferencesContext';
 
 /**
@@ -18,19 +18,15 @@ import type { Gender } from '../context/PreferencesContext';
  * KAN-89
  */
 export function useSyncGender() {
-  const { token, userId } = useAuth();
+  const { token } = useAuth();
 
   return useCallback(
     async (gender: Gender): Promise<void> => {
-      let authToken = token;
-      if (!authToken) {
-        const resp = await apiPost<{ access_token: string }>('/auth/token', {
-          user_id: userId,
-        });
-        authToken = resp.access_token;
-      }
-      await apiPatch('/profile', { hard_constraints: { gender } }, { token: authToken });
+      // AuthContext always holds a token; POST /auth/token, which signed
+      // any user_id with no credential, no longer exists.
+      if (!token) throw new Error('Session indisponible');
+      await apiPatch('/profile', { hard_constraints: { gender } }, { token });
     },
-    [token, userId],
+    [token],
   );
 }

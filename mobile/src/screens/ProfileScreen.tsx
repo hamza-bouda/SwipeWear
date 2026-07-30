@@ -20,7 +20,7 @@ export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const rootNav = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
-  const { isAuthenticated, email, logout, deleteAccount } = useAuth();
+  const { isAuthenticated, email, signOut, deleteAccount } = useAuth();
   const { gender } = usePreferences();
 
   const resetToOnboarding = () =>
@@ -35,7 +35,7 @@ export function ProfileScreen() {
         text: 'Se déconnecter',
         style: 'destructive',
         onPress: async () => {
-          await logout();
+          await signOut();
           resetToOnboarding();
         },
       },

@@ -13,6 +13,9 @@ dependencies = [
     "requests>=2.31",
     "numpy>=1.24",
     "psycopg2-binary>=2.9",
+    # Verifies the Supabase-signed access tokens (KAN-90). The [crypto] extra
+    # pulls in `cryptography` for the RS256/ES256 signing keys Supabase issues.
+    "pyjwt[crypto]>=2.8",
 ]
 
 [project.optional-dependencies]

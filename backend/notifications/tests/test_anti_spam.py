@@ -143,10 +143,10 @@ class TestNotificationsApiRouter:
     def test_register_invalid_token(self):
         from fastapi.testclient import TestClient
         from api.app import app
-        from api.auth import create_token
+        from api.auth import create_anonymous_token
         from uuid import uuid4
         client = TestClient(app)
-        token = create_token(uuid4())
+        token = create_anonymous_token(uuid4())
         resp = client.post(
             "/notifications/register",
             json={"expo_token": "not-a-valid-token", "platform": "ios"},
@@ -158,11 +158,11 @@ class TestNotificationsApiRouter:
         from fastapi.testclient import TestClient
         from unittest.mock import patch
         from api.app import app
-        from api.auth import create_token
+        from api.auth import create_anonymous_token
         from uuid import uuid4
         client = TestClient(app)
         user_id = uuid4()
-        token = create_token(user_id)
+        token = create_anonymous_token(user_id)
         with patch("api.routers.notifications.get_conn") as mock_get, \
              patch("api.routers.notifications.put_conn"), \
              patch("api.routers.notifications.register_device_token") as mock_reg:

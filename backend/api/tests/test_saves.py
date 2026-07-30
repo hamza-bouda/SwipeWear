@@ -13,7 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.app import app
-from api.auth import create_token
+from api.auth import create_anonymous_token
 from api.db import get_conn, put_conn
 
 pytestmark = pytest.mark.requires_db
@@ -26,7 +26,7 @@ def client():
 
 @pytest.fixture()
 def auth_headers():
-    return {"Authorization": f"Bearer {create_token(uuid4())}"}
+    return {"Authorization": f"Bearer {create_anonymous_token(uuid4())}"}
 
 
 @pytest.fixture()
@@ -102,7 +102,7 @@ class TestWardrobe:
         self, client, auth_headers, product_ids,
     ):
         _post(client, auth_headers, product_ids[0], "save")
-        other = {"Authorization": f"Bearer {create_token(uuid4())}"}
+        other = {"Authorization": f"Bearer {create_anonymous_token(uuid4())}"}
         assert _wardrobe(client, other) == []
 
     def test_products_carry_what_the_card_renders(

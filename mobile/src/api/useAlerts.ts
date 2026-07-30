@@ -32,17 +32,19 @@ interface CreateAlertPayload {
 }
 
 export function useAlerts() {
-  const { userId, token } = useAuth();
+  const { token } = useAuth();
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [missedDeals, setMissedDeals] = useState(0);
   const [freeLimit, setFreeLimit] = useState(3);
   const [loading, setLoading] = useState(true);
 
   const getToken = useCallback(async (): Promise<string> => {
-    if (token) return token;
-    const resp = await apiPost<{ access_token: string }>('/auth/token', { user_id: userId });
-    return resp.access_token;
-  }, [token, userId]);
+    // AuthContext always holds a token — an account's, or the browsing
+    // identity it obtained at startup. This used to mint one from
+    // POST /auth/token, which signed any user_id without a credential.
+    if (!token) throw new Error('Session indisponible');
+    return token;
+  }, [token]);
 
   const reload = useCallback(async () => {
     setLoading(true);

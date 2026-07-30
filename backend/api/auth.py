@@ -8,6 +8,7 @@ from uuid import UUID
 
 from fastapi import Header
 
+from api import supabase_auth
 from api.config import require_secret
 from api.errors import error_response
 
@@ -16,12 +17,20 @@ from api.errors import error_response
 # development literal below — which is public in this repository, and lets
 # anyone forge a token for any user. JWT_SECRET_KEY stays accepted so an
 # existing deployment that did set it keeps working.
+#
+# Since KAN-90 this key signs one thing only: the throwaway identity of a
+# visitor browsing without an account. Real accounts are signed by Supabase.
 SECRET_KEY = require_secret(
     "JWT_SECRET",
     "JWT_SECRET_KEY",
     dev_default="swipewear-dev-secret-change-in-prod",
 )
 TOKEN_TTL_SECONDS = 86400 * 30
+
+# Marks a locally-signed token as belonging to an anonymous visitor. Without
+# it, an anonymous token and an account token are indistinguishable once
+# decoded, and endpoints that must refuse the former have nothing to test.
+_ANONYMOUS_KIND = "anonymous"
 
 
 def _b64url_encode(data: bytes) -> str:
@@ -35,10 +44,18 @@ def _b64url_decode(s: str) -> bytes:
     return base64.urlsafe_b64decode(s + "=" * padding)
 
 
-def create_token(user_id: UUID) -> str:
+def create_anonymous_token(user_id: UUID) -> str:
+    """Sign a browsing identity for a visitor with no account.
+
+    The caller must have generated `user_id` itself. This used to be reachable
+    as POST /auth/token with a caller-supplied id and no credential at all,
+    which minted a valid token for *any* account: knowing a user_id was enough
+    to read, modify and delete that person's account.
+    """
     header = _b64url_encode(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
     payload = _b64url_encode(json.dumps({
         "sub": str(user_id),
+        "kind": _ANONYMOUS_KIND,
         "iat": int(time.time()),
         "exp": int(time.time()) + TOKEN_TTL_SECONDS,
     }).encode())
@@ -69,7 +86,7 @@ def _decode_token(token: str) -> dict:
     return payload
 
 
-def get_current_user_id(authorization: str | None = Header(default=None)) -> UUID:
+def _bearer(authorization: str | None) -> str:
     # A required Header makes FastAPI answer 422 when it is absent, which says
     # "your request is malformed" for what is plainly a missing credential.
     # Clients cannot then treat an expired session uniformly — they would have
@@ -79,9 +96,37 @@ def get_current_user_id(authorization: str | None = Header(default=None)) -> UUI
     scheme, _, token = authorization.partition(" ")
     if scheme.lower() != "bearer" or not token:
         error_response(401, "INVALID_AUTH", "Expected 'Bearer <token>' header.")
+    return token
+
+
+def resolve_identity(authorization: str | None) -> tuple[UUID, bool]:
+    """Return (user_id, is_anonymous) for a bearer token of either kind."""
+    token = _bearer(authorization)
+
+    if supabase_auth.looks_like_supabase_token(token):
+        return supabase_auth.verify(token).user_id, False
+
     payload = _decode_token(token)
     try:
-        return UUID(payload["sub"])
+        user_id = UUID(payload["sub"])
     except (KeyError, ValueError):
         error_response(401, "INVALID_TOKEN", "Token missing valid 'sub' claim.")
-        raise  # unreachable, keeps type checker happy
+    return user_id, payload.get("kind") == _ANONYMOUS_KIND
+
+
+def get_current_user_id(authorization: str | None = Header(default=None)) -> UUID:
+    user_id, _ = resolve_identity(authorization)
+    return user_id
+
+
+def require_account(authorization: str | None = Header(default=None)) -> UUID:
+    """Like get_current_user_id, but refuses an anonymous browsing token.
+
+    Used by operations that only make sense on a real account — deleting it,
+    for one. An anonymous identity has no credential behind it, so it must
+    never be able to act on account-scoped data.
+    """
+    user_id, is_anonymous = resolve_identity(authorization)
+    if is_anonymous:
+        error_response(401, "ACCOUNT_REQUIRED", "Sign in to perform this action.")
+    return user_id
