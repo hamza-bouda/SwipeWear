@@ -58,6 +58,44 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/**
+ * Isolates the Google OAuth hook so it is only ever mounted with a real client
+ * id.
+ *
+ * `Google.useAuthRequest` throws during render when the id is missing
+ * ("Client Id property must be defined to use Google auth on this platform").
+ * Called unconditionally from the provider, that exception took down
+ * AuthProvider and left the whole app on a blank screen — not just the Google
+ * button. Hooks cannot be called conditionally, so the conditional part is the
+ * component itself.
+ */
+function GoogleAuthBridge({
+  onIdToken,
+  registerPrompt,
+}: {
+  onIdToken: (idToken: string) => void;
+  registerPrompt: (prompt: (() => Promise<unknown>) | null) => void;
+}) {
+  const [, response, promptAsync] = Google.useAuthRequest({
+    clientId: googleWebClientId,
+    webClientId: googleWebClientId,
+  });
+
+  useEffect(() => {
+    registerPrompt(promptAsync);
+    return () => registerPrompt(null);
+  }, [promptAsync, registerPrompt]);
+
+  useEffect(() => {
+    // The browser flow resolves asynchronously, outside the call that started it.
+    if (response?.type === 'success' && response.params?.id_token) {
+      onIdToken(response.params.id_token);
+    }
+  }, [response, onIdToken]);
+
+  return null;
+}
+
 async function loadAnonymousSession(): Promise<accountApi.AnonymousSession> {
   const stored = await AsyncStorage.getItem(ANONYMOUS_SESSION_KEY);
   if (stored) {
@@ -83,12 +121,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // refresh does not re-post /auth/sync every time.
   const syncedUserRef = useRef<string | null>(null);
 
-  // Google sign-in goes through the OAuth browser flow rather than a native
-  // module: that is what keeps the app runnable in Expo Go.
-  const [, googleResponse, promptGoogle] = Google.useAuthRequest({
-    clientId: googleWebClientId || undefined,
-    webClientId: googleWebClientId || undefined,
-  });
+  // Set by GoogleAuthBridge, which only mounts when a client id exists.
+  const googlePromptRef = useRef<(() => Promise<unknown>) | null>(null);
 
   const applyAnonymous = useCallback(async () => {
     try {
@@ -154,17 +188,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return unsubscribe;
   }, [applyAnonymous, applyUser]);
 
-  // The Google browser flow resolves asynchronously, outside the call that
-  // started it.
-  useEffect(() => {
-    if (googleResponse?.type !== 'success') return;
-    const idToken = googleResponse.params?.id_token;
-    if (!idToken) return;
+  const handleGoogleIdToken = useCallback((idToken: string) => {
     signInWithCredential(requireAuth(), GoogleAuthProvider.credential(idToken))
       .catch(() => {
-        // Surfaced by the screen that triggered it; nothing to do here.
+        // onIdTokenChanged stays on the anonymous identity; the screen that
+        // started the flow shows the error.
       });
-  }, [googleResponse]);
+  }, []);
+
+  const registerGooglePrompt = useCallback(
+    (prompt: (() => Promise<unknown>) | null) => {
+      googlePromptRef.current = prompt;
+    },
+    [],
+  );
 
   const signIn = useCallback(async (email: string, password: string) => {
     await signInWithEmailAndPassword(requireAuth(), email, password);
@@ -175,11 +212,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    if (!googleWebClientId) {
+    const prompt = googlePromptRef.current;
+    if (!googleWebClientId || !prompt) {
       throw new Error('provider is not enabled');
     }
-    await promptGoogle();
-  }, [promptGoogle]);
+    await prompt();
+  }, []);
 
   const signOut = useCallback(async () => {
     if (auth) await firebaseSignOut(auth);
@@ -214,6 +252,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         deleteAccount,
       }}
     >
+      {googleWebClientId ? (
+        <GoogleAuthBridge
+          onIdToken={handleGoogleIdToken}
+          registerPrompt={registerGooglePrompt}
+        />
+      ) : null}
       {children}
     </AuthContext.Provider>
   );
