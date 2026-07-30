@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Product } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost } from './client';
+import { apiGet } from './client';
 
 interface ApiProduct {
   id: string;
@@ -44,18 +44,18 @@ function mapProduct(p: ApiProduct): Product {
  * common path from the feed: no request, no spinner.
  */
 export function useProduct(productId: string, skip = false) {
-  const { token, userId } = useAuth();
+  const { token } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(!skip);
   const [error, setError] = useState<string | null>(null);
 
   const getToken = useCallback(async (): Promise<string> => {
-    if (token) return token;
-    const resp = await apiPost<{ access_token: string }>('/auth/token', {
-      user_id: userId,
-    });
-    return resp.access_token;
-  }, [token, userId]);
+    // AuthContext always holds a token — an account's, or the browsing
+    // identity it obtained at startup. This used to mint one from
+    // POST /auth/token, which signed any user_id without a credential.
+    if (!token) throw new Error('Session indisponible');
+    return token;
+  }, [token]);
 
   const load = useCallback(async () => {
     if (skip) return;

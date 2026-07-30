@@ -11,14 +11,11 @@ the data lives has moved.
 """
 from __future__ import annotations
 
-import hashlib
-import hmac
 import json
-import os
 from dataclasses import dataclass
 from uuid import UUID
 
-from api.config import is_production, require_secret
+from api.config import is_production
 from api.db import get_conn, put_conn
 from contracts.events import EventType, InteractionEvent
 from contracts.profile import UserPreferenceProfile
@@ -28,81 +25,10 @@ from preferences.interfaces import ProfileStore
 @dataclass
 class UserRecord:
     user_id: UUID
-    email: str
-    password_hash: str
-
-
-# scrypt parameters. n=2^14 costs ~50 ms per hash here: slow enough that
-# guessing a stolen database is expensive, fast enough for a login request.
-# They are stored inside each hash so they can be raised later without
-# invalidating existing passwords.
-_SCRYPT_N = 1 << 14
-_SCRYPT_R = 8
-_SCRYPT_P = 1
-_SCRYPT_DKLEN = 32
-
-
-def _pepper() -> str:
-    """Secret mixed into every password, kept outside the database.
-
-    A stolen dump alone is then not enough to start guessing — the attacker
-    also needs the deployment's environment.
-    """
-    return require_secret("PASSWORD_SALT", dev_default="swipewear-dev-salt")
-
-
-def _hash_password(password: str) -> str:
-    """Hash a password with scrypt and a fresh per-account salt.
-
-    This was a single unsalted-per-user SHA-256 round: fast to brute-force,
-    and identical passwords produced identical hashes, so cracking one account
-    cracked every account that shared the password. scrypt is memory-hard and
-    comes from the standard library, so no new dependency is involved.
-    """
-    salt = os.urandom(16)
-    derived = hashlib.scrypt(
-        f"{_pepper()}:{password}".encode(),
-        salt=salt,
-        n=_SCRYPT_N, r=_SCRYPT_R, p=_SCRYPT_P, dklen=_SCRYPT_DKLEN,
-    )
-    return (
-        f"scrypt${_SCRYPT_N}${_SCRYPT_R}${_SCRYPT_P}$"
-        f"{salt.hex()}${derived.hex()}"
-    )
-
-
-def verify_password(password: str, password_hash: str) -> bool:
-    """Check a password against either hash format, in constant time."""
-    if not password_hash.startswith("scrypt$"):
-        # Legacy single-round SHA-256. Kept only so an account created before
-        # this change can still sign in; new hashes are never written this way.
-        legacy = hashlib.sha256(f"{_pepper()}:{password}".encode()).hexdigest()
-        return hmac.compare_digest(legacy, password_hash)
-
-    try:
-        _, n, r, p, salt_hex, expected_hex = password_hash.split("$")
-        derived = hashlib.scrypt(
-            f"{_pepper()}:{password}".encode(),
-            salt=bytes.fromhex(salt_hex),
-            n=int(n), r=int(r), p=int(p),
-            dklen=len(expected_hex) // 2,
-        )
-    except (ValueError, TypeError):
-        # A malformed stored hash must read as "wrong password", not crash the
-        # login endpoint into a 500.
-        return False
-    return hmac.compare_digest(derived.hex(), expected_hex)
-
-
-def needs_rehash(password_hash: str) -> bool:
-    """Whether a stored hash uses outdated parameters and should be replaced."""
-    if not password_hash.startswith("scrypt$"):
-        return True
-    try:
-        _, n, r, p, _, _ = password_hash.split("$")
-    except ValueError:
-        return True
-    return (int(n), int(r), int(p)) != (_SCRYPT_N, _SCRYPT_R, _SCRYPT_P)
+    # Both are optional since KAN-90: an externally authenticated account has
+    # no password here at all, and a provider may withhold the address.
+    email: str | None
+    password_hash: str | None
 
 
 class _Connection:
@@ -204,21 +130,29 @@ def get_events_for_user(user_id: UUID) -> list[InteractionEvent]:
 
 # ── Accounts ─────────────────────────────────────────────────────────────────
 
-def create_user(user_id: UUID, email: str, password: str) -> UserRecord:
-    record = UserRecord(
-        user_id=user_id,
-        email=email.lower(),
-        password_hash=_hash_password(password),
-    )
+def upsert_external_user(
+    user_id: UUID, email: str | None, provider: str,
+) -> UserRecord:
+    """Record an account authenticated by Supabase, creating it on first sight.
+
+    Provisioning happens here rather than at a signup endpoint because there is
+    no signup endpoint any more: the first time a valid Supabase token arrives,
+    that person exists. The email is refreshed on every call — a user who
+    changes it in the provider would otherwise keep the stale one forever.
+    """
+    normalised = email.lower() if email else None
     with _Connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO users (user_id, email, password_hash)"
-                " VALUES (%s, %s, %s)",
-                (str(record.user_id), record.email, record.password_hash),
+                "INSERT INTO users (user_id, email, auth_provider)"
+                " VALUES (%s, %s, %s)"
+                " ON CONFLICT (user_id) DO UPDATE"
+                "   SET email = EXCLUDED.email,"
+                "       auth_provider = EXCLUDED.auth_provider",
+                (str(user_id), normalised, provider),
             )
         conn.commit()
-    return record
+    return UserRecord(user_id=user_id, email=normalised, password_hash=None)
 
 
 def _row_to_user(row) -> UserRecord:
@@ -227,18 +161,6 @@ def _row_to_user(row) -> UserRecord:
     # compares unequal without ever raising.
     user_id = row[0] if isinstance(row[0], UUID) else UUID(str(row[0]))
     return UserRecord(user_id=user_id, email=row[1], password_hash=row[2])
-
-
-def get_user_by_email(email: str) -> UserRecord | None:
-    with _Connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "SELECT user_id, email, password_hash FROM users"
-                " WHERE email = %s",
-                (email.lower(),),
-            )
-            row = cur.fetchone()
-    return _row_to_user(row) if row else None
 
 
 def get_user(user_id: UUID) -> UserRecord | None:

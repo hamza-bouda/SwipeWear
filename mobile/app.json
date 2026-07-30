@@ -3,6 +3,7 @@
     "name": "SwipeWear",
     "slug": "swipewear",
     "version": "1.0.0",
+    "scheme": "swipewear",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -24,6 +25,9 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-web-browser"
+    ]
   }
 }

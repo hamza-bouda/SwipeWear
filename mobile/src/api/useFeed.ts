@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Product } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost } from './client';
+import { apiGet } from './client';
 
 interface ApiFeedItem {
   product: {
@@ -52,18 +52,18 @@ function mapApiProduct(item: ApiFeedItem): Product {
 }
 
 export function useFeed() {
-  const { userId, token } = useAuth();
+  const { token } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchToken = useCallback(async (): Promise<string> => {
-    if (token) return token;
-    const resp = await apiPost<{ access_token: string }>('/auth/token', {
-      user_id: userId,
-    });
-    return resp.access_token;
-  }, [token, userId]);
+    // AuthContext always holds a token — an account's, or the browsing
+    // identity it obtained at startup. This used to mint one from
+    // POST /auth/token, which signed any user_id without a credential.
+    if (!token) throw new Error('Session indisponible');
+    return token;
+  }, [token]);
 
   const loadFeed = useCallback(async () => {
     setLoading(true);

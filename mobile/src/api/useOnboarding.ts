@@ -18,19 +18,15 @@ export interface OnboardingPayload {
  * dropped and their first feed was built from an empty profile.
  */
 export function useSubmitOnboarding() {
-  const { token, userId } = useAuth();
+  const { token } = useAuth();
 
   return useCallback(
     async (payload: OnboardingPayload): Promise<void> => {
-      let authToken = token;
-      if (!authToken) {
-        const resp = await apiPost<{ access_token: string }>('/auth/token', {
-          user_id: userId,
-        });
-        authToken = resp.access_token;
-      }
-      await apiPost('/onboarding/styles', payload, { token: authToken });
+      // AuthContext always holds a token; POST /auth/token, which signed
+      // any user_id with no credential, no longer exists.
+      if (!token) throw new Error('Session indisponible');
+      await apiPost('/onboarding/styles', payload, { token });
     },
-    [token, userId],
+    [token],
   );
 }

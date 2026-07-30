@@ -8,25 +8,49 @@ import {
   Platform,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../components';
-import { useAuth } from '../context/AuthContext';
-import { ApiError } from '../api/client';
-import { colors, typography, spacing } from '../theme';
+import { useAuth, type OAuthProvider } from '../context/AuthContext';
+import { colors, typography, spacing, borderRadius } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
+/** Errors come from Supabase in English; these are the ones users actually hit. */
+function frenchMessage(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error);
+  const lower = raw.toLowerCase();
+  if (lower.includes('invalid login credentials')) {
+    return 'Email ou mot de passe incorrect.';
+  }
+  if (lower.includes('already registered') || lower.includes('already been registered')) {
+    return 'Un compte existe déjà avec cet email. Connecte-toi.';
+  }
+  if (lower.includes('email not confirmed')) {
+    return "Confirme d'abord ton email : regarde ta boîte de réception.";
+  }
+  if (lower.includes('password') && lower.includes('at least')) {
+    return 'Le mot de passe doit faire au moins 8 caractères.';
+  }
+  if (lower.includes('rate limit') || lower.includes('too many')) {
+    return 'Trop de tentatives. Réessaie dans quelques minutes.';
+  }
+  if (lower.includes('failed to fetch') || lower.includes('network')) {
+    return 'Serveur injoignable. Vérifie ta connexion.';
+  }
+  return raw;
+}
+
 export function LoginScreen() {
   const navigation = useNavigation<Nav>();
-  const { login, register } = useAuth();
+  const { signIn, signUp, signInWithProvider, canSignIn } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [pending, setPending] = useState<'email' | OAuthProvider | null>(null);
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
@@ -38,35 +62,46 @@ export function LoginScreen() {
       return;
     }
 
-    setLoading(true);
+    setPending('email');
     try {
       const address = email.trim().toLowerCase();
       if (mode === 'register') {
-        await register(address, password);
+        const needsConfirmation = await signUp(address, password);
+        if (needsConfirmation) {
+          // No session was created. Navigating to the feed here would show a
+          // signed-out user everything as if they had signed up.
+          Alert.alert(
+            'Confirme ton email',
+            `On vient d'envoyer un lien à ${address}. Ouvre-le pour activer ton compte.`,
+          );
+          return;
+        }
       } else {
-        await login(address, password);
+        await signIn(address, password);
       }
       navigation.replace('Main');
     } catch (e) {
-      // The status is data on ApiError, so the branch does not depend on the
-      // wording of a message.
-      if (e instanceof ApiError && e.status === 409) {
-        Alert.alert('Email déjà utilisé', 'Un compte existe déjà avec cet email. Connecte-toi.');
-      } else if (e instanceof ApiError && e.status === 401) {
-        Alert.alert('Identifiants incorrects', 'Email ou mot de passe invalide.');
-      } else if (e instanceof ApiError) {
-        Alert.alert('Erreur', `Le serveur a répondu ${e.status}. Réessaie plus tard.`);
-      } else {
-        Alert.alert('Serveur injoignable', "Impossible de contacter SwipeWear. Vérifie ta connexion.");
-      }
+      Alert.alert('Connexion impossible', frenchMessage(e));
     } finally {
-      setLoading(false);
+      setPending(null);
     }
   };
 
-  const handleSkip = () => {
-    navigation.replace('Main');
+  const handleProvider = async (provider: OAuthProvider) => {
+    setPending(provider);
+    try {
+      await signInWithProvider(provider);
+      // On the web the page navigates away and comes back signed in; on native
+      // the session lands before this resolves.
+      if (Platform.OS !== 'web') navigation.replace('Main');
+    } catch (e) {
+      Alert.alert('Connexion impossible', frenchMessage(e));
+    } finally {
+      setPending(null);
+    }
   };
+
+  const busy = pending !== null;
 
   return (
     <KeyboardAvoidingView
@@ -79,6 +114,16 @@ export function LoginScreen() {
           {mode === 'login' ? 'Content de te revoir' : 'Crée ton compte'}
         </Text>
 
+        {!canSignIn && (
+          <View style={styles.notice}>
+            <Ionicons name="warning-outline" size={18} color={colors.textPrimary} />
+            <Text style={styles.noticeText}>
+              La connexion n'est pas configurée sur cet appareil. Tu peux
+              continuer sans compte.
+            </Text>
+          </View>
+        )}
+
         <View style={styles.form}>
           <TextInput
             style={styles.input}
@@ -89,6 +134,7 @@ export function LoginScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            editable={canSignIn && !busy}
             accessibilityLabel="Email"
             textContentType="emailAddress"
           />
@@ -99,6 +145,7 @@ export function LoginScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            editable={canSignIn && !busy}
             accessibilityLabel="Mot de passe"
             textContentType="password"
           />
@@ -106,8 +153,8 @@ export function LoginScreen() {
           <Button
             title={mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
             onPress={handleSubmit}
-            loading={loading}
-            disabled={loading}
+            loading={pending === 'email'}
+            disabled={!canSignIn || busy}
           />
         </View>
 
@@ -118,23 +165,30 @@ export function LoginScreen() {
         </View>
 
         <Button
-          title="Continuer avec Apple"
-          onPress={() => Alert.alert('Bientôt disponible', 'La connexion avec Apple arrive bientôt.')}
+          title="Continuer avec Google"
+          onPress={() => handleProvider('google')}
           variant="outline"
+          loading={pending === 'google'}
+          disabled={!canSignIn || busy}
           style={styles.socialButton}
         />
         <Button
-          title="Continuer avec Google"
-          onPress={() => Alert.alert('Bientôt disponible', 'La connexion avec Google arrive bientôt.')}
+          title="Continuer avec Apple"
+          onPress={() => handleProvider('apple')}
           variant="outline"
+          loading={pending === 'apple'}
+          disabled={!canSignIn || busy}
           style={styles.socialButton}
         />
 
         <TouchableOpacity
           style={styles.switchMode}
           onPress={() => setMode(mode === 'login' ? 'register' : 'login')}
+          disabled={busy}
           accessibilityRole="button"
-          accessibilityLabel={mode === 'login' ? 'Passer à la création de compte' : 'Passer à la connexion'}
+          accessibilityLabel={
+            mode === 'login' ? 'Passer à la création de compte' : 'Passer à la connexion'
+          }
         >
           <Text style={styles.switchText}>
             {mode === 'login'
@@ -143,7 +197,13 @@ export function LoginScreen() {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.skipButton} onPress={handleSkip} accessibilityRole="button" accessibilityLabel="Passer la connexion">
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={() => navigation.replace('Main')}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel="Passer la connexion"
+        >
           <Text style={styles.skipText}>Passer pour l'instant</Text>
         </TouchableOpacity>
       </View>
@@ -175,6 +235,21 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: spacing.xl,
+  },
+  notice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.accentLight,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  noticeText: {
+    ...typography.caption,
+    color: colors.textPrimary,
+    flex: 1,
+    lineHeight: 18,
   },
   form: {
     gap: spacing.md,

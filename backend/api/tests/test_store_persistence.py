@@ -43,25 +43,43 @@ def user_id():
 
 
 class TestAccounts:
-    def test_a_created_account_can_be_found_again(self, user_id):
-        store.create_user(user_id, "Alice@Example.com", "hunter2")
-        found = store.get_user_by_email("alice@example.com")
+    """Accounts are provisioned from a verified Supabase token (KAN-90).
+
+    There is no local password any more, so nothing here hashes or checks one.
+    """
+
+    def test_a_provisioned_account_can_be_found_again(self, user_id):
+        store.upsert_external_user(user_id, "Alice@Example.com", "google")
+        found = store.get_user(user_id)
         assert found is not None
         assert found.user_id == user_id
 
-    def test_email_lookup_is_case_insensitive(self, user_id):
-        store.create_user(user_id, "Bob@Example.com", "hunter2")
-        assert store.get_user_by_email("BOB@EXAMPLE.COM") is not None
+    def test_the_email_is_normalised(self, user_id):
+        store.upsert_external_user(user_id, "Bob@Example.COM", "email")
+        assert store.get_user(user_id).email == "bob@example.com"
 
-    def test_the_password_is_never_stored_in_clear(self, user_id):
-        store.create_user(user_id, "carol@example.com", "hunter2")
-        record = store.get_user(user_id)
-        assert "hunter2" not in record.password_hash
-        assert store.verify_password("hunter2", record.password_hash)
-        assert not store.verify_password("wrong", record.password_hash)
+    def test_no_password_is_ever_stored(self, user_id):
+        store.upsert_external_user(user_id, "carol@example.com", "apple")
+        assert store.get_user(user_id).password_hash is None
 
-    def test_unknown_email_returns_none(self):
-        assert store.get_user_by_email("nobody@example.com") is None
+    def test_a_second_sync_updates_rather_than_duplicates(self, user_id):
+        """The provider is the source of truth for the address.
+
+        A user who changes their email upstream would otherwise keep the stale
+        one here forever.
+        """
+        store.upsert_external_user(user_id, "old@example.com", "email")
+        store.upsert_external_user(user_id, "new@example.com", "email")
+        assert store.get_user(user_id).email == "new@example.com"
+
+    def test_a_provider_may_withhold_the_address(self, user_id):
+        """Sign in with Apple can hide it; the row must still exist."""
+        store.upsert_external_user(user_id, None, "apple")
+        assert store.get_user(user_id) is not None
+        assert store.get_user(user_id).email is None
+
+    def test_unknown_user_returns_none(self):
+        assert store.get_user(uuid4()) is None
 
 
 class TestSurvivesRestart:
@@ -124,7 +142,7 @@ class TestErasure:
     def test_delete_removes_the_account_its_profile_and_its_events(
         self, user_id, product_id,
     ):
-        store.create_user(user_id, "dave@example.com", "hunter2")
+        store.upsert_external_user(user_id, "dave@example.com", "google")
         store.save_profile(UserPreferenceProfile(user_id=user_id))
         store.append_event(InteractionEvent(
             user_id=user_id, product_id=product_id,
@@ -173,48 +191,3 @@ class TestResetGuard:
         with patch.dict(os.environ, {"APP_ENV": "production"}):
             with pytest.raises(RuntimeError, match="refusing to run in"):
                 store.reset()
-
-
-class TestPasswordHashing:
-    """Passwords were a single unsalted-per-user SHA-256 round: fast to guess
-    from a stolen dump, and two accounts sharing a password shared a hash."""
-
-    def test_the_same_password_yields_different_hashes(self):
-        first = store._hash_password("hunter2")
-        second = store._hash_password("hunter2")
-        assert first != second, "a per-account salt must make hashes unique"
-        assert store.verify_password("hunter2", first)
-        assert store.verify_password("hunter2", second)
-
-    def test_wrong_password_is_rejected(self):
-        stored = store._hash_password("hunter2")
-        assert not store.verify_password("hunter3", stored)
-
-    def test_hash_records_its_parameters(self):
-        """Cost can be raised later without invalidating existing passwords."""
-        stored = store._hash_password("hunter2")
-        algorithm, n, r, p, salt, digest = stored.split("$")
-        assert algorithm == "scrypt"
-        assert (int(n), int(r), int(p)) == (
-            store._SCRYPT_N, store._SCRYPT_R, store._SCRYPT_P,
-        )
-        assert len(bytes.fromhex(salt)) == 16
-        assert len(bytes.fromhex(digest)) == store._SCRYPT_DKLEN
-
-    def test_legacy_sha256_hashes_still_authenticate(self):
-        """An account created before the change must not be locked out."""
-        import hashlib
-        legacy = hashlib.sha256(
-            f"{store._pepper()}:hunter2".encode()
-        ).hexdigest()
-        assert store.verify_password("hunter2", legacy)
-        assert not store.verify_password("wrong", legacy)
-
-    def test_a_malformed_stored_hash_is_a_failed_login_not_a_crash(self):
-        for broken in ("scrypt$", "scrypt$a$b$c$d$e", "scrypt$1$2$3$zz$zz"):
-            assert store.verify_password("hunter2", broken) is False
-
-    def test_needs_rehash_flags_legacy_and_outdated_parameters(self):
-        assert store.needs_rehash("deadbeef" * 8) is True
-        assert store.needs_rehash("scrypt$1024$8$1$aa$bb") is True
-        assert store.needs_rehash(store._hash_password("hunter2")) is False

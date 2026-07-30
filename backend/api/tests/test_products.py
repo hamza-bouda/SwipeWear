@@ -12,7 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.app import app
-from api.auth import create_token
+from api.auth import create_anonymous_token
 from api.db import get_conn, put_conn
 
 pytestmark = pytest.mark.requires_db
@@ -25,7 +25,7 @@ def client():
 
 @pytest.fixture()
 def auth_headers():
-    return {"Authorization": f"Bearer {create_token(uuid4())}"}
+    return {"Authorization": f"Bearer {create_anonymous_token(uuid4())}"}
 
 
 @pytest.fixture()

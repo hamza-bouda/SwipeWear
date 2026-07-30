@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.app import app
-from api.auth import create_token
+from api.auth import create_anonymous_token
 from contracts.alerts import Alert, AlertStatus, AlertType
 
 
@@ -27,7 +27,7 @@ def user_id():
 
 @pytest.fixture()
 def auth_headers(user_id):
-    return {"Authorization": f"Bearer {create_token(user_id)}"}
+    return {"Authorization": f"Bearer {create_anonymous_token(user_id)}"}
 
 
 def _make_alert(user_id, alert_type=AlertType.style, label="test", status=AlertStatus.active):

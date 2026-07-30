@@ -2,13 +2,13 @@
 from __future__ import annotations
 
 from unittest.mock import MagicMock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 
 from api.app import app
-from api.auth import create_token
+from api.auth import create_anonymous_token
 from api import store
 from api import trace_store
 
@@ -34,7 +34,7 @@ def user_id():
 
 @pytest.fixture()
 def auth_headers(user_id):
-    token = create_token(user_id)
+    token = create_anonymous_token(user_id)
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -70,12 +70,15 @@ class TestHealthCheck:
 
 
 class TestAuthToken:
-    def test_issue_token(self, client, user_id):
-        resp = client.post("/auth/token", json={"user_id": str(user_id)})
+    def test_issue_anonymous_session(self, client):
+        resp = client.post("/auth/anonymous")
         assert resp.status_code == 200
         body = resp.json()
         assert "access_token" in body
         assert body["token_type"] == "bearer"
+        # The server picks the identity. The endpoint this replaced signed a
+        # caller-supplied user_id, which was an account takeover.
+        assert UUID(body["user_id"])
 
     def test_missing_auth_header(self, client):
         """401, not 422 — see get_current_user_id."""
@@ -328,7 +331,7 @@ class TestFullScenario:
     """Full integration: onboarding → feed → swipe → profile updated."""
 
     def test_complete_flow(self, client, user_id):
-        token_resp = client.post("/auth/token", json={"user_id": str(user_id)})
+        token_resp = client.post("/auth/anonymous")
         token = token_resp.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 

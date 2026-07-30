@@ -94,31 +94,31 @@ class OnboardingResponse(BaseModel):
     profile_initialized: bool = True
 
 
-class TokenRequest(BaseModel):
+class AnonymousSessionResponse(BaseModel):
+    """A browsing identity for someone with no account.
+
+    The server generates the id. The previous endpoint took one from the
+    request body and signed it unconditionally, so anyone who knew a user_id
+    could mint a valid token for that account.
+    """
     user_id: UUID
-
-
-class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
 
-class RegisterRequest(BaseModel):
-    email: str = Field(min_length=3)
-    password: str = Field(min_length=8)
+class SyncAccountRequest(BaseModel):
+    """Sent once, right after a Supabase sign-in.
+
+    `anonymous_user_id` carries over the profile built while browsing without
+    an account; omitting it discards everything the visitor did before.
+    """
     anonymous_user_id: UUID | None = None
-
-
-class LoginRequest(BaseModel):
-    email: str
-    password: str
 
 
 class AuthUserResponse(BaseModel):
     user_id: UUID
-    email: str
-    access_token: str
-    token_type: str = "bearer"
+    email: str | None = None
+    provider: str = "unknown"
     profile_migrated: bool = False
 
 
