@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Google from 'expo-auth-session/providers/google';
 import {
@@ -7,6 +8,7 @@ import {
   onIdTokenChanged,
   signInWithCredential,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut as firebaseSignOut,
   type User,
 } from 'firebase/auth';
@@ -212,6 +214,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
+    if (Platform.OS === 'web') {
+      // Firebase redirects through its own handler at
+      // <project>.firebaseapp.com/__/auth/handler, which is the only address
+      // the OAuth client Firebase created authorises. Going through
+      // expo-auth-session here sends http://localhost:8081 instead, and
+      // Google answers `redirect_uri_mismatch`.
+      await signInWithPopup(requireAuth(), new GoogleAuthProvider());
+      return;
+    }
+    // On native there is no popup: the OAuth browser flow is the only way, and
+    // it resolves through GoogleAuthBridge.
     const prompt = googlePromptRef.current;
     if (!googleWebClientId || !prompt) {
       throw new Error('provider is not enabled');
@@ -244,7 +257,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ...state,
         ready,
         canSignIn: isFirebaseConfigured,
-        canUseGoogle: Boolean(googleWebClientId),
+        // On web, signInWithPopup goes through Firebase's own handler and
+        // needs no client id of ours; on native the OAuth flow does.
+        canUseGoogle: Platform.OS === 'web'
+          ? isFirebaseConfigured
+          : Boolean(googleWebClientId),
         signIn,
         signUp,
         signInWithGoogle,
