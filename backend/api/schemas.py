@@ -118,6 +118,9 @@ class SyncAccountRequest(BaseModel):
 class AuthUserResponse(BaseModel):
     user_id: UUID
     email: str | None = None
+    # Phone sign-in produces accounts with no email at all, so the client has
+    # nothing else to show the user as "who am I signed in as".
+    phone_number: str | None = None
     provider: str = "unknown"
     profile_migrated: bool = False
 

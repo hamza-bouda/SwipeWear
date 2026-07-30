@@ -13,54 +13,59 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../components';
-import { useAuth, type OAuthProvider } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { colors, typography, spacing, borderRadius } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
-/** Errors come from Supabase in English; these are the ones users actually hit. */
+/**
+ * Firebase reports failures as codes such as `auth/invalid-credential`.
+ * Matching on codes rather than on message text means the wording can change
+ * upstream without silently turning every error into an English fallback.
+ */
 function frenchMessage(error: unknown): string {
+  const code = (error as { code?: string })?.code ?? '';
   const raw = error instanceof Error ? error.message : String(error);
-  const lower = raw.toLowerCase();
-  if (lower.includes('invalid login credentials')) {
-    return 'Email ou mot de passe incorrect.';
+
+  switch (code) {
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+      return 'Email ou mot de passe incorrect.';
+    case 'auth/email-already-in-use':
+      return 'Un compte existe déjà avec cet email. Connecte-toi.';
+    case 'auth/invalid-email':
+      return "Cette adresse email n'est pas valide.";
+    case 'auth/weak-password':
+      return 'Le mot de passe doit faire au moins 6 caractères.';
+    case 'auth/too-many-requests':
+      return 'Trop de tentatives. Réessaie dans quelques minutes.';
+    case 'auth/network-request-failed':
+      return 'Serveur injoignable. Vérifie ta connexion.';
+    case 'auth/operation-not-allowed':
+      return "Ce mode de connexion n'est pas encore activé.";
+    case 'auth/user-disabled':
+      return 'Ce compte a été désactivé.';
+    default:
+      break;
   }
-  if (lower.includes('already registered') || lower.includes('already been registered')) {
-    return 'Un compte existe déjà avec cet email. Connecte-toi.';
-  }
-  if (lower.includes('email not confirmed')) {
-    return "Confirme d'abord ton email : regarde ta boîte de réception.";
-  }
-  if (lower.includes('password') && lower.includes('at least')) {
-    return 'Le mot de passe doit faire au moins 8 caractères.';
-  }
-  if (lower.includes('rate limit') || lower.includes('too many')) {
-    return 'Trop de tentatives. Réessaie dans quelques minutes.';
-  }
-  if (lower.includes('failed to fetch') || lower.includes('network')) {
-    return 'Serveur injoignable. Vérifie ta connexion.';
-  }
-  // Les deux erreurs de mise en service : le fournisseur n'a jamais été activé
-  // dans le tableau de bord, ou l'URL de redirection n'y est pas déclarée.
-  // Sans ces deux cas, l'utilisateur voyait le message anglais brut de
-  // Supabase — « Unsupported provider: provider is not enabled ».
-  if (lower.includes('provider is not enabled') || lower.includes('unsupported provider')) {
-    return "Ce mode de connexion n'est pas encore disponible. Utilise ton email pour l'instant.";
-  }
-  if (lower.includes('redirect') && (lower.includes('not allowed') || lower.includes('invalid'))) {
-    return "La redirection après connexion a été refusée. C'est un réglage à corriger côté SwipeWear.";
+  // Thrown by AuthContext when the Google client id is missing, which means
+  // the provider was never switched on in the Firebase console.
+  if (raw.includes('provider is not enabled')) {
+    return "La connexion Google n'est pas encore disponible. Utilise ton email.";
   }
   return raw;
 }
 
+
 export function LoginScreen() {
   const navigation = useNavigation<Nav>();
-  const { signIn, signUp, signInWithProvider, canSignIn } = useAuth();
+  const { signIn, signUp, signInWithGoogle, canSignIn, canUseGoogle } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [pending, setPending] = useState<'email' | OAuthProvider | null>(null);
+  const [pending, setPending] = useState<'email' | 'google' | null>(null);
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
@@ -76,16 +81,7 @@ export function LoginScreen() {
     try {
       const address = email.trim().toLowerCase();
       if (mode === 'register') {
-        const needsConfirmation = await signUp(address, password);
-        if (needsConfirmation) {
-          // No session was created. Navigating to the feed here would show a
-          // signed-out user everything as if they had signed up.
-          Alert.alert(
-            'Confirme ton email',
-            `On vient d'envoyer un lien à ${address}. Ouvre-le pour activer ton compte.`,
-          );
-          return;
-        }
+        await signUp(address, password);
       } else {
         await signIn(address, password);
       }
@@ -97,13 +93,12 @@ export function LoginScreen() {
     }
   };
 
-  const handleProvider = async (provider: OAuthProvider) => {
-    setPending(provider);
+  const handleGoogle = async () => {
+    setPending('google');
     try {
-      await signInWithProvider(provider);
-      // On the web the page navigates away and comes back signed in; on native
-      // the session lands before this resolves.
-      if (Platform.OS !== 'web') navigation.replace('Main');
+      // The browser flow resolves in AuthContext, which signs in and lets
+      // onIdTokenChanged take over — there is nothing to navigate to here.
+      await signInWithGoogle();
     } catch (e) {
       Alert.alert('Connexion impossible', frenchMessage(e));
     } finally {
@@ -176,20 +171,17 @@ export function LoginScreen() {
 
         <Button
           title="Continuer avec Google"
-          onPress={() => handleProvider('google')}
+          onPress={handleGoogle}
           variant="outline"
           loading={pending === 'google'}
-          disabled={!canSignIn || busy}
+          disabled={!canSignIn || !canUseGoogle || busy}
           style={styles.socialButton}
         />
-        <Button
-          title="Continuer avec Apple"
-          onPress={() => handleProvider('apple')}
-          variant="outline"
-          loading={pending === 'apple'}
-          disabled={!canSignIn || busy}
-          style={styles.socialButton}
-        />
+        {canSignIn && !canUseGoogle && (
+          <Text style={styles.providerHint}>
+            Google sera disponible dès son activation côté SwipeWear.
+          </Text>
+        )}
 
         <TouchableOpacity
           style={styles.switchMode}
@@ -289,6 +281,12 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.md,
   },
   socialButton: {
+    marginBottom: spacing.sm,
+  },
+  providerHint: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    textAlign: 'center',
     marginBottom: spacing.sm,
   },
   switchMode: {

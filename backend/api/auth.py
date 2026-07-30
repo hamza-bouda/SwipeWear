@@ -8,7 +8,7 @@ from uuid import UUID
 
 from fastapi import Header
 
-from api import supabase_auth
+from api import firebase_auth
 from api.config import require_secret
 from api.errors import error_response
 
@@ -19,7 +19,7 @@ from api.errors import error_response
 # existing deployment that did set it keeps working.
 #
 # Since KAN-90 this key signs one thing only: the throwaway identity of a
-# visitor browsing without an account. Real accounts are signed by Supabase.
+# visitor browsing without an account. Real accounts are signed by Firebase.
 SECRET_KEY = require_secret(
     "JWT_SECRET",
     "JWT_SECRET_KEY",
@@ -103,8 +103,8 @@ def resolve_identity(authorization: str | None) -> tuple[UUID, bool]:
     """Return (user_id, is_anonymous) for a bearer token of either kind."""
     token = _bearer(authorization)
 
-    if supabase_auth.looks_like_supabase_token(token):
-        return supabase_auth.verify(token).user_id, False
+    if firebase_auth.looks_like_firebase_token(token):
+        return firebase_auth.verify(token).user_id, False
 
     payload = _decode_token(token)
     try:

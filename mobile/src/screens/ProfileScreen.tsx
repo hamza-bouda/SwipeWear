@@ -20,7 +20,7 @@ export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const rootNav = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
-  const { isAuthenticated, email, signOut, deleteAccount } = useAuth();
+  const { isAuthenticated, email, phoneNumber, signOut, deleteAccount } = useAuth();
   const { gender } = usePreferences();
 
   const resetToOnboarding = () =>
@@ -83,7 +83,11 @@ export function ProfileScreen() {
               <Ionicons name="person" size={24} color={colors.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.email} numberOfLines={1}>{email}</Text>
+              {/* Phone sign-in produces accounts with no email at all, so
+                  the address alone would leave the card blank. */}
+              <Text style={styles.email} numberOfLines={1}>
+                {email ?? phoneNumber ?? 'Compte connecté'}
+              </Text>
               <Text style={styles.accountSub}>Compte actif</Text>
             </View>
           </View>

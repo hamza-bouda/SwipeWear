@@ -42,3 +42,12 @@ yarn-error.*
 
 .env
 !.env.example
+
+# Configuration Firebase de l'app Android (KAN-91).
+# Contient la clé d'API du projet. Google la considère comme un identifiant
+# public, pas un secret, mais elle reste spécifique à un projet : la garder
+# hors du dépôt évite qu'un fork pointe silencieusement sur la production.
+# Régénérable en une commande, voir Documentation/14_Auth_Firebase.md :
+#   firebase apps:sdkconfig ANDROID <appId> --out google-services.json
+google-services.json
+GoogleService-Info.plist

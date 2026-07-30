@@ -1,10 +1,16 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri } from 'expo-auth-session';
-import type { Session } from '@supabase/supabase-js';
-import { isSupabaseConfigured, requireSupabase, supabase } from '../lib/supabase';
+import * as Google from 'expo-auth-session/providers/google';
+import {
+  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
+  onIdTokenChanged,
+  signInWithCredential,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  type User,
+} from 'firebase/auth';
+import { auth, googleWebClientId, isFirebaseConfigured, requireAuth } from '../lib/firebase';
 import * as accountApi from '../api/auth';
 
 /**
@@ -14,42 +20,38 @@ import * as accountApi from '../api/auth';
  *
  *  - a *browsing* identity, minted by the server for a visitor with no
  *    account, so the feed can be personalised before signing up;
- *  - an *account*, owned by Supabase, which also owns the passwords and the
- *    Google and Apple handshakes.
+ *  - an *account*, owned by Firebase, which also owns the passwords, the
+ *    Google handshake and phone verification.
  *
  * Seven call sites used to each re-implement "if I have no token, ask
  * /auth/token for one for this user_id". That endpoint signed any id handed to
  * it without a credential, so it is gone; this provider is now the single
  * place a token comes from, and it always has one.
  *
- * KAN-90
+ * KAN-91
  */
 
 /** Persisted whole: the server no longer re-issues a token for a known id. */
 const ANONYMOUS_SESSION_KEY = '@swipewear/anonymous-session';
 
-export type OAuthProvider = 'google' | 'apple';
-
 interface AuthState {
   userId: string | null;
   token: string | null;
   email: string | null;
+  phoneNumber: string | null;
   isAuthenticated: boolean;
 }
 
 interface AuthContextValue extends AuthState {
-  /** False until storage and Supabase have been read. */
+  /** False until storage and Firebase have been read. */
   ready: boolean;
   /** False when the project is unconfigured — screens say so instead of failing. */
   canSignIn: boolean;
+  /** False until the Google provider is switched on in the Firebase console. */
+  canUseGoogle: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  /**
-   * Resolves to true when Supabase created no session because it is waiting
-   * for the address to be confirmed. Treating that as a success would send the
-   * user to a feed they are not signed in to.
-   */
-  signUp: (email: string, password: string) => Promise<boolean>;
-  signInWithProvider: (provider: OAuthProvider) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
 }
@@ -73,13 +75,20 @@ async function loadAnonymousSession(): Promise<accountApi.AnonymousSession> {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
-    userId: null, token: null, email: null, isAuthenticated: false,
+    userId: null, token: null, email: null, phoneNumber: null, isAuthenticated: false,
   });
   const [ready, setReady] = useState(false);
   const anonymousRef = useRef<accountApi.AnonymousSession | null>(null);
-  // Which account we have already provisioned server-side, so a token refresh
-  // does not re-post /auth/sync every hour.
+  // Which account we have already provisioned server-side, so an hourly token
+  // refresh does not re-post /auth/sync every time.
   const syncedUserRef = useRef<string | null>(null);
+
+  // Google sign-in goes through the OAuth browser flow rather than a native
+  // module: that is what keeps the app runnable in Expo Go.
+  const [, googleResponse, promptGoogle] = Google.useAuthRequest({
+    clientId: googleWebClientId || undefined,
+    webClientId: googleWebClientId || undefined,
+  });
 
   const applyAnonymous = useCallback(async () => {
     try {
@@ -89,127 +98,102 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userId: session.user_id,
         token: session.access_token,
         email: null,
+        phoneNumber: null,
         isAuthenticated: false,
       });
     } catch {
       // The API is unreachable. Staying token-less is the honest state: the
       // screens already show their own errors rather than inventing data.
-      setState({ userId: null, token: null, email: null, isAuthenticated: false });
+      setState({
+        userId: null, token: null, email: null,
+        phoneNumber: null, isAuthenticated: false,
+      });
     }
   }, []);
 
-  const applySession = useCallback(async (session: Session) => {
+  const applyUser = useCallback(async (user: User) => {
+    const token = await user.getIdToken();
     setState({
-      userId: session.user.id,
-      token: session.access_token,
-      email: session.user.email ?? null,
+      userId: user.uid,
+      token,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
       isAuthenticated: true,
     });
 
-    if (syncedUserRef.current === session.user.id) return;
-    syncedUserRef.current = session.user.id;
+    if (syncedUserRef.current === user.uid) return;
+    syncedUserRef.current = user.uid;
     try {
       // Provisions the local row and carries over whatever was built while
       // browsing without an account.
-      await accountApi.syncAccount(
-        session.access_token, anonymousRef.current?.user_id ?? null,
-      );
+      await accountApi.syncAccount(token, anonymousRef.current?.user_id ?? null);
       // The anonymous profile now belongs to the account; keeping the old
       // token would let the same person come back as two different people.
       await AsyncStorage.removeItem(ANONYMOUS_SESSION_KEY);
       anonymousRef.current = null;
     } catch {
-      // Sync is retried on the next launch: syncedUserRef is per-process.
+      // Retried on the next launch: syncedUserRef is per-process.
       syncedUserRef.current = null;
     }
   }, []);
 
   useEffect(() => {
-    let active = true;
-
-    (async () => {
-      if (!supabase) {
-        await applyAnonymous();
-        if (active) setReady(true);
-        return;
-      }
-
-      const { data } = await supabase.auth.getSession();
-      if (!active) return;
-      if (data.session) {
-        await applySession(data.session);
-      } else {
-        await applyAnonymous();
-      }
-      if (active) setReady(true);
-    })();
-
-    const subscription = supabase?.auth.onAuthStateChange((_event, session) => {
-      if (!active) return;
-      if (session) {
-        applySession(session);
-      } else {
-        syncedUserRef.current = null;
-        applyAnonymous();
-      }
+    if (!auth) {
+      applyAnonymous().finally(() => setReady(true));
+      return;
+    }
+    // onIdTokenChanged rather than onAuthStateChanged: it also fires when
+    // Firebase silently refreshes the token every hour, so the token held here
+    // never goes stale and requests do not start failing after an hour.
+    const unsubscribe = onIdTokenChanged(auth, (user) => {
+      const run = user
+        ? applyUser(user)
+        : (() => { syncedUserRef.current = null; return applyAnonymous(); })();
+      run.finally(() => setReady(true));
     });
+    return unsubscribe;
+  }, [applyAnonymous, applyUser]);
 
-    return () => {
-      active = false;
-      subscription?.data.subscription.unsubscribe();
-    };
-  }, [applyAnonymous, applySession]);
+  // The Google browser flow resolves asynchronously, outside the call that
+  // started it.
+  useEffect(() => {
+    if (googleResponse?.type !== 'success') return;
+    const idToken = googleResponse.params?.id_token;
+    if (!idToken) return;
+    signInWithCredential(requireAuth(), GoogleAuthProvider.credential(idToken))
+      .catch(() => {
+        // Surfaced by the screen that triggered it; nothing to do here.
+      });
+  }, [googleResponse]);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await requireSupabase().auth.signInWithPassword({
-      email, password,
-    });
-    if (error) throw error;
+    await signInWithEmailAndPassword(requireAuth(), email, password);
   }, []);
 
   const signUp = useCallback(async (email: string, password: string) => {
-    const { data, error } = await requireSupabase().auth.signUp({ email, password });
-    if (error) throw error;
-    return data.session === null;
+    await createUserWithEmailAndPassword(requireAuth(), email, password);
   }, []);
 
-  const signInWithProvider = useCallback(async (provider: OAuthProvider) => {
-    const client = requireSupabase();
-    const redirectTo = makeRedirectUri({ scheme: 'swipewear', path: 'auth' });
-
-    const { data, error } = await client.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo, skipBrowserRedirect: Platform.OS !== 'web' },
-    });
-    if (error) throw error;
-    // On the web the browser has already navigated away; the session is read
-    // back from the URL when the page reloads.
-    if (Platform.OS === 'web' || !data?.url) return;
-
-    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-    if (result.type !== 'success') {
-      // Closing the sheet is a choice, not a failure worth an error dialog.
-      return;
+  const signInWithGoogle = useCallback(async () => {
+    if (!googleWebClientId) {
+      throw new Error('provider is not enabled');
     }
-    const code = new URL(result.url).searchParams.get('code');
-    if (!code) throw new Error("La réponse du fournisseur d'identité est incomplète.");
-    const exchange = await client.auth.exchangeCodeForSession(code);
-    if (exchange.error) throw exchange.error;
-  }, []);
+    await promptGoogle();
+  }, [promptGoogle]);
 
   const signOut = useCallback(async () => {
-    if (supabase) await supabase.auth.signOut();
+    if (auth) await firebaseSignOut(auth);
     syncedUserRef.current = null;
     await applyAnonymous();
   }, [applyAnonymous]);
 
   const deleteAccount = useCallback(async () => {
     if (!state.token || !state.isAuthenticated) return;
-    // Server-side first: it erases the identity at Supabase too. Clearing the
+    // Server-side first: it erases the identity at Firebase too. Clearing the
     // local session alone would leave the account intact and let the same
     // person sign straight back in.
     await accountApi.deleteAccount(state.token);
-    if (supabase) await supabase.auth.signOut();
+    if (auth) await firebaseSignOut(auth);
     syncedUserRef.current = null;
     await AsyncStorage.removeItem(ANONYMOUS_SESSION_KEY);
     anonymousRef.current = null;
@@ -221,10 +205,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         ...state,
         ready,
-        canSignIn: isSupabaseConfigured,
+        canSignIn: isFirebaseConfigured,
+        canUseGoogle: Boolean(googleWebClientId),
         signIn,
         signUp,
-        signInWithProvider,
+        signInWithGoogle,
         signOut,
         deleteAccount,
       }}

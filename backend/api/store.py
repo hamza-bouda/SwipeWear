@@ -29,6 +29,11 @@ class UserRecord:
     # no password here at all, and a provider may withhold the address.
     email: str | None
     password_hash: str | None
+    # Raw Firebase uid. user_id is its UUIDv5 derivation, which only computes
+    # one way, so deleting the account upstream needs the original (KAN-91).
+    provider_uid: str | None = None
+    # Phone sign-in creates accounts with no email at all.
+    phone_number: str | None = None
 
 
 class _Connection:
@@ -131,28 +136,43 @@ def get_events_for_user(user_id: UUID) -> list[InteractionEvent]:
 # ── Accounts ─────────────────────────────────────────────────────────────────
 
 def upsert_external_user(
-    user_id: UUID, email: str | None, provider: str,
+    user_id: UUID,
+    email: str | None,
+    provider: str,
+    provider_uid: str | None = None,
+    phone_number: str | None = None,
 ) -> UserRecord:
-    """Record an account authenticated by Supabase, creating it on first sight.
+    """Record an account authenticated by Firebase, creating it on first sight.
 
     Provisioning happens here rather than at a signup endpoint because there is
-    no signup endpoint any more: the first time a valid Supabase token arrives,
-    that person exists. The email is refreshed on every call — a user who
-    changes it in the provider would otherwise keep the stale one forever.
+    no signup endpoint any more: the first time a valid token arrives, that
+    person exists. Contact details are refreshed on every call — someone who
+    changes their address upstream would otherwise keep the stale one forever.
+
+    `provider_uid` is the raw Firebase uid. It is kept because deleting the
+    account upstream needs it, and `user_id` is a one-way UUIDv5 derivation of
+    it (see api/firebase_auth.local_user_id).
     """
     normalised = email.lower() if email else None
     with _Connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO users (user_id, email, auth_provider)"
-                " VALUES (%s, %s, %s)"
+                "INSERT INTO users"
+                " (user_id, email, auth_provider, provider_uid, phone_number)"
+                " VALUES (%s, %s, %s, %s, %s)"
                 " ON CONFLICT (user_id) DO UPDATE"
                 "   SET email = EXCLUDED.email,"
-                "       auth_provider = EXCLUDED.auth_provider",
-                (str(user_id), normalised, provider),
+                "       auth_provider = EXCLUDED.auth_provider,"
+                "       provider_uid = COALESCE("
+                "           EXCLUDED.provider_uid, users.provider_uid),"
+                "       phone_number = EXCLUDED.phone_number",
+                (str(user_id), normalised, provider, provider_uid, phone_number),
             )
         conn.commit()
-    return UserRecord(user_id=user_id, email=normalised, password_hash=None)
+    return UserRecord(
+        user_id=user_id, email=normalised, password_hash=None,
+        provider_uid=provider_uid, phone_number=phone_number,
+    )
 
 
 def _row_to_user(row) -> UserRecord:
@@ -160,15 +180,18 @@ def _row_to_user(row) -> UserRecord:
     # depending on how the connection was set up, and a str/UUID mismatch
     # compares unequal without ever raising.
     user_id = row[0] if isinstance(row[0], UUID) else UUID(str(row[0]))
-    return UserRecord(user_id=user_id, email=row[1], password_hash=row[2])
+    return UserRecord(
+        user_id=user_id, email=row[1], password_hash=row[2],
+        provider_uid=row[3], phone_number=row[4],
+    )
 
 
 def get_user(user_id: UUID) -> UserRecord | None:
     with _Connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT user_id, email, password_hash FROM users"
-                " WHERE user_id = %s",
+                "SELECT user_id, email, password_hash, provider_uid, phone_number"
+                " FROM users WHERE user_id = %s",
                 (str(user_id),),
             )
             row = cur.fetchone()
