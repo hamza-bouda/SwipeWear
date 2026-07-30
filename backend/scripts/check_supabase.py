@@ -91,17 +91,24 @@ def main() -> int:
             print(WARN + "SUPABASE_SERVICE_ROLE_KEY absente : la suppression de "
                          "compte refusera (502) au lieu de laisser une identité "
                          "orpheline chez Supabase.")
+        elif service_key.startswith("sb_publishable_"):
+            # Attrapé avant l'appel : le message d'erreur HTTP serait obscur.
+            print(KO + "SUPABASE_SERVICE_ROLE_KEY contient la clé publishable. "
+                       "Il faut la clé secrète (`sb_secret_…`, onglet "
+                       "« Publishable and secret API keys »).")
+            problems += 1
         else:
             try:
                 _get(
                     f"{issuer}/admin/users?page=1&per_page=1",
                     {"apikey": service_key, "Authorization": f"Bearer {service_key}"},
                 )
-                print(OK + "Clé service_role acceptée — suppression de compte "
-                           "opérationnelle.")
+                print(OK + "Clé secrète acceptée par l'API admin — suppression "
+                           "de compte opérationnelle.")
             except urllib.error.HTTPError as exc:
-                print(KO + f"Clé service_role refusée (HTTP {exc.code}). "
-                           "Est-ce bien la clé service_role et non la clé anon ?")
+                print(KO + f"Clé secrète refusée (HTTP {exc.code}). Attendu : la "
+                           "clé `sb_secret_…` (ou l'ancienne `service_role`), "
+                           "pas la clé publishable.")
                 problems += 1
             except urllib.error.URLError as exc:
                 print(KO + f"API admin injoignable ({exc}).")
@@ -124,10 +131,16 @@ def main() -> int:
                        "chaque jeton sera rejeté par l'émetteur.")
             problems += 1
 
-    # Une clé service_role dans le bundle mobile serait une fuite totale.
+    # Une clé privilégiée dans le bundle mobile serait une fuite totale.
+    # Supabase a deux nomenclatures : l'ancienne (`service_role`, un JWT dont
+    # le rôle est lisible dans la charge utile) et la nouvelle (`sb_secret_…`,
+    # opaque). Les deux doivent être attrapées.
     for key, value in mobile.items():
-        if key.startswith("EXPO_PUBLIC_") and "service_role" in value.lower():
-            print(KO + f"{key} contient une clé service_role — à retirer "
+        if not key.startswith("EXPO_PUBLIC_"):
+            continue
+        lowered = value.lower()
+        if lowered.startswith("sb_secret_") or "service_role" in lowered:
+            print(KO + f"{key} contient une clé privilégiée — à retirer "
                        "immédiatement et à révoquer dans Supabase.")
             problems += 1
 

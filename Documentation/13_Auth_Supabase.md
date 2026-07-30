@@ -26,9 +26,13 @@ Ces étapes demandent un compte Supabase : elles sont à réaliser par toi, pas 
 
 ### 1. Créer le projet
 
-1. https://supabase.com → **New project**.
-2. Note la **Project URL** et la clé **anon public** (Project Settings → API).
-3. Note la clé **service_role** — elle sert au backend uniquement.
+1. https://supabase.com → **New project**. Région : **Central EU (Frankfurt)** — les emails sont des données personnelles, autant les garder dans l'UE.
+2. Dans **Security**, décoche **Enable Data API** et **Automatically expose new tables**, coche **Enable automatic RLS**. L'avertissement « client libraries can't query your database » ne nous concerne pas : `supabase-js` n'est utilisé que pour `.auth.*`, servi par GoTrue sur `/auth/v1`, indépendant de PostgREST. Aucun `.from()`, `.rpc()`, `.storage` ni `.channel()` dans le code. Désactiver la Data API empêche la clé publique, embarquée dans l'app, d'interroger la moindre table.
+3. Project Settings → **API Keys**, onglet « Publishable and secret API keys » :
+   - **Publishable key** (`sb_publishable_…`) → pour l'app. Remplace l'ancienne clé `anon`.
+   - **Secret key** (`sb_secret_…`) → pour le backend uniquement. Remplace `service_role`.
+
+   L'onglet « Legacy anon, service_role API keys » reste disponible ; les deux formats fonctionnent. `supabase-js` 2.111 accepte le nouveau.
 
 ### 2. Activer les fournisseurs
 
