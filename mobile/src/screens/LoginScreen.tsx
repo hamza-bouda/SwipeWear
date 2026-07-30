@@ -41,6 +41,16 @@ function frenchMessage(error: unknown): string {
   if (lower.includes('failed to fetch') || lower.includes('network')) {
     return 'Serveur injoignable. Vérifie ta connexion.';
   }
+  // Les deux erreurs de mise en service : le fournisseur n'a jamais été activé
+  // dans le tableau de bord, ou l'URL de redirection n'y est pas déclarée.
+  // Sans ces deux cas, l'utilisateur voyait le message anglais brut de
+  // Supabase — « Unsupported provider: provider is not enabled ».
+  if (lower.includes('provider is not enabled') || lower.includes('unsupported provider')) {
+    return "Ce mode de connexion n'est pas encore disponible. Utilise ton email pour l'instant.";
+  }
+  if (lower.includes('redirect') && (lower.includes('not allowed') || lower.includes('invalid'))) {
+    return "La redirection après connexion a été refusée. C'est un réglage à corriger côté SwipeWear.";
+  }
   return raw;
 }
 
