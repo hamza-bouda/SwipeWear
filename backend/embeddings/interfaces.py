@@ -1,10 +1,29 @@
+"""EmbeddingService protocol — swappable adapter for image/text embedding models."""
 from __future__ import annotations
-from contracts.interfaces import StyleVector
 
-async def embed_image(image_bytes: bytes) -> StyleVector:
-    # FashionSigLIP fashionsiglip-v1, 512-dim L2-norm. Latency < 350 ms/image CPU.
-    raise NotImplementedError
+from typing import Protocol
 
-async def embed_text(text: str) -> StyleVector:
-    # Same model space as embed_image.
-    raise NotImplementedError
+import numpy as np
+
+EMBEDDING_VERSION = "fashionsiglip-v1"
+VECTOR_DIM = 512
+
+
+class EmbeddingService(Protocol):
+    """Adapter contract for embedding models.
+
+    Both methods return a (512,) float32 L2-normalised vector.
+    Concrete implementations: FashionSigLIPService (KAN-28).
+    Swap candidates: Qwen3-VL-Embedding (KAN-30 bench).
+    """
+
+    embedding_version: str
+    vector_dim: int
+
+    def encode_image(self, image: bytes) -> np.ndarray:
+        """Encode image bytes → (vector_dim,) float32 L2-normalised vector."""
+        ...
+
+    def encode_text(self, text: str) -> np.ndarray:
+        """Encode text → (vector_dim,) float32 L2-normalised vector, same space as encode_image."""
+        ...
