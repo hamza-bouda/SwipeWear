@@ -11,6 +11,7 @@ import {
   ProductDetailScreen,
   PriceLadderScreen,
   AlgorithmScreen,
+  PaywallScreen,
 } from '../screens';
 import { MainTabs } from './MainTabs';
 import { RootStackParamList } from './types';
@@ -57,6 +58,7 @@ export function RootNavigator() {
       <Stack.Screen name="PriceLadder" component={PriceLadderScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Algorithm" component={AlgorithmScreen} />
+      <Stack.Screen name="Paywall" component={PaywallScreen} options={{ presentation: 'modal' }} />
     </Stack.Navigator>
   );
 }

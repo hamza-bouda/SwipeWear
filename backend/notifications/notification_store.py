@@ -16,6 +16,31 @@ _MATCH_TIER_LABELS = {
 }
 
 
+def get_notification_preference(conn: Any, user_id: UUID) -> str:
+    """Return the user's notification preference (instant/daily_digest/disabled)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT preference FROM alert_notification_prefs WHERE user_id = %s",
+            (str(user_id),),
+        )
+        row = cur.fetchone()
+    return row[0] if row else "instant"
+
+
+def set_notification_preference(conn: Any, user_id: UUID, preference: str) -> None:
+    """Upsert the user's notification preference."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO alert_notification_prefs (user_id, preference)
+            VALUES (%s, %s)
+            ON CONFLICT (user_id) DO UPDATE SET preference = EXCLUDED.preference
+            """,
+            (str(user_id), preference),
+        )
+    conn.commit()
+
+
 def register_device_token(
     conn: Any,
     user_id: UUID,

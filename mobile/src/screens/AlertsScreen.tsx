@@ -14,14 +14,21 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius } from '../theme';
 import { useAlerts } from '../api';
 import type { AlertItem } from '../api/useAlerts';
+import type { RootStackParamList } from '../navigation/types';
+import { ApiError } from '../api/client';
 
 export function AlertsScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const rootNav = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
+  const nav = rootNav ?? navigation;
   const { alerts, missedDeals, freeLimit, loading, reload, create, remove, toggle } = useAlerts();
   const [showCreate, setShowCreate] = useState(false);
   const [newLabel, setNewLabel] = useState('');
@@ -30,6 +37,8 @@ export function AlertsScreen() {
 
   const activeCount = alerts.filter(a => a.status === 'active').length;
   const atLimit = activeCount >= freeLimit;
+
+  const goToPaywall = () => nav.navigate('Paywall' as never);
 
   const handleCreate = async () => {
     if (!newLabel.trim()) return;
@@ -44,8 +53,12 @@ export function AlertsScreen() {
       setNewLabel('');
       setMaxPrice('');
     } catch (e: any) {
-      if (e.message?.includes('403')) {
-        RNAlert.alert('Limite atteinte', `Le plan gratuit est limité à ${freeLimit} alertes actives. Passe en Gold pour l'illimité.`);
+      if (e instanceof ApiError && e.status === 403) {
+        setShowCreate(false);
+        goToPaywall();
+      } else if (e.message?.includes('403')) {
+        setShowCreate(false);
+        goToPaywall();
       } else {
         RNAlert.alert('Erreur', 'Impossible de créer l\'alerte. Réessaie.');
       }
@@ -92,7 +105,7 @@ export function AlertsScreen() {
   const ListHeader = () => (
     <View style={styles.listHeader}>
       {missedDeals > 0 && (
-        <View style={styles.missedBanner}>
+        <TouchableOpacity style={styles.missedBanner} onPress={goToPaywall} activeOpacity={0.8}>
           <View style={styles.missedRow}>
             <Ionicons name="time" size={14} color={colors.gold} style={{ marginRight: 6 }} />
             <Text style={styles.missedTitle}>{missedDeals} pépite{missedDeals > 1 ? 's' : ''} ratée{missedDeals > 1 ? 's' : ''}</Text>
@@ -100,7 +113,10 @@ export function AlertsScreen() {
           <Text style={styles.missedSub}>
             Des articles sont partis pendant le délai de 30 min du plan gratuit. En Gold, tu es prévenu·e instantanément.
           </Text>
-        </View>
+          <View style={styles.missedCta}>
+            <Text style={styles.missedCtaText}>Passer Gold →</Text>
+          </View>
+        </TouchableOpacity>
       )}
       <Text style={styles.sectionTitle}>Mes alertes</Text>
     </View>
@@ -110,10 +126,7 @@ export function AlertsScreen() {
     <View>
       <TouchableOpacity
         style={[styles.addRow, atLimit && styles.addRowLocked]}
-        onPress={() => atLimit
-          ? RNAlert.alert('Limite atteinte', `Plan gratuit : ${freeLimit} alertes actives max. Passe en Gold pour l'illimité.`)
-          : setShowCreate(true)
-        }
+        onPress={() => atLimit ? goToPaywall() : setShowCreate(true)}
         activeOpacity={0.7}
       >
         <View style={[styles.addIconWrap, atLimit && styles.addIconLocked]}>
@@ -131,7 +144,7 @@ export function AlertsScreen() {
         )}
       </TouchableOpacity>
 
-      <View style={styles.goldBanner}>
+      <TouchableOpacity style={styles.goldBanner} onPress={goToPaywall} activeOpacity={0.8}>
         <View style={styles.goldBannerRow}>
           <View style={styles.goldBannerLeft}>
             <Ionicons name="flash" size={14} color={colors.gold} style={{ marginRight: 6 }} />
@@ -144,7 +157,7 @@ export function AlertsScreen() {
         <Text style={styles.goldBannerSub}>
           Alertes illimitées + instantanées. Les gratuits sont prévenus 30 min après toi — la pièce part souvent avant.
         </Text>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 
@@ -282,6 +295,15 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textSecondary,
     lineHeight: 16,
+  },
+  missedCta: {
+    marginTop: spacing.sm,
+    alignSelf: 'flex-start',
+  },
+  missedCtaText: {
+    ...typography.bodyBold,
+    color: colors.gold,
+    fontSize: 13,
   },
   alertRow: {
     flexDirection: 'row',

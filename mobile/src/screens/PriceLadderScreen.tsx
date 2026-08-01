@@ -9,14 +9,16 @@ import {
   Linking,
   RefreshControl,
   ActivityIndicator,
+  Share,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { Badge, Button } from '../components';
 import { trackEvent } from '../analytics';
 import { colors, typography, spacing, borderRadius } from '../theme';
 import { RootStackParamList } from '../navigation/types';
-import { useLadder, useAlerts, ApiError } from '../api';
+import { useLadder, useAlerts, ApiError, API_BASE_URL } from '../api';
 import type { LadderEntry } from '../api';
 
 interface Props {
@@ -59,6 +61,21 @@ export function PriceLadderScreen({ navigation, route }: Props) {
       );
     }
   }, [createAlert, productId]);
+
+  const handleShare = useCallback(async () => {
+    trackEvent({ name: 'share_card_generated', properties: { product_id: productId } });
+    const pct = savingsPct ? Math.round(savingsPct) : 0;
+    const shareUrl = `${API_BASE_URL}/share/${productId}${pct > 0 ? `?savings_pct=${pct}` : ''}`;
+    try {
+      await Share.share({
+        message: pct > 0
+          ? `J'ai trouvé cette pièce avec -${pct}% vs le neuf sur SwipeWear ! ${shareUrl}`
+          : `Regarde cette pièce sur SwipeWear ! ${shareUrl}`,
+      });
+    } catch {
+      // User cancelled
+    }
+  }, [productId, savingsPct]);
 
   const handleOfferPress = useCallback((entry: LadderEntry) => {
     trackEvent({
@@ -109,7 +126,9 @@ export function PriceLadderScreen({ navigation, route }: Props) {
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Échelle de prix</Text>
-        <View style={styles.backButton} />
+        <TouchableOpacity onPress={handleShare} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Partager">
+          <Ionicons name="share-outline" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
       </View>
 
       {entries.length > 0 && (

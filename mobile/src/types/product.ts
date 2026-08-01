@@ -9,6 +9,7 @@ export interface Product {
   size: string | null;
   imageUrls: string[];
   source: string;
+  available?: boolean;
   /** Seller listing URL served by the API, affiliate-wrapped when enabled. */
   url?: string;
   recommendationReason?: string;

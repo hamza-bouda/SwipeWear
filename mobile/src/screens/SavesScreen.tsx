@@ -20,6 +20,12 @@ import { useSaves } from '../context/SavesContext';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const CATEGORIES = ['Tout', 'Hauts', 'Bas', 'Chaussures', 'Accessoires'];
+type SortMode = 'recent' | 'price_asc' | 'price_desc';
+const SORT_OPTIONS: { key: SortMode; label: string }[] = [
+  { key: 'recent', label: 'Récent' },
+  { key: 'price_asc', label: 'Prix ↑' },
+  { key: 'price_desc', label: 'Prix ↓' },
+];
 
 function categoryMatch(product: Product, filter: string): boolean {
   if (filter === 'Tout') return true;
@@ -31,18 +37,34 @@ function categoryMatch(product: Product, filter: string): boolean {
   return false;
 }
 
+function sortProducts(products: Product[], mode: SortMode): Product[] {
+  if (mode === 'recent') return products;
+  const sorted = [...products];
+  if (mode === 'price_asc') sorted.sort((a, b) => a.price - b.price);
+  if (mode === 'price_desc') sorted.sort((a, b) => b.price - a.price);
+  return sorted;
+}
+
 function ProductCard({ product, onPress, onRemove }: { product: Product; onPress: () => void; onRemove: () => void }) {
+  const soldOut = product.available === false;
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
       <View style={styles.cardImageWrap}>
         <Image source={{ uri: product.imageUrls[0] }} style={styles.cardImage} resizeMode="cover" />
+        {soldOut && (
+          <View style={styles.soldOutOverlay}>
+            <View style={styles.soldOutBadge}>
+              <Text style={styles.soldOutText}>Vendu</Text>
+            </View>
+          </View>
+        )}
         <TouchableOpacity style={styles.removeBtn} onPress={onRemove} accessibilityLabel="Retirer du dressing">
           <Ionicons name="close" size={12} color={colors.textInverse} />
         </TouchableOpacity>
       </View>
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardTitle} numberOfLines={1}>{product.title}</Text>
-        <Text style={styles.cardPrice}>{product.price} {product.currency}</Text>
+      <View style={[styles.cardInfo, soldOut && styles.cardInfoSoldOut]}>
+        <Text style={[styles.cardTitle, soldOut && styles.textSoldOut]} numberOfLines={1}>{product.title}</Text>
+        <Text style={[styles.cardPrice, soldOut && styles.textSoldOut]}>{product.price} {product.currency}</Text>
         <Text style={styles.cardMeta}>{product.source}</Text>
       </View>
     </TouchableOpacity>
@@ -54,10 +76,14 @@ export function SavesScreen() {
   const navigation = useNavigation<Nav>();
   const { savedProducts, toggleSave } = useSaves();
   const [activeFilter, setActiveFilter] = useState('Tout');
+  const [sortMode, setSortMode] = useState<SortMode>('recent');
 
   const filtered = useMemo(
-    () => savedProducts.filter(p => categoryMatch(p, activeFilter)),
-    [savedProducts, activeFilter],
+    () => sortProducts(
+      savedProducts.filter(p => categoryMatch(p, activeFilter)),
+      sortMode,
+    ),
+    [savedProducts, activeFilter, sortMode],
   );
 
   const totalValue = savedProducts.reduce((sum, p) => sum + p.price, 0);
@@ -114,6 +140,25 @@ export function SavesScreen() {
           >
             <Text style={[styles.filterText, activeFilter === cat && styles.filterTextActive]}>
               {cat}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.sortRow}
+      >
+        {SORT_OPTIONS.map(opt => (
+          <TouchableOpacity
+            key={opt.key}
+            style={[styles.sortChip, sortMode === opt.key && styles.sortChipActive]}
+            onPress={() => setSortMode(opt.key)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.sortText, sortMode === opt.key && styles.sortTextActive]}>
+              {opt.label}
             </Text>
           </TouchableOpacity>
         ))}
@@ -192,7 +237,7 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.sm,
     gap: spacing.xs,
   },
   filterChip: {
@@ -217,6 +262,33 @@ const styles = StyleSheet.create({
     color: colors.accentText,
     fontWeight: '700',
   },
+  sortRow: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    gap: spacing.xs,
+  },
+  sortChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  sortChipActive: {
+    borderColor: colors.textPrimary,
+    backgroundColor: colors.textPrimary,
+  },
+  sortText: {
+    ...typography.label,
+    color: colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  sortTextActive: {
+    color: colors.textInverse,
+    fontWeight: '600',
+  },
   grid: {
     paddingHorizontal: spacing.lg,
     paddingBottom: 120,
@@ -240,6 +312,24 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  soldOutOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  soldOutBadge: {
+    backgroundColor: colors.textPrimary,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: borderRadius.sm,
+  },
+  soldOutText: {
+    color: colors.textInverse,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
   removeBtn: {
     position: 'absolute',
     top: spacing.xs,
@@ -253,6 +343,9 @@ const styles = StyleSheet.create({
   },
   cardInfo: {
     padding: spacing.sm,
+  },
+  cardInfoSoldOut: {
+    opacity: 0.5,
   },
   cardTitle: {
     ...typography.caption,
@@ -270,6 +363,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 10,
     marginTop: 1,
+  },
+  textSoldOut: {
+    textDecorationLine: 'line-through',
+    color: colors.textSecondary,
   },
   empty: {
     flex: 1,

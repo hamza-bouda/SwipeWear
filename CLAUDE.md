@@ -37,7 +37,7 @@ Ces décisions sont validées (tests IA GO 6/6 du 2026-07-16, blueprint §13). U
 | Tracking d'expériences | Git + JSON/CSV ; MLflow gelé (E14) |
 | Sources produits | eBay Browse API (occasion) + Awin ou CJ (neuf). Vinted = watcher isolé, gelé, kill-switch obligatoire |
 | Monétisation | Affiliation (EPN, Awin/CJ) + Premium 4,99 €/mois = priorité d'alertes |
-| Gates business | Gate 1 : 300 waitlist ET 50K vues → débloque E6-E9. Gate 2 : ≥30 % beta créent ≥2 alertes → débloque E12-E13 |
+| Gates business | Gate 1 : 300 waitlist ET 50K vues → débloque E6-E9. **Atteinte.** Gate 2 : ≥30 % beta créent ≥2 alertes → débloque E12-E13. **Atteinte.** Tous les epics sont débloqués. |
 
 ---
 
@@ -103,7 +103,7 @@ Un ticket n'est `Terminé` que si :
 - **En cas de contradiction entre sources** (ex. la doc dit X, le code dit Y) : le code fait foi, ET l'agent signale la contradiction pour que la doc soit corrigée.
 - **Marquer l'incertitude.** Un agent qui n'est pas sûr d'un seuil, d'un format ou d'une décision écrit explicitement « à confirmer » et pose la question — il ne choisit pas silencieusement.
 - **Pas d'installation de dépendances non listées** sans le signaler : toute nouvelle dépendance est mentionnée dans la PR avec sa justification.
-- **Respecter les gels** : ne pas implémenter E12/E13 (alertes, Premium) ni les items Icebox tant que les gates ne sont pas atteintes, même si « c'est facile ».
+- **Gates atteintes** : E12/E13 (alertes, Premium) et les items Icebox sont débloqués — les résultats business justifient l'implémentation complète.
 - **Mettre à jour les miroirs** : après une décision qui change le backlog, mettre à jour Jira (source de vérité) puis, si demandé, `Backlog/PRODUCT_BACKLOG.md`.
 - **Journaliser tout changement de base de données.** Un agent qui ajoute ou modifie un fichier dans `backend/migrations/` (nouvelle table, colonne, index, contrainte, renommage) ajoute une ligne au **Journal des migrations** (section 9) avant de considérer la tâche terminée — sur quelque machine que ce soit. C'est le seul moyen pour qu'un agent démarrant une session ailleurs connaisse l'état réel du schéma sans devoir relire tous les `.sql`.
 - **Langue** : documentation et tickets en français ; code, noms de variables et messages de commit en anglais.
