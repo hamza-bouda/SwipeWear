@@ -13,7 +13,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius } from '../theme';
-import { useFeed } from '../api';
+import { useDrop } from '../api';
 import { Product } from '../types';
 import { RootStackParamList } from '../navigation/types';
 
@@ -40,9 +40,7 @@ function DropCard({ product, onPress }: { product: Product; onPress: () => void 
 export function DropScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const { products, loading, reload } = useFeed();
-
-  const dropProducts = products.slice(0, 15);
+  const { products: dropProducts, loading, reload } = useDrop();
 
   const handlePress = useCallback((product: Product) => {
     navigation.navigate('ProductDetail', { productId: product.id, product });

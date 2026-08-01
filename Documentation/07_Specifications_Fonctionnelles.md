@@ -9,12 +9,11 @@ Spécifications exhaustives du MVP (V1), de la V1.5 et des évolutions V2, avec 
 ## 1. Fonctionnalités du MVP (V1)
 
 ### 1.1 Onboarding
-* **F01 — Authentification :** Email / Google / Apple (Supabase Auth). Cible : compte créé en < 60 s.
+* **F01 — Authentification :** Email / Google (Firebase Auth). Cible : compte créé en < 60 s. Identité anonyme côté serveur pour la navigation sans compte.
 * **F02 — Calibrage de style (anti cold start) :**
     1. Genre des vêtements recherchés (Homme / Femme / Mixte).
     2. Tailles (hauts, bas, pointures) — utilisées comme filtre dur sur tout le produit.
-    3. **Swipe de calibration :** 30 images archétypales couvrant 8-10 clusters de style (streetwear, minimaliste, Y2K, workwear, grunge, bohème, sport, classique). Le vecteur de goût initial = moyenne pondérée des clusters likés.
-    * Règle métier : le feed réel n'est servi qu'après ≥ 15 swipes de calibration.
+    3. **Sélection d'archétypes :** 8 clusters de style (streetwear, minimaliste, Y2K, workwear, grunge, bohème, sport, classique) présentés sous forme de cartes visuelles. Le vecteur de goût initial = moyenne pondérée des clusters sélectionnés. Alternative : import d'images d'inspiration (embeddings FashionSigLIP).
 
 ### 1.2 Swipe Deck
 * **F03 — Carte article :** photo plein écran ; en superposition : prix (surbrillance), taille, marque, badge source (eBay / Etsy / Vestiaire Collective / enseigne neuf), badge état (neuf / très bon / bon), âge de l'annonce ("il y a 3 h").
