@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { View, StyleSheet, Dimensions, Platform, Pressable, Text } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, StyleSheet, Dimensions, Platform, Pressable, Text, Image } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -365,6 +365,15 @@ export function SwipeDeck({
       callbacksRef.current.onAlert(product);
     }
   }, []);
+
+  useEffect(() => {
+    const start = currentIndex + 2;
+    const end = Math.min(start + 10, products.length);
+    for (let i = start; i < end; i++) {
+      const url = products[i]?.imageUrls?.[0];
+      if (url) Image.prefetch(url);
+    }
+  }, [currentIndex, products]);
 
   if (currentIndex >= products.length) return null;
 

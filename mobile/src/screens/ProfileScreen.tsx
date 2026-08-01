@@ -1,12 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../components';
 import { useAuth } from '../context/AuthContext';
-import { usePreferences } from '../context/PreferencesContext';
+import { usePreferences, NotificationFrequency } from '../context/PreferencesContext';
+import { usePremium } from '../billing';
+import { apiPatch } from '../api/client';
 import { colors, typography, spacing, borderRadius } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
 
@@ -16,15 +18,26 @@ const GENDER_LABELS = {
   unisex: 'Tout',
 } as const;
 
+const ALL_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'] as const;
+
+const NOTIF_OPTIONS: { key: NotificationFrequency; label: string; desc: string }[] = [
+  { key: 'instant', label: 'Instantané', desc: 'Chaque alerte dès qu\'elle matche' },
+  { key: 'daily_digest', label: 'Résumé quotidien', desc: 'Un récap par jour à 19h' },
+  { key: 'disabled', label: 'Désactivées', desc: 'Aucune notification push' },
+];
+
 export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const rootNav = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
-  const { isAuthenticated, email, logout, deleteAccount } = useAuth();
-  const { gender } = usePreferences();
+  const { isAuthenticated, email, token, logout, deleteAccount } = useAuth();
+  const { gender, sizes, notificationFrequency, setSizes, setNotificationFrequency } = usePreferences();
+  const { isActive: isPremium, isTrialing, loading: premiumLoading } = usePremium();
+
+  const nav = rootNav ?? navigation;
 
   const resetToOnboarding = () =>
-    (rootNav ?? navigation).dispatch(
+    nav.dispatch(
       CommonActions.reset({ index: 0, routes: [{ name: 'Onboarding' }] }),
     );
 
@@ -53,9 +66,6 @@ export function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // This used to call logout() only: the account, the profile and
-              // the event log stayed on the server while the screen claimed
-              // they were deleted for good.
               await deleteAccount();
               resetToOnboarding();
             } catch {
@@ -70,13 +80,37 @@ export function ProfileScreen() {
     );
   };
 
+  const toggleSize = (size: string) => {
+    const next = sizes.includes(size)
+      ? sizes.filter(s => s !== size)
+      : [...sizes, size];
+    setSizes(next);
+    if (token) {
+      apiPatch('/profile', { hard_constraints: { sizes: next } }, { token }).catch(() => {});
+    }
+  };
+
+  const handleNotifChange = (freq: NotificationFrequency) => {
+    setNotificationFrequency(freq);
+    if (token) {
+      apiPatch('/notifications/preferences', { preference: freq }, { token }).catch(() => {});
+    }
+  };
+
+  const premiumLabel = premiumLoading
+    ? 'Chargement…'
+    : isPremium
+      ? isTrialing ? 'Gold (essai)' : 'Gold'
+      : 'Gratuit';
+
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 120 }}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Text style={styles.title}>Profil</Text>
       </View>
 
       <View style={styles.body}>
+        {/* Account card */}
         {isAuthenticated ? (
           <View style={styles.accountCard}>
             <View style={styles.avatarWrap}>
@@ -101,25 +135,102 @@ export function ProfileScreen() {
           </View>
         )}
 
-        {/* Personalisation used to be rendered only for signed-in users, so a
-            visitor browsing without an account had no way to change the gender
-            or the algorithm — while the first screen promised exactly that. */}
+        {/* Subscription */}
+        <View style={styles.menuSection}>
+          <Text style={styles.menuLabel}>ABONNEMENT</Text>
+          <View style={styles.menuCard}>
+            <View style={styles.subscriptionRow}>
+              <View style={styles.subscriptionInfo}>
+                <Text style={styles.subscriptionStatus}>{premiumLabel}</Text>
+                <Text style={styles.subscriptionSub}>
+                  {isPremium ? 'Alertes instantanées et illimitées' : 'Alertes limitées, délai 30 min'}
+                </Text>
+              </View>
+              {isPremium ? (
+                <View style={styles.premiumBadge}>
+                  <Ionicons name="flash" size={12} color={colors.gold} />
+                  <Text style={styles.premiumBadgeText}> GOLD</Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.upgradeBtn}
+                  onPress={() => nav.navigate('Paywall' as never)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.upgradeBtnText}>Passer Gold</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+
+        {/* Personalisation */}
         <View style={styles.menuSection}>
           <Text style={styles.menuLabel}>PERSONNALISATION</Text>
           <View style={styles.menuCard}>
             <Button
               title="Mon algorithme"
-              onPress={() => (rootNav ?? navigation).navigate('Algorithm' as never)}
+              onPress={() => nav.navigate('Algorithm' as never)}
             />
             <Button
               title={`Je cherche : ${GENDER_LABELS[gender ?? 'unisex']}`}
               variant="outline"
-              onPress={() => (rootNav ?? navigation).navigate('GenderLanguage' as never)}
+              onPress={() => nav.navigate('GenderLanguage' as never)}
               style={styles.settingButton}
             />
           </View>
         </View>
 
+        {/* Sizes */}
+        <View style={styles.menuSection}>
+          <Text style={styles.menuLabel}>MES TAILLES</Text>
+          <View style={styles.menuCard}>
+            <Text style={styles.sizesHint}>Sélectionne tes tailles pour filtrer les résultats</Text>
+            <View style={styles.sizesGrid}>
+              {ALL_SIZES.map(size => {
+                const selected = sizes.includes(size);
+                return (
+                  <TouchableOpacity
+                    key={size}
+                    style={[styles.sizeChip, selected && styles.sizeChipActive]}
+                    onPress={() => toggleSize(size)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.sizeText, selected && styles.sizeTextActive]}>{size}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+
+        {/* Notification frequency */}
+        <View style={styles.menuSection}>
+          <Text style={styles.menuLabel}>NOTIFICATIONS</Text>
+          <View style={styles.menuCard}>
+            {NOTIF_OPTIONS.map(opt => {
+              const active = notificationFrequency === opt.key;
+              return (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[styles.notifRow, active && styles.notifRowActive]}
+                  onPress={() => handleNotifChange(opt.key)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.notifRadio}>
+                    {active && <View style={styles.notifRadioDot} />}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.notifLabel, active && styles.notifLabelActive]}>{opt.label}</Text>
+                    <Text style={styles.notifDesc}>{opt.desc}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Account */}
         <View style={styles.menuSection}>
           <Text style={styles.menuLabel}>COMPTE</Text>
           <View style={styles.menuCard}>
@@ -136,13 +247,13 @@ export function ProfileScreen() {
             ) : (
               <Button
                 title="Se connecter"
-                onPress={() => (rootNav ?? navigation).navigate('Login' as never)}
+                onPress={() => nav.navigate('Login' as never)}
               />
             )}
           </View>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -221,5 +332,122 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     opacity: 0.55,
+  },
+  subscriptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.xs,
+  },
+  subscriptionInfo: {
+    flex: 1,
+  },
+  subscriptionStatus: {
+    ...typography.bodyBold,
+    color: colors.textPrimary,
+  },
+  subscriptionSub: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  premiumBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.goldBg,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+  },
+  premiumBadgeText: {
+    color: colors.gold,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  upgradeBtn: {
+    backgroundColor: colors.accent,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  upgradeBtnText: {
+    color: colors.accentText,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  sizesHint: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    paddingHorizontal: spacing.xs,
+  },
+  sizesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    paddingTop: spacing.xs,
+  },
+  sizeChip: {
+    width: 48,
+    height: 40,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sizeChipActive: {
+    backgroundColor: colors.textPrimary,
+    borderColor: colors.textPrimary,
+  },
+  sizeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  sizeTextActive: {
+    color: colors.textInverse,
+  },
+  notifRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    borderRadius: borderRadius.sm,
+  },
+  notifRowActive: {
+    backgroundColor: colors.accentLight,
+  },
+  notifRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notifRadioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.accent,
+  },
+  notifLabel: {
+    ...typography.bodyBold,
+    color: colors.textPrimary,
+    fontSize: 14,
+  },
+  notifLabelActive: {
+    color: colors.accentDark,
+  },
+  notifDesc: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 1,
   },
 });
