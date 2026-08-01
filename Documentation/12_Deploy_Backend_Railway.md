@@ -27,16 +27,8 @@ railway link          # lie au repo GitHub (recommandé pour auto-deploy)
 Dans le dashboard Railway :
 1. **New Service → Database → PostgreSQL**
 2. Récupérer `DATABASE_URL` dans les variables du service PostgreSQL
-3. **IMPORTANT** : Railway fournit PostgreSQL standard. Pour pgvector :
-   - Soit utiliser l'image `pgvector/pgvector:pg16` via un service custom
-   - Soit passer par Supabase (qui inclut pgvector nativement) — recommandé pour le MVP
+3. **IMPORTANT** : Railway fournit PostgreSQL standard. Pour pgvector, utiliser l'image `pgvector/pgvector:pg16` via un service custom :
 
-### Option A — Supabase (recommandé MVP)
-1. Créer un projet sur https://supabase.com (plan gratuit ok pour Gate 1)
-2. Récupérer la `DATABASE_URL` dans Settings → Database
-3. pgvector est pré-installé (`CREATE EXTENSION IF NOT EXISTS vector;` s'exécute proprement)
-
-### Option B — Railway PostgreSQL + custom image
 ```bash
 railway add --plugin postgresql
 # Puis dans le service DB, changer l'image pour pgvector/pgvector:pg16

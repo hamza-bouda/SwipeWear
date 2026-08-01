@@ -101,8 +101,8 @@ Le swipe reste l'interface d'entraînement (et le format viral TikTok) ; les ale
 ## 4. Exigences Fonctionnelles (MVP)
 
 ### 4.1 Onboarding & Profiling
-* **F01 — Inscription :** Email / Apple ID / Google. Durée cible < 60 secondes.
-* **F02 — Calibrage de style (Cold Start) :** sélection genre + tailles + swipe de calibration sur 30 images archétypales (streetwear, minimaliste, Y2K, workwear, grunge…) pour initialiser le vecteur de goût avant le premier feed réel.
+* **F01 — Inscription :** Email / Google (Firebase Auth). Durée cible < 60 secondes. Identité anonyme pour la navigation sans compte.
+* **F02 — Calibrage de style (Cold Start) :** sélection genre + tailles + choix d'archétypes de style (8 clusters : streetwear, minimaliste, Y2K, workwear, grunge, bohème, sport, classique) ou import d'images d'inspiration pour initialiser le vecteur de goût avant le premier feed réel.
 
 ### 4.2 Swipe Deck (entraînement)
 * **F03 — Carte article :** photo plein écran, prix, taille, marque, badge source (eBay/Etsy/VC/neuf), badge état.
@@ -130,14 +130,14 @@ Le swipe reste l'interface d'entraînement (et le format viral TikTok) ; les ale
 ### 5.1 Contraintes Techniques
 * **Latence :** échelle de prix < 400 ms (recherche pgvector HNSW pré-indexée) ; carte de swipe < 200 ms.
 * **Fraîcheur :** re-scan des sources API toutes les 15-60 min selon quota ; purge des annonces mortes par vérification différée + signalement communautaire.
-* **Coût d'inférence :** CLIP `ViT-B-32` sur CPU (≈100 ms/image à l'ingestion) ; aucun GPU requis au MVP.
+* **Coût d'inférence :** Marqo-FashionSigLIP (768 dimensions) sur CPU (≈350 ms/image à l'ingestion) ; aucun GPU requis au MVP.
 * **Push :** Expo Notifications ; file de priorité stricte Premium > Gratuit.
 
 ### 5.2 Principe d'architecture non négociable : survivre sans Vinted
 Aucun composant critique (catalogue, échelle de prix, drop, revenus) ne dépend de Vinted. Vinted n'apparaît que dans la surveillance user-initiated (F12), conçue pour être coupée sans casser le produit. **Tout développement qui violerait ce principe est refusé en revue de code.**
 
 ### 5.3 Contraintes Réglementaires
-* **RGPD :** données stockées limitées à l'email (haché), tailles, et vecteur de style (512 flottants, anonyme par nature). Suppression de compte et d'historique en un tap. Pas de tracker publicitaire tiers au MVP.
+* **RGPD :** données stockées limitées à l'email, tailles, et vecteur de style (768 flottants, anonyme par nature). Suppression de compte et d'historique en un tap. Pas de tracker publicitaire tiers au MVP.
 * **Transparence affiliation :** mention "lien partenaire" conforme aux obligations d'information (pratiques commerciales trompeuses, DGCCRF).
 * **CGU des sources :** usage exclusif des API et flux officiels dans les limites de leurs conditions ; quotas respectés programmatiquement.
 
