@@ -15,7 +15,7 @@ EXPLORATION_MARKER = "exploration"
 def epsilon_greedy_inject(
     feed: RankedFeed,
     catalogue_sample: list[ProductRecord],
-    epsilon: float = 0.1,
+    epsilon: float = 0.15,
     rng: random.Random | None = None,
 ) -> RankedFeed:
     if not feed.items or epsilon <= 0.0 or not catalogue_sample:
