@@ -18,6 +18,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 import { usePremium } from '../billing';
 
@@ -33,10 +34,19 @@ const BENEFITS = [
 ];
 
 export default function PaywallScreen({ onSuccess, onDismiss }: Props) {
+  const navigation = useNavigation();
   const { purchase, restore } = usePremium();
   const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const dismiss = () => {
+    if (onDismiss) {
+      onDismiss();
+    } else if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  };
 
   async function handlePurchase() {
     setPurchasing(true);
@@ -44,7 +54,11 @@ export default function PaywallScreen({ onSuccess, onDismiss }: Props) {
     const result = await purchase();
     setPurchasing(false);
     if (result.success && result.isActive) {
-      onSuccess?.();
+      if (onSuccess) {
+        onSuccess();
+      } else if (navigation.canGoBack()) {
+        navigation.goBack();
+      }
     } else if (result.error) {
       setErrorMsg(result.error);
     }
@@ -56,7 +70,11 @@ export default function PaywallScreen({ onSuccess, onDismiss }: Props) {
     const result = await restore();
     setRestoring(false);
     if (result.isActive) {
-      onSuccess?.();
+      if (onSuccess) {
+        onSuccess();
+      } else if (navigation.canGoBack()) {
+        navigation.goBack();
+      }
     } else {
       setErrorMsg('Aucun achat trouvé à restaurer.');
     }
@@ -65,11 +83,9 @@ export default function PaywallScreen({ onSuccess, onDismiss }: Props) {
   return (
     <View style={styles.container}>
       {/* Close button */}
-      {onDismiss && (
-        <Pressable style={styles.closeButton} onPress={onDismiss} hitSlop={12}>
-          <Text style={styles.closeText}>✕</Text>
-        </Pressable>
-      )}
+      <Pressable style={styles.closeButton} onPress={dismiss} hitSlop={12}>
+        <Text style={styles.closeText}>✕</Text>
+      </Pressable>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header */}
