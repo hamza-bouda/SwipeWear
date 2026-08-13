@@ -6,7 +6,6 @@ Every schema carries a schema_version field.
 """
 from __future__ import annotations
 
-from datetime import datetime
 from enum import Enum
 from typing import Any
 from uuid import UUID
@@ -19,24 +18,10 @@ class SchemaVersion(str, Enum):
 
 
 # ---------------------------------------------------------------------------
-# Interaction events (source of truth for profile updates)
+# Interaction events — canonical schema lives in contracts/events.py (KAN-18)
 # ---------------------------------------------------------------------------
 
-class SwipeDirection(str, Enum):
-    right = "right"
-    left_style = "left_style"
-    left_price = "left_price"
-
-
-class InteractionEvent(BaseModel):
-    schema_version: SchemaVersion = SchemaVersion.v1
-    event_id: UUID
-    user_id: UUID
-    product_id: str
-    action: SwipeDirection | str
-    timestamp: datetime
-    session_id: UUID
-    metadata: dict[str, Any] = Field(default_factory=dict)
+from contracts.events import EventType, InteractionEvent  # noqa: E402, F401
 
 
 # ---------------------------------------------------------------------------
