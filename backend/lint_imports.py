@@ -13,8 +13,8 @@ from pathlib import Path
 
 BACKEND = Path(__file__).parent
 MODULES = [
-    "contracts","ingestion","vision","embeddings","preferences",
-    "retrieval","ranking","policy","explainability","evaluation","orchestration"
+    "contracts", "ingestion", "vision", "embeddings", "preferences",
+    "retrieval", "ranking", "policy", "explainability", "evaluation", "orchestration",
 ]
 MODULE_SET = set(MODULES)
 

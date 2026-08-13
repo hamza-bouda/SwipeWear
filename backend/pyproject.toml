@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "swipewear-backend"
@@ -18,6 +18,9 @@ dev = [
     "flake8>=7.0",
     "mypy>=1.9",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
 
 [tool.pytest.ini_options]
 testpaths = [

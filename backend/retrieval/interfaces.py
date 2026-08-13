@@ -6,5 +6,6 @@ async def retrieve_candidates(
     hard_constraints: HardConstraints,
     top_k: int = 200,
 ) -> CandidateSet:
-    # pgvector HNSW cosine. Latency < 100 ms CPU. Fallback: recent products matching hard constraints.
+    # pgvector HNSW cosine. Latency < 100 ms CPU.
+    # Fallback: recent products matching hard constraints.
     raise NotImplementedError
