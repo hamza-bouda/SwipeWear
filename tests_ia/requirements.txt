@@ -1,0 +1,17 @@
+# SwipeWear — dépendances du test de faisabilité IA
+# Install : pip install -r requirements.txt
+# (CPU uniquement — aucun GPU requis)
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.2
+pillow>=10.0
+numpy>=1.26
+
+# Étape 1 — embeddings mode (Marqo-FashionSigLIP)
+open_clip_torch>=2.24
+
+# Étape 2 — parsing des titres d'annonces
+gliner>=0.2
+
+# Étapes 3-4 (--all) — DINOv2 + SegFormer
+transformers>=4.44

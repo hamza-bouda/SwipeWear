@@ -1,70 +1,105 @@
-# 📊 Analyse des Risques — SwipeWear
+# 📊 Analyse des Risques — SwipeWear 2.0
 
-Ce document identifie les risques techniques, juridiques et commerciaux du projet **SwipeWear**, établit une matrice d'impact/probabilité et propose des plans de mitigation précis.
+Identification, cotation et mitigation des risques de la v2.0. **Note méthodologique :** la matrice v1.0 sous-cotait systématiquement les risques structurels (le scraping Vinted était noté "moyen" alors qu'il était fatal). Cette version applique une règle de cotation stricte : *un risque qui peut tuer le projet à lui seul est coté impact 5, quelle que soit la gêne que ça cause au dossier.*
 
 ---
 
-## 1. Identification et Classification des Risques
+## 1. Registre des Risques
 
-### 1.1 Risques Techniques (T)
-*   **T1 - Blocage technique du scraping (IP Ban) :** Vinted/Depop bloquent l'aspiration des annonces via Cloudflare ou des limites de requêtes (rate limits).
-*   **T2 - Problème de performance de l'IA sur serveur low-cost :** Latence trop élevée (> 500ms) pour le calcul d'embeddings CLIP sur CPU de base, ruinant la fluidité du swipe.
-*   **T3 - Liens d'annonces morts (Articles vendus) :** Redirection de l'utilisateur vers des articles déjà achetés par d'autres utilisateurs sur Vinted.
+### 1.1 Risques Produit / Marché (P)
+* **P1 — La boucle "alerte" ne prend pas :** les utilisateurs swipent mais ne créent pas d'alertes ; la rétention retombe sur le divertissement seul → destin Mallzee/Grabble (churn massif après la nouveauté).
+* **P2 — Gate 1 échoue :** le contenu TikTok ne génère ni vues ni liste d'attente ; la demande grand public pour le concept n'est pas démontrée.
+* **P3 — Déception du cold start :** les premiers Drops sont médiocres avant que le profil de style ne converge (~30-50 swipes) ; churn J1-J3 élevé.
+* **P4 — Notifications perçues comme du spam :** matching d'alertes imprécis → l'utilisateur désactive le push → le moteur de rétention meurt silencieusement.
 
-### 1.2 Risques Juridiques (J)
-*   **J1 - Action légale des plateformes sources (Droits de propriété intellectuelle) :** Poursuites ou mises en demeure par Vinted/Depop pour aspiration de données ou violation de leurs conditions d'utilisation.
-*   **J2 - Non-conformité RGPD (Profilage) :** Mauvaise gestion des données utilisateur ou non-respect du droit à l'effacement de l'historique de style.
+### 1.2 Risques Techniques (T)
+* **T1 — Erreurs de matching "même pièce" (V1.5) :** afficher comme identique un article qui ne l'est pas détruit la confiance dans le comparateur.
+* **T2 — Annonces mortes dans l'échelle de prix :** les pièces d'occasion se vendent en heures ; des liens morts frustrent et décrédibilisent.
+* **T3 — Qualité/hétérogénéité des flux sources :** tailles non normalisées, catégories incohérentes, doublons inter-plateformes → expérience dégradée.
+* **T4 — Hotlinking d'images refusé par une source :** images cassées dans le feed.
 
-### 1.3 Risques Commerciaux (C)
-*   **C1 - Taux de désinstallation élevé (User Churn) :** L'utilisateur s'amuse à swiper les premiers jours mais se lasse et supprime l'application par manque de renouvellement de valeur.
-*   **C2 - Coût d'infrastructure supérieur aux revenus :** Les abonnements premium ne couvrent pas les serveurs si le volume d'utilisateurs gratuits est trop grand.
+### 1.3 Risques Business / Externes (B)
+* **B1 — Dégradation des programmes d'affiliation :** baisse des commissions, durcissement des quotas API, exclusion du programme.
+* **B2 — Copie par un acteur financé** (Faircado pivotant mobile, startup nouvelle, feature Vinted).
+* **B3 — Fermeture de la surveillance Vinted user-initiated** (durcissement anti-bot).
+* **B4 — Épuisement des fondateurs :** 20h/semaine sur 12 mois en parallèle des études ; risque d'abandon avant le signal de traction.
+
+### 1.4 Risques Juridiques (J)
+* **J1 — Contestation de la surveillance Vinted** (CGU) — périmètre réduit vs v1.0 mais non nul.
+* **J2 — Non-conformité RGPD / transparence affiliation** (mentions "lien partenaire", consentements push).
 
 ---
 
 ## 2. Matrice Probabilité / Impact
 
-| ID | Risque | Probabilité (1-5) | Impact (1-5) | Criticité (P x I) |
-| :--- | :--- | :---: | :---: | :---: |
-| **T1** | Blocage technique du scraping | 4 | 3 | **12 (Moyen)** |
-| **T2** | Latence élevée de l'IA (CPU) | 3 | 4 | **12 (Moyen)** |
-| **T3** | Liens d'annonces morts | 5 | 2 | **10 (Moyen)** |
-| **J1** | Actions légales de Vinted/Depop | 2 | 5 | **10 (Moyen)** |
-| **J2** | Non-conformité RGPD | 1 | 5 | **5 (Faible)** |
-| **C1** | Churn élevé (Lassitude) | 4 | 4 | **16 (Élevé)** |
-| **C2** | Coût infrastructure trop élevé | 2 | 3 | **6 (Faible)** |
+| ID | Risque | Prob. (1-5) | Impact (1-5) | Criticité | Tendance vs v1.0 |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **P1** | Boucle alerte ne prend pas | 3 | 5 | **15 — ÉLEVÉ** | Nouveau — LE risque central |
+| **P4** | Push perçu comme spam | 3 | 4 | **12 — Élevé** | Nouveau |
+| **T1** | Erreur matching "même pièce" | 3 | 4 | **12 — Élevé** | Nouveau (V1.5) |
+| **B2** | Copie par acteur financé | 3 | 4 | **12 — Élevé** | ↑ (le concept validé attire) |
+| **P2** | Gate 1 échoue | 4 | 3 | **12 — Élevé*** | *Impact limité par design : échec à coût quasi nul, avant tout code |
+| **T2** | Annonces mortes | 4 | 3 | **12 — Élevé** | = |
+| **B4** | Épuisement fondateurs | 3 | 4 | **12 — Élevé** | Nouveau (honnêteté) |
+| **P3** | Déception cold start | 3 | 3 | **9 — Moyen** | = |
+| **T3** | Hétérogénéité des flux | 4 | 2 | **8 — Moyen** | Nouveau |
+| **B1** | Dégradation affiliation | 2 | 4 | **8 — Moyen** | Remplace le risque scraping |
+| **B3** | Fermeture watcher Vinted | 4 | 2 | **8 — Moyen** | ↓↓ (impact 5→2 : le produit y survit par design) |
+| **T4** | Hotlink refusé | 3 | 2 | **6 — Faible** | = |
+| **J1** | Contestation Vinted | 2 | 2 | **4 — Faible** | ↓↓ (périmètre user-initiated, coupable) |
+| **J2** | RGPD / transparence | 1 | 4 | **4 — Faible** | = |
+
+**Lecture :** le profil de risque a changé de nature. La v1.0 concentrait le risque sur des facteurs **externes et subis** (blocage Vinted, procès). La v2.0 le concentre sur des facteurs **comportementaux et mesurables** (P1, P4) — c'est-à-dire testables tôt, à faible coût, par les Gates.
 
 ---
 
-## 3. Plan de Mitigation et Stratégies de Secours
+## 3. Plans de Mitigation
 
-### 3.1 Risques Techniques
-*   **Mitigation T1 (Blocage Scraping) :** 
-    1.  Limiter la fréquence des requêtes en arrière-plan.
-    2.  Utiliser un proxy résidentiel rotatif.
-    3.  *Plan B :* Permettre aux utilisateurs d'importer eux-mêmes des liens d'annonces qu'ils trouvent sympas (crowdsourcing du catalogue) ou utiliser des flux RSS d'annonces publiques si disponibles.
-*   **Mitigation T2 (Latence IA) :** 
-    1.  Utiliser le modèle de vision CLIP le plus léger (`clip-ViT-B-32`).
-    2.  Mettre en cache les embeddings générés pour éviter de recalculer deux fois la même image.
-    3.  Préchager les 10 prochaines cartes (Pre-fetching) côté client pendant que l'utilisateur regarde la carte active.
-*   **Mitigation T3 (Liens morts) :**
-    1.  Mettre en place un script de nettoyage en tâche de fond (cron job) qui vérifie périodiquement si les articles en base sont toujours en ligne.
-    2.  Ajouter un bouton "Signaler comme vendu" dans l'application pour impliquer la communauté.
+### 3.1 P1 — La boucle alerte ne prend pas (criticité 15)
+1. **Mesurer avant d'investir :** Gate 2 (beta 100 utilisateurs) avec seuil explicite — ≥30% créent ≥2 alertes et reviennent en semaine 2. Sous 15% : pivot vers comparateur pur ou arrêt. Le risque maximal est ainsi plafonné à ~3 mois de travail.
+2. **Réduire la friction de création d'alerte à un geste :** le Swipe Haut crée une alerte pré-remplie (style de la carte + taille du profil + budget médian). Pas de formulaire.
+3. **Éduquer par la preuve :** après chaque pépite ratée ("vendue il y a 2h"), proposer : *"Crée une alerte pour ne plus la rater."* Le regret est le meilleur vendeur d'alertes.
 
-### 3.2 Risques Juridiques
-*   **Mitigation J1 (Actions Vinted/Depop) :**
-    1.  Ne pas héberger ni copier les images sur les serveurs de SwipeWear (stocker uniquement les URLs d'origine).
-    2.  Ne pas masquer la source : la redirection doit ouvrir directement l'application Vinted officielle sur la bonne fiche produit. SwipeWear agit comme un apporteur d'audience et de trafic qualifié gratuit, réduisant leur intérêt à engager des poursuites.
-    3.  Ajuster les conditions générales de vente pour préciser que SwipeWear est un moteur de recherche visuel indépendant.
-*   **Mitigation J2 (RGPD) :**
-    1.  Ne stocker aucune donnée sensible. L'e-mail peut être haché.
-    2.  Le profil de style vectoriel (une suite de 512 nombres décimaux) est anonyme par nature.
-    3.  Bouton de suppression instantanée de compte et d'historique en base dans les réglages de l'application.
+### 3.2 P4 — Push spam (12)
+1. Seuils stricts : aucune notification sous 90% de similarité + taille exacte + budget respecté.
+2. Plafond gratuit : max 1 notification/jour hors Drop (le Premium lève le plafond — l'alignement est vertueux : payer = en recevoir plus, donc les seuils gratuits restent exigeants).
+3. Kill-switch par alerte + réglage de fréquence dès la V1 (pas "plus tard").
 
-### 3.3 Risques Commerciaux
-*   **Mitigation C1 (Churn élevé) :**
-    1.  **Gamification active :** Intégrer un système de streaks de style, de défis de création de looks hebdomadaires ou de votes communautaires sur les meilleures tenues.
-    2.  **Notifications push intelligentes :** Alerter l'utilisateur lorsqu'une nouvelle pièce unique correspondant à 95% à son style vectoriel vient d'être indexée dans sa taille.
-*   **Mitigation C2 (Coût serveurs) :**
-    1.  Architecture backend serverless stateless : payer uniquement pour les requêtes actives.
-    2.  Limiter le nombre de requêtes d'outfits gratuites par utilisateur pour forcer la conversion premium ou réduire la charge serveur.
-    3.  Limiter la taille de la base de données active à 10 000 articles récents (supprimer automatiquement les anciennes annonces).
+### 3.3 T1 — Matching "même pièce" (12)
+1. Architecture à deux étages étiquetée honnêtement : "🎯 La même pièce" (uniquement catalogue de référence vérifié, seuil de confiance élevé) vs "👀 Dans le même style". **Sous le seuil → rétrogradation automatique en "même style". Jamais de fausse promesse.**
+2. Bouton "ce n'est pas la même pièce" → retrait immédiat + correction du catalogue de référence.
+3. Déploiement incrémental : 100 produits iconiques d'abord, extension seulement quand la précision mesurée > 95%.
+
+### 3.4 T2 — Annonces mortes (12)
+1. Vérification différée par worker (priorité aux articles les plus servis dans les feeds/échelles).
+2. Tri du feed par fraîcheur : un article de moins de 24h a une probabilité de disponibilité élevée — le Drop ne sert que du < 48h.
+3. Bouton communautaire "déjà vendu" (retrait immédiat + signal au worker).
+4. Affichage de l'âge de l'annonce ("vue il y a 3h") : l'utilisateur calibre lui-même sa confiance.
+
+### 3.5 B2 — Copie (12)
+1. Creuser les trois actifs incopiables à court terme : taste graph (volume de swipes), catalogue de référence (curation manuelle), audience TikTok (marque).
+2. Vitesse : lancement France en 5 mois, pas de perfectionnisme — le coût d'un trimestre de retard est supérieur au coût de toute dette technique du MVP.
+3. Ne pas publier la méthode de matching (le "comment" reste privé, le build in public montre le produit, pas les entrailles).
+
+### 3.6 B4 — Épuisement (12)
+1. Gates = points de sortie honorables prédéfinis : on ne s'épuise pas sur un projet que les chiffres ont invalidé.
+2. Rythme soutenable planifié (pauses examens intégrées, doc 08) plutôt que sprints héroïques suivis d'abandon.
+3. Règle des rôles : chacun un périmètre clair (produit / croissance) — les projets à deux meurent plus souvent de friction floue que de manque de talent.
+
+### 3.7 B1 / B3 / T3 / T4 — Dépendances externes
+* **B1 :** aucune source > 40% du catalogue ; métadonnées en cache local ; le Premium (revenu indépendant des sources) couvre les coûts fixes seul dès ~1 000 MAU.
+* **B3 :** module watcher isolé, coupable en une variable d'environnement, sans impact sur catalogue/revenus/échelle de prix. Communication prévue aux utilisateurs le cas échéant.
+* **T3 :** couche de normalisation centralisée (tailles, états, catégories) avec tests unitaires par source ; toute nouvelle source passe par elle.
+* **T4 :** fallback proxy de miniatures avec cache court ; suppression de la source du feed si son CDN bloque durablement.
+
+### 3.8 J1 / J2 — Juridique
+* **J1 :** fréquence de vérification plafonnée par utilisateur et par alerte (comportement assimilable à un utilisateur assidu) ; aucune constitution de base de données Vinted (seules les correspondances aux alertes de l'utilisateur transitent) ; arrêt du module sans discussion en cas de mise en demeure — il est périphérique par design.
+* **J2 :** mentions "lien partenaire" sur chaque lien affilié ; opt-in push explicite ; registre de traitement minimal (email haché, tailles, vecteur de style) ; suppression de compte en un tap.
+
+---
+
+## 4. Risques résiduels acceptés (en connaissance de cause)
+
+1. **Le produit peut être copié.** Accepté : la défense est la vitesse et les actifs cumulatifs, pas un moat initial illusoire.
+2. **L'inventaire occasion hors Vinted est plus faible en entrée de gamme.** Accepté : positionnement de lancement "marques & vintage", où eBay/VC sont forts.
+3. **Le succès dépend de la traction TikTok, partiellement aléatoire.** Accepté et borné : 8 vidéos testées sur 2 semaines avant toute ligne de code (Gate 1) ; l'aléa est acheté au prix le plus bas possible.
