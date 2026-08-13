@@ -40,30 +40,16 @@ class InteractionEvent(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# User preference profile
+# User preference profile — canonical schema lives in contracts/profile.py (KAN-17)
 # ---------------------------------------------------------------------------
 
-class HardConstraints(BaseModel):
-    sizes: list[str] = Field(default_factory=list)
-    max_price_eur: float | None = None
-    regions: list[str] = Field(default_factory=list)
-
-
-class StyleVector(BaseModel):
-    embedding_version: str = "fashionsiglip-v1"
-    vector_dim: int = 512
-    values: list[float]
-
-
-class UserPreferenceProfile(BaseModel):
-    schema_version: SchemaVersion = SchemaVersion.v1
-    user_id: UUID
-    hard_constraints: HardConstraints = Field(default_factory=HardConstraints)
-    style_vector: StyleVector | None = None
-    attribute_weights: dict[str, float] = Field(default_factory=dict)
-    negative_evidence: list[str] = Field(default_factory=list)
-    last_updated: datetime
-    event_count: int = 0
+from contracts.profile import (  # noqa: E402, F401
+    EditablePreferences,
+    HardConstraints,
+    LockedAttribute,
+    StyleVectors,
+    UserPreferenceProfile,
+)
 
 
 # ---------------------------------------------------------------------------
