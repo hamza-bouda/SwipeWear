@@ -1,316 +1,83 @@
-# 💼 Business Model Canvas — DetoxApp
+# 📊 Business Model Canvas — SwipeWear
 
-**Version :** 1.0  
-**Date :** 01 Mars 2026  
-**Auteur :** Chef de Projet  
+Ce document présente les 9 blocs stratégiques du modèle d'affaires de **SwipeWear** appliqué au marché mondial et européen.
 
 ---
 
-## Business Model Canvas (Vue Globale)
-
 ```
-┌──────────────────┬──────────────────┬──────────────────┬──────────────────┬──────────────────┐
-│                  │                  │                  │                  │                  │
-│  8. PARTENAIRES  │ 7. ACTIVITÉS     │ 2. PROPOSITION   │ 4. RELATION      │ 1. SEGMENTS      │
-│     CLÉS         │    CLÉS          │    DE VALEUR     │    CLIENT        │    CLIENTS       │
-│                  │                  │                  │                  │                  │
-│ • Créateurs de   │ • Dév. & maint.  │                  │ • Onboarding     │ • Étudiants      │
-│   contenu éduc.  │   de l'app       │ "Transformez     │   personnalisé   │   (18-25)        │
-│ • API IA (OpenAI)│ • Curation de    │  votre temps     │ • Défis quotid.  │ • Jeunes pro     │
-│ • Services Cloud │   contenu        │  d'écran en      │   (engagement)   │   (25-35)        │
-│   (Firebase,AWS) │ • Animation      │  temps de        │ • Communauté     │ • Ados conscients│
-│ • Influenceurs   │   communauté     │  croissance      │   de soutien     │   (15-18)        │
-│   bien-être      │ • Amélioration   │  personnelle"    │ • Notifications  │                  │
-│ • Universités /  │   algorithme IA  │                  │   intelligentes  │                  │
-│   écoles         │ • Marketing &    │ • Feed éducatif  │ • Support        │                  │
-│                  │   acquisition    │   personnalisé   │   in-app         │                  │
-│                  │                  │ • Défis quotid.  │                  │                  │
-│                  │                  │ • Gamification   │                  │                  │
-│                  │                  │ • Communauté     │                  │                  │
-│                  ├──────────────────┤                  ├──────────────────┤                  │
-│                  │                  │                  │                  │                  │
-│                  │ 6. RESSOURCES    │                  │ 3. CANAUX DE     │                  │
-│                  │    CLÉS          │                  │    DISTRIBUTION  │                  │
-│                  │                  │                  │                  │                  │
-│                  │ • Code source    │                  │ • App Store      │                  │
-│                  │ • Base de        │                  │ • Google Play    │                  │
-│                  │   contenu curé   │                  │ • Réseaux sociaux│                  │
-│                  │ • Algorithme IA  │                  │ • Bouche-à-      │                  │
-│                  │ • Communauté     │                  │   oreille        │                  │
-│                  │   d'utilisateurs │                  │ • Product Hunt   │                  │
-│                  │ • Données        │                  │ • SEO/ASO        │                  │
-│                  │   utilisateurs   │                  │ • Partenariats   │                  │
-│                  │                  │                  │                  │                  │
-├──────────────────┴──────────────────┴──────────┬───────┴──────────────────┴──────────────────┤
-│                                                │                                            │
-│ 9. STRUCTURE DE COÛTS                          │ 5. SOURCES DE REVENUS                      │
-│                                                │                                            │
-│ • Infrastructure cloud (hébergement, CDN)      │ • Abonnement Premium (4,99€/mois)          │
-│ • API IA (OpenAI, coût par requête)            │ • Contenu sponsorisé éducatif               │
-│ • Comptes développeur (Apple + Google)         │ • Partenariats B2B (entreprises)            │
-│ • Stockage et bande passante vidéo              │ • Achat in-app (badges, thèmes)             │
-│ • Outils de développement                       │ • Programme d'affiliation                    │
-│ • Marketing (si budget disponible)              │                                            │
-│                                                │                                            │
-└────────────────────────────────────────────────┴────────────────────────────────────────────┘
+┌────────────────────────┬────────────────────────┬────────────────────────┬────────────────────────┬────────────────────────┐
+│   Partenaires Clés     │    Activités Clés      │ Proposition de Valeur  │   Relations Clients    │  Segments de Clientèle │
+|                        │                        │                        │                        │                        |
+│ - Vinted / Depop       │ - Dev & UX mobile      │ - Découverte de mode   │ - Onboarding auto      │ - Gen Z & Millennials  │
+│ - Hébergeurs Cloud     │ - Ingestion & IA CLIP  │   seconde main par     │ - Communauté TikTok    │   éco-responsables     │
+│ - Influenceurs Vintage │ - Marketing de contenu │   swipe ludique.       │ - Respect strict du    │ - Passionnés de style  │
+│ - Hugging Face / Models│                        │ - Recommandation       │   RGPD (anonymat)      │   vintage unique       │
+|                        │                        │   esthétique par IA.   │                        │ - Acheteurs de fripes  │
+|                        │                        │ - Générateur de tenues │                        │   à petit budget       │
+│                        │                        │   (outfit matching).   │                        │                        │
+├────────────────────────┼────────────────────────┤                        ├────────────────────────┤                        │
+│    Ressources Clés     │        Canaux          │                        │                        │                        │
+|                        │                        │                        │                        │                        |
+│ - Compétences Dev/IA   │ - App Store (Apple)    │                        │ - App Stores           │                        │
+│ - CLIP model (open)    │ - Play Store (Google)  │                        │ - Réseaux (TikTok/Reels│                        │
+│ - BDD pgvector         │ - TikTok/Reels/Shorts  │                        │ - Bouche-à-oreille     │                        │
+├────────────────────────┴────────────────────────┴────────────────────────┴────────────────────────┴────────────────────────┤
+│                    Structure de Coûts                                   │                 Sources de Revenus                   │
+|                                                                         │                                                      |
+│ - Hébergement Cloud API & BDD (15€ - 30€/mois)                          │ - Freemium : Swipe illimité, mais tenues limitées    │
+│ - Licences Apple (99€/an) & Google (25$ unique)                         │   à 3 compositions par jour.                         │
+│ - Proxy / Scraper rotation IP (10€/mois)                                │ - Abonnement Premium (SwipeWear Gold) : 2,99€/mois   │
+│ - Marketing (0€ - uniquement organique)                                 │   pour tenues illimitées et filtres avancés.         │
+└─────────────────────────────────────────────────────────────────────────┴──────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Détail de Chaque Bloc
+## 1. Description Détaillée des 9 Blocs
 
-### 1. Segments de Clients
+### 1.1 Partenaires Clés (Key Partners)
+*   **Vinted & Depop :** En tant que sources de données (agrégation) et plateformes de finalisation des achats (redirection).
+*   **Hébergeurs Cloud (Railway / Render / Scaleway) :** Fournisseurs d'infrastructure cloud abordables et hébergés en Europe pour la base de données PostgreSQL et l'API FastAPI.
+*   **Créateurs de Contenu & Micro-Influenceurs Mode :** Relais de croissance essentiels pour tester l'application et la faire connaître organiquement.
+*   **Hugging Face :** Dépôt d'hébergement open-source pour le modèle CLIP utilisé pour l'indexation.
 
-#### Segment Principal : Jeunes adultes (18-35 ans) conscients du doom scrolling
+### 1.2 Activités Clés (Key Activities)
+*   **Développement Logiciel :** Amélioration continue de l'application React Native et optimisation de la fluidité des cartes de swipe.
+*   **Ingénierie IA :** Optimisation du pipeline d'indexation vectorielle des images de vêtements et ajustement de l'algorithme d'association d'outfits.
+*   **Maintenance du Scraper :** Mise à jour continue du robot d'aspiration des annonces pour s'adapter aux changements de design des plateformes sources.
+*   **Marketing de Contenu :** Création hebdomadaire de vidéos TikTok/Reels démontrant l'usage de l'application et les tenues trouvées.
 
-| Sous-segment | Taille estimée | Disposition à payer | Priorité |
-|-------------|---------------|-------------------|----------|
-| **Étudiants (18-25)** | Grande | Faible (budget limité) | ⭐⭐⭐⭐⭐ (volume) |
-| **Jeunes professionnels (25-35)** | Moyenne | Moyenne-Haute | ⭐⭐⭐⭐⭐ (valeur) |
-| **Adolescents conscients (15-18)** | Moyenne | Très faible (parents paient) | ⭐⭐⭐ |
-| **Parents inquiets** | Petite | Haute | ⭐⭐ (V2) |
-| **Entreprises (B2B)** | Petite | Très haute | ⭐⭐ (V3) |
+### 1.3 Ressources Clés (Key Resources)
+*   **Compétences Techniques (Solopreneur) :** Maîtrise de React Native, Python, FastAPI, et de l'ingénierie des embeddings.
+*   **Modèle CLIP d'OpenAI :** Ressource IA gratuite de base permettant la compréhension visuelle de haut niveau des vêtements.
+*   **Base de Données Vectorielle PostgreSQL :** Stockage performant et structuré de l'historique et des vecteurs de similarité.
 
-#### Jobs-to-be-Done (Travaux à Accomplir)
+### 1.4 Proposition de Valeur (Value Proposition)
+*   **Découverte Ludique :** Transforme la recherche fastidieuse de vêtements de seconde main en un jeu addictif (le swipe).
+*   **Recommandation Stylistique :** L'IA comprend le style visuel de l'utilisateur (grunge, streetwear, minimaliste) sans saisie de texte.
+*   **Coordination de Tenues (Outfits) :** L'application compose automatiquement des looks complets à partir de pièces d'occasion réelles disponibles à l'achat immédiat.
 
-| Job | Type | Priorité |
-|-----|------|----------|
-| "Je veux arrêter de perdre mon temps sur TikTok" | Fonctionnel | ⭐⭐⭐⭐⭐ |
-| "Je veux apprendre des choses intéressantes facilement" | Fonctionnel | ⭐⭐⭐⭐⭐ |
-| "Je veux sortir de ma zone de confort" | Émotionnel | ⭐⭐⭐⭐ |
-| "Je veux me sentir productif et fier de moi" | Émotionnel | ⭐⭐⭐⭐⭐ |
-| "Je veux rencontrer des gens qui partagent mes objectifs" | Social | ⭐⭐⭐ |
+### 1.5 Relations Clients (Customer Relationships)
+*   **Onboarding Automatisé :** Parcours utilisateur sans friction (création de compte et questionnaire de style en 1 minute).
+*   **Confiance & Transparence (RGPD) :** Aucune revente de données personnelles. Traitement de style vectoriel anonymisé.
+*   **Communauté Active :** Interaction avec les utilisateurs sur les réseaux sociaux (TikTok/Instagram) pour co-construire l'application (Build in Public).
 
----
+### 1.6 Canaux (Channels)
+*   **Magasins d'Applications (App Store & Google Play) :** Canal de téléchargement direct.
+*   **Réseaux Sociaux Organiques :** Publication de vidéos courtes (TikTok, Reels, Shorts) montrant l'application en action et des tenues dénichées.
+*   **Bouche-à-oreille numérique :** Partage facile d'outfits générés sur les stories des utilisateurs.
 
-### 2. Proposition de Valeur
+### 1.7 Segments de Clientèle (Customer Segments)
+*   **Les Étudiants et Jeunes Actifs (15-30 ans) :** Consommateurs de seconde main, sensibles aux prix, cherchant des marques de qualité.
+*   **Les Chercheurs de Style Unique (Vintage/Y2K) :** Personnes voulant se démarquer et s'habiller de manière singulière sans le prix du neuf.
+*   **Les Consommateurs Éco-Sensibles :** Personnes refusant d'acheter du neuf par conviction écologique.
 
-#### Value Proposition Canvas
+### 1.8 Structure de Coûts (Cost Structure)
+*   **Hébergement API & Base de données :** ~15€ à 30€/mois pour un serveur PostgreSQL + FastAPI de base.
+*   **Licences Développeur :** 99€/an pour Apple Developer et 25$ (paiement unique) pour Google Play Console.
+*   **Proxies pour Scraper :** ~10€/mois pour des adresses IP tournantes afin d'éviter le blocage de l'aspiration d'annonces.
+*   **Acquisition Client :** 0€ (entièrement basée sur le contenu organique).
 
-```
-┌─────────────────────────────────────────────────┐
-│              PROPOSITION DE VALEUR               │
-├─────────────────────────────────────────────────┤
-│                                                  │
-│  Créateurs de Gains :                           │
-│  ✦ Contenu éducatif format TikTok               │
-│  ✦ Défis quotidiens motivants                   │
-│  ✦ Progression visible (gamification)           │
-│  ✦ Communauté de soutien                        │
-│  ✦ IA qui comprend tes intérêts                 │
-│                                                  │
-│  Soulageurs de Douleurs :                       │
-│  ✦ Remplace le doom scrolling (pas bloque)      │
-│  ✦ Pas besoin de volonté surhumaine             │
-│  ✦ Rappels bienveillants (pas culpabilisants)   │
-│  ✦ Contenu pré-filtré (pas de déchets)          │
-│                                                  │
-│  Produits & Services :                          │
-│  ✦ App mobile (Android + iOS)                   │
-│  ✦ Feed de reels personnalisé                   │
-│  ✦ Système de défis journaliers                 │
-│  ✦ Messagerie & groupes thématiques             │
-│  ✦ Dashboard de progression                     │
-│                                                  │
-└─────────────────────────────────────────────────┘
-          ⬍  FIT  ⬍
-┌─────────────────────────────────────────────────┐
-│               PROFIL CLIENT                      │
-├─────────────────────────────────────────────────┤
-│                                                  │
-│  Gains Recherchés :                             │
-│  ✦ Se sentir productif                          │
-│  ✦ Apprendre chaque jour                        │
-│  ✦ Avoir plus de confiance en soi               │
-│  ✦ Vie sociale plus riche                       │
-│  ✦ Fierté personnelle                           │
-│                                                  │
-│  Douleurs :                                     │
-│  ✦ Perte de temps incontrôlée                   │
-│  ✦ Culpabilité après le scrolling               │
-│  ✦ Contenu toxique / inutile                    │
-│  ✦ Isolement social                             │
-│  ✦ Manque de motivation                         │
-│                                                  │
-│  Tâches du Client :                             │
-│  ✦ Utiliser son téléphone pendant les pauses    │
-│  ✦ S'occuper pendant les transports             │
-│  ✦ Se détendre avant de dormir                  │
-│  ✦ Apprendre de nouvelles compétences           │
-│                                                  │
-└─────────────────────────────────────────────────┘
-```
-
----
-
-### 3. Canaux de Distribution
-
-| Canal | Phase | Coût | Efficacité Attendue |
-|-------|-------|------|---------------------|
-| **Google Play Store** | MVP | 25€ (unique) | ⭐⭐⭐⭐ |
-| **Apple App Store** | MVP | 99€/an | ⭐⭐⭐⭐ |
-| **Bouche-à-oreille** | MVP | Gratuit | ⭐⭐⭐⭐ |
-| **Product Hunt** | Lancement | Gratuit | ⭐⭐⭐⭐⭐ |
-| **Reddit (r/nosurf, r/digitalminimalism)** | MVP | Gratuit | ⭐⭐⭐⭐⭐ |
-| **Instagram/TikTok (ironie marketing)** | Lancement | Gratuit-$$ | ⭐⭐⭐⭐ |
-| **ASO (App Store Optimization)** | Continu | Gratuit | ⭐⭐⭐⭐ |
-| **Blog / SEO** | Post-lancement | Gratuit (temps) | ⭐⭐⭐ |
-| **Partenariats influenceurs** | Croissance | Variable | ⭐⭐⭐ |
-| **Presse tech** | Lancement | Gratuit (PR) | ⭐⭐⭐ |
-
----
-
-### 4. Relation Client
-
-| Type de Relation | Description | Phase |
-|-----------------|-------------|-------|
-| **Self-service** | L'app fonctionne de manière autonome | MVP |
-| **Communauté** | Groupes thématiques, entraide entre utilisateurs | MVP |
-| **Automatisée** | Notifications personnalisées, recommandations IA | MVP |
-| **Support** | FAQ, email support | MVP |
-| **Co-création** | Les utilisateurs créent et partagent du contenu et des défis | V2 |
-
----
-
-### 5. Sources de Revenus
-
-#### Modèle recommandé : FREEMIUM
-
-##### Offre Gratuite (Free)
-| Fonctionnalité | Limitation |
-|----------------|-----------|
-| Feed de reels éducatifs | Limité à 30 reels/jour |
-| Défis quotidiens | 1 défi/jour |
-| Profil & statistiques de base | Basique |
-| 1 groupe thématique | Max 1 groupe |
-
-##### Offre Premium (4,99€/mois ou 39,99€/an)
-| Fonctionnalité | Détail |
-|----------------|--------|
-| Feed illimité | Pas de limite quotidienne |
-| Défis illimités | Multiples défis/jour + personnalisés IA |
-| Statistiques avancées | Graphiques détaillés, exportation |
-| Groupes illimités | Créer et rejoindre sans limite |
-| Messagerie privée | Conversations individuelles |
-| Badges exclusifs | Collection premium |
-| Thèmes de l'app | Personnalisation visuelle |
-| Contenu premium | Accès à des reels exclusifs |
-| Sans publicité | Aucune publicité |
-
-##### Revenus Additionnels Potentiels
-
-| Source | Description | Revenus Estimés |
-|--------|-------------|-----------------|
-| **Contenu sponsorisé éducatif** | Marques/universités sponsorisent des reels | 500-2000€/mois (à 10K users) |
-| **Partenariats B2B** | Programme bien-être en entreprise | 200-1000€/entreprise/mois |
-| **Achats in-app** | Badges spéciaux, boosters de défis | Variable |
-| **Données anonymisées** | Insights sur les habitudes numériques | Potentiel V3 |
-
-##### Projection de Revenus (Scénario Réaliste)
-
-| Mois | Utilisateurs | % Premium | Revenus Abonnement | Revenus Sponsoring | Total |
-|------|-------------|-----------|--------------------|--------------------|-------|
-| M6 | 1 000 | 3% | 150€ | 0€ | 150€ |
-| M12 | 5 000 | 5% | 1 250€ | 500€ | 1 750€ |
-| M18 | 15 000 | 6% | 4 500€ | 1 500€ | 6 000€ |
-| M24 | 30 000 | 7% | 10 500€ | 3 000€ | 13 500€ |
-| M36 | 100 000 | 8% | 40 000€ | 10 000€ | 50 000€ |
-
----
-
-### 6. Ressources Clés
-
-| Ressource | Type | Criticité |
-|-----------|------|-----------|
-| **Code source Flutter** | Intellectuelle | ⭐⭐⭐⭐⭐ |
-| **Base de contenu curé** | Intellectuelle | ⭐⭐⭐⭐⭐ |
-| **Algorithme de recommandation** | Intellectuelle | ⭐⭐⭐⭐ |
-| **Données utilisateurs** | Data | ⭐⭐⭐⭐ |
-| **Communauté d'utilisateurs** | Humaine | ⭐⭐⭐⭐ |
-| **Infrastructure cloud** | Physique | ⭐⭐⭐⭐ |
-| **Compétences du développeur** | Humaine | ⭐⭐⭐⭐⭐ |
-
----
-
-### 7. Activités Clés
-
-| Activité | Fréquence | Importance |
-|----------|-----------|------------|
-| Développement & maintenance de l'app | Continue | ⭐⭐⭐⭐⭐ |
-| Curation/création de contenu | Quotidienne | ⭐⭐⭐⭐⭐ |
-| Amélioration de l'algorithme | Hebdomadaire | ⭐⭐⭐⭐ |
-| Animation de la communauté | Quotidienne | ⭐⭐⭐⭐ |
-| Marketing & acquisition | Continue | ⭐⭐⭐⭐ |
-| Support utilisateur | Continue | ⭐⭐⭐ |
-| Création de nouveaux défis | Hebdomadaire | ⭐⭐⭐⭐ |
-| Analyse des métriques | Hebdomadaire | ⭐⭐⭐⭐ |
-
----
-
-### 8. Partenaires Clés
-
-| Partenaire | Rôle | Phase |
-|-----------|------|-------|
-| **Google (Firebase)** | Infrastructure, auth, analytics | MVP |
-| **OpenAI / Google (Gemini)** | Moteur IA pour recommandations et contenu | MVP |
-| **Créateurs de contenu éducatif** | Production de reels de qualité | V1-V2 |
-| **Influenceurs bien-être / productivité** | Distribution, crédibilité | Lancement |
-| **Universités / Écoles** | Partenariats éducatifs, distribution | V2 |
-| **Entreprises (RH / Bien-être)** | Programme B2B | V3 |
-| **Psychologues / Coachs** | Crédibilité scientifique, contenu expert | V2 |
-
----
-
-### 9. Structure de Coûts
-
-#### Coûts Fixes
-
-| Poste | Mensuel | Annuel |
-|-------|---------|--------|
-| Compte développeur Apple | 8,25€ | 99€ |
-| Domaine web | 1€ | 12€ |
-| Outils de design (Figma Free) | 0€ | 0€ |
-| **Total fixe** | **~10€** | **~111€** |
-
-#### Coûts Variables (selon usage)
-
-| Poste | 1K users | 10K users | 100K users |
-|-------|----------|-----------|------------|
-| Hébergement backend | 7€ | 50€ | 300€ |
-| Base de données | 0-25€ | 50€ | 200€ |
-| Stockage vidéo + CDN | 5€ | 50€ | 500€ |
-| API IA | 10€ | 100€ | 1 000€ |
-| Firebase (messages, notifications) | 0€ | 25€ | 200€ |
-| **Total variable** | **~22-47€** | **~275€** | **~2 200€** |
-
-#### Ratio Coûts/Revenus Cible
-
-| Phase | Coûts | Revenus | Marge |
-|-------|-------|---------|-------|
-| MVP (0-1K users) | ~50€/mois | 0-150€ | -50 à +100€ |
-| Croissance (1-10K) | ~300€/mois | 1 000-5 000€ | +700 à +4 700€ |
-| Scale (10K-100K) | ~2 500€/mois | 10 000-50 000€ | +7 500 à +47 500€ |
-
----
-
-## Analyse de Viabilité du Business Model
-
-### Points Forts du Modèle
-1. **Coûts d'entrée très faibles** : < 500€ pour le MVP
-2. **Économie d'échelle** : les coûts croissent lentement vs. les revenus
-3. **Multiple sources de revenus** : pas de dépendance unique
-4. **Network effects** : plus d'utilisateurs = plus de contenu = plus de valeur
-
-### Points de Vigilance
-1. **Conversion gratuit → premium** : le taux de 5% est optimiste, la moyenne des apps est 2-3%
-2. **Rétention** : la clé du modèle freemium
-3. **Contenu** : coût de production/curation en continu
-4. **Time-to-revenue** : 6-12 mois avant les premiers revenus significatifs
-
-### Verdict
-
-> **Le business model est viable.** Le modèle freemium avec contenu sponsorisé offre un bon équilibre entre accessibilité et monétisation. Le point de break-even est atteignable à ~3 000 utilisateurs actifs, ce qui est réaliste dans les 12 premiers mois.
-
----
-
-*Document généré dans le cadre de l'analyse du projet DetoxApp*
+### 1.9 Sources de Revenus (Revenue Streams)
+*   **Abonnement Premium (Freemium) :** L'usage du swipe et du dressing virtuel est gratuit. Cependant, la génération de tenues complètes est limitée à 3 par jour dans la version gratuite. L'abonnement Premium à **2,99€/mois** (ou 19,99€/an) offre des tenues illimitées et des filtres de marques/tailles exclusifs.
+*   **Affiliation (Futur) :** Négociation de liens d'affiliation avec des plateformes d'upcycling ou des friperies en ligne partenaires.
