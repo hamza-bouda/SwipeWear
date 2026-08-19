@@ -8,7 +8,7 @@
  * Design: blanc/noir/jaune (existing SwipeWear theme).
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -18,9 +18,11 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 
 import { usePremium } from '../billing';
+import { trackEvent } from '../analytics';
+import type { RootStackParamList } from '../navigation/types';
 
 interface Props {
   onSuccess?: () => void;
@@ -35,10 +37,16 @@ const BENEFITS = [
 
 export default function PaywallScreen({ onSuccess, onDismiss }: Props) {
   const navigation = useNavigation();
+  const route = useRoute<RouteProp<RootStackParamList, 'Paywall'>>();
+  const trigger = route.params?.trigger ?? 'alert_limit';
   const { purchase, restore } = usePremium();
   const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    trackEvent({ name: 'paywall_viewed', properties: { trigger } });
+  }, [trigger]);
 
   const dismiss = () => {
     if (onDismiss) {
@@ -54,6 +62,7 @@ export default function PaywallScreen({ onSuccess, onDismiss }: Props) {
     const result = await purchase();
     setPurchasing(false);
     if (result.success && result.isActive) {
+      trackEvent({ name: 'subscribe', properties: { trigger } });
       if (onSuccess) {
         onSuccess();
       } else if (navigation.canGoBack()) {

@@ -154,7 +154,7 @@ export function ProfileScreen() {
               ) : (
                 <TouchableOpacity
                   style={styles.upgradeBtn}
-                  onPress={() => nav.navigate('Paywall' as never)}
+                  onPress={() => nav.navigate({ name: 'Paywall', params: { trigger: 'profile' } } as never)}
                   activeOpacity={0.8}
                 >
                   <Text style={styles.upgradeBtnText}>Passer Gold</Text>

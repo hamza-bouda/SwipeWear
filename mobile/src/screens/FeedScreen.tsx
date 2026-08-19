@@ -84,7 +84,7 @@ export function FeedScreen() {
           max_price_eur: Math.max(1, Math.floor(product.price * 0.8)),
         },
       });
-      trackEvent({ name: 'alert_created', properties: { product_id: product.id } });
+      trackEvent({ name: 'alert_created', properties: { alert_type: 'specific_item', product_id: product.id } });
       setAlertToast(`Alerte créée pour « ${product.title.slice(0, 30)} »`);
     } catch (e) {
       // The free tier caps active alerts at three, so a refusal is expected
