@@ -57,7 +57,7 @@ export function ConstraintsScreen({ navigation, route }: Props) {
         sizes: Array.from(selectedSizes),
         max_price_eur: maxBudget,
         gender,
-      });
+      }, imageUris ?? []);
     } catch (e) {
       // A profile that failed to save is worth saying out loud: the feed would
       // otherwise open with none of the preferences the user just set.

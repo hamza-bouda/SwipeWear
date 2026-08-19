@@ -148,6 +148,19 @@ class TestOnboarding:
         assert resp.status_code == 201
         assert resp.json()["profile_initialized"] is True
 
+    def test_uploads_device_images(self, client, auth_headers, monkeypatch):
+        fake_service = MagicMock()
+        fake_service.encode_image.return_value = [1.0, 0.0, 0.0, 0.0]
+        monkeypatch.setattr("api.routers.onboarding.get_service", lambda: fake_service)
+
+        resp = client.post(
+            "/onboarding/images/upload",
+            files={"files": ("inspiration.jpg", b"fake-image-bytes", "image/jpeg")},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 201
+        assert resp.json()["profile_initialized"] is True
+
 
 class TestProfile:
     def test_get_profile_cold_start(self, client, auth_headers, user_id):

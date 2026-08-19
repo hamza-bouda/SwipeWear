@@ -1,5 +1,5 @@
 export { API_BASE_URL } from './config';
-export { apiGet, apiPost, apiPatch, apiDelete, ApiError } from './client';
+export { apiGet, apiPost, apiPostForm, apiPatch, apiDelete, ApiError } from './client';
 export { useFeed } from './useFeed';
 export { useDrop } from './useDrop';
 export { usePostEvent } from './usePostEvent';

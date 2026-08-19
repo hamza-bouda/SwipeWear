@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { apiPost } from './client';
+import { apiPost, apiPostForm } from './client';
 import type { Gender } from '../context/PreferencesContext';
 
 export interface OnboardingPayload {
@@ -21,9 +21,20 @@ export function useSubmitOnboarding() {
   const { token } = useAuth();
 
   return useCallback(
-    async (payload: OnboardingPayload): Promise<void> => {
+    async (payload: OnboardingPayload, imageUris: string[] = []): Promise<void> => {
       if (!token) throw new Error('Session anonyme indisponible');
       await apiPost('/onboarding/styles', payload, { token });
+      if (imageUris.length === 0) return;
+
+      const form = new FormData();
+      imageUris.forEach((uri, index) => {
+        form.append('files', {
+          uri,
+          name: `inspiration-${index}.jpg`,
+          type: 'image/jpeg',
+        } as unknown as Blob);
+      });
+      await apiPostForm('/onboarding/images/upload', form, { token });
     },
     [token],
   );
