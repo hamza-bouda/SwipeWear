@@ -9,7 +9,7 @@ Spécifications exhaustives du MVP (V1), de la V1.5 et des évolutions V2, avec 
 ## 1. Fonctionnalités du MVP (V1)
 
 ### 1.1 Onboarding
-* **F01 — Authentification :** Email / Google (Firebase Auth). Cible : compte créé en < 60 s. Identité anonyme côté serveur pour la navigation sans compte.
+* **F01 — Authentification :** Email / Google. Cible : compte créé en < 60 s. Identité anonyme côté serveur pour la navigation sans compte.
 * **F02 — Calibrage de style (anti cold start) :**
     1. Genre des vêtements recherchés (Homme / Femme / Mixte).
     2. Tailles (hauts, bas, pointures) — utilisées comme filtre dur sur tout le produit.
