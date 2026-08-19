@@ -8,7 +8,9 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import {
+  configure,
   PurchaseResult,
   SubscriptionInfo,
   getSubscriptionInfo,
@@ -28,6 +30,7 @@ interface PremiumActions {
 }
 
 export function usePremium(): PremiumState & PremiumActions {
+  const { userId, isAuthenticated } = useAuth();
   const [state, setState] = useState<PremiumState>({
     isActive: false,
     isTrialing: false,
@@ -47,8 +50,26 @@ export function usePremium(): PremiumState & PremiumActions {
   }, []);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    let active = true;
+    const initialise = async () => {
+      if (!isAuthenticated || !userId) {
+        if (active) {
+          setState((s) => ({ ...s, loading: false }));
+        }
+        return;
+      }
+      try {
+        await configure(userId);
+        if (active) await refresh();
+      } catch (err: any) {
+        if (active) {
+          setState((s) => ({ ...s, loading: false, error: err.message }));
+        }
+      }
+    };
+    initialise();
+    return () => { active = false; };
+  }, [isAuthenticated, refresh, userId]);
 
   const purchase = useCallback(async (): Promise<PurchaseResult> => {
     const result = await purchasePremium();
