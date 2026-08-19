@@ -37,6 +37,11 @@ class TestAlertDefaults:
         assert a.constraints.max_price_eur == 40.0
         assert "M" in a.constraints.sizes
 
+    @pytest.mark.parametrize("price", [0, -1])
+    def test_rejects_non_positive_max_price(self, price):
+        with pytest.raises(ValueError):
+            AlertConstraints(max_price_eur=price)
+
     def test_reference_embedding_optional(self):
         a = Alert(user_id=uuid4(), alert_type=AlertType.style, label="test")
         assert a.reference_embedding is None

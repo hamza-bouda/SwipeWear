@@ -22,7 +22,7 @@ class AlertStatus(str, Enum):
 
 
 class AlertConstraints(BaseModel):
-    max_price_eur: float | None = None
+    max_price_eur: float | None = Field(default=None, gt=0)
     sizes: list[str] = Field(default_factory=list)
     min_condition: str | None = None
 
