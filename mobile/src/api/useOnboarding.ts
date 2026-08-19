@@ -18,19 +18,13 @@ export interface OnboardingPayload {
  * dropped and their first feed was built from an empty profile.
  */
 export function useSubmitOnboarding() {
-  const { token, userId } = useAuth();
+  const { token } = useAuth();
 
   return useCallback(
     async (payload: OnboardingPayload): Promise<void> => {
-      let authToken = token;
-      if (!authToken) {
-        const resp = await apiPost<{ access_token: string }>('/auth/token', {
-          user_id: userId,
-        });
-        authToken = resp.access_token;
-      }
-      await apiPost('/onboarding/styles', payload, { token: authToken });
+      if (!token) throw new Error('Session anonyme indisponible');
+      await apiPost('/onboarding/styles', payload, { token });
     },
-    [token, userId],
+    [token],
   );
 }

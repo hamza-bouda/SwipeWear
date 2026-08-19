@@ -19,19 +19,24 @@ export interface AuthUser {
   profile_migrated?: boolean;
 }
 
+export interface AnonymousSession {
+  user_id: string;
+  access_token: string;
+}
+
+export function createAnonymousSession(): Promise<AnonymousSession> {
+  return apiPost<AnonymousSession>('/auth/anonymous', {});
+}
+
 export function register(
   email: string,
   password: string,
-  anonymousUserId?: string | null,
+  anonymousToken?: string | null,
 ): Promise<AuthUser> {
   return apiPost<AuthUser>('/auth/register', {
     email,
     password,
-    // The backend moves the swipes and the style profile built while browsing
-    // anonymously onto the new account. Omitting this silently threw away
-    // everything the user did before signing up.
-    anonymous_user_id: anonymousUserId ?? null,
-  });
+  }, { token: anonymousToken });
 }
 
 export function login(email: string, password: string): Promise<AuthUser> {

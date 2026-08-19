@@ -69,13 +69,18 @@ class TestHealthCheck:
         assert resp.json()["status"] == "ok"
 
 
-class TestAuthToken:
-    def test_issue_token(self, client, user_id):
-        resp = client.post("/auth/token", json={"user_id": str(user_id)})
-        assert resp.status_code == 200
+class TestAnonymousSession:
+    def test_server_issues_anonymous_identity(self, client):
+        resp = client.post("/auth/anonymous")
+        assert resp.status_code == 201
         body = resp.json()
+        assert body["user_id"]
         assert "access_token" in body
         assert body["token_type"] == "bearer"
+
+    def test_legacy_client_nominated_token_endpoint_is_absent(self, client, user_id):
+        resp = client.post("/auth/token", json={"user_id": str(user_id)})
+        assert resp.status_code == 404
 
     def test_missing_auth_header(self, client):
         """401, not 422 — see get_current_user_id."""
@@ -328,7 +333,8 @@ class TestFullScenario:
     """Full integration: onboarding → feed → swipe → profile updated."""
 
     def test_complete_flow(self, client, user_id):
-        token_resp = client.post("/auth/token", json={"user_id": str(user_id)})
+        token_resp = client.post("/auth/anonymous")
+        assert token_resp.status_code == 201
         token = token_resp.json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
