@@ -77,10 +77,15 @@ export function PriceLadderScreen({ navigation, route }: Props) {
     }
   }, [productId, savingsPct]);
 
-  const handleOfferPress = useCallback((entry: LadderEntry) => {
+  const handleOfferPress = useCallback((entry: LadderEntry, position: number) => {
     trackEvent({
-      name: 'offer_clicked',
-      properties: { product_id: entry.productId, url: entry.affiliateUrl },
+      name: 'outbound_click',
+      properties: {
+        product_id: entry.productId,
+        source: entry.source,
+        price: entry.price,
+        position,
+      },
     });
     Linking.openURL(entry.affiliateUrl);
   }, []);
@@ -91,10 +96,10 @@ export function PriceLadderScreen({ navigation, route }: Props) {
   const minPrice = entries.length > 0 ? entries[0].price : 0;
   const maxPrice = entries.length > 0 ? entries[entries.length - 1].price : 0;
 
-  const renderItem = ({ item }: { item: LadderEntry }) => {
+  const renderItem = ({ item, index }: { item: LadderEntry; index: number }) => {
     const cond = conditionLabels[item.condition] ?? { text: item.condition, variant: 'default' as const };
     return (
-      <TouchableOpacity style={styles.row} onPress={() => handleOfferPress(item)} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`${item.title}, ${item.price} ${item.currency} sur ${item.source}`}>
+      <TouchableOpacity style={styles.row} onPress={() => handleOfferPress(item, index + 1)} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`${item.title}, ${item.price} ${item.currency} sur ${item.source}`}>
         {item.imageUrl ? (
           <Image source={{ uri: item.imageUrl }} style={styles.thumbnail} />
         ) : (

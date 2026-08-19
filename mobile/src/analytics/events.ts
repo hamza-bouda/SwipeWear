@@ -6,7 +6,15 @@ export type AnalyticsEvent =
   | { name: 'save'; properties: { product_id: string } }
   | { name: 'product_opened'; properties: { product_id: string } }
   | { name: 'alert_created'; properties: { product_id: string } }
-  | { name: 'offer_clicked'; properties: { product_id: string; url: string } }
+  | {
+      name: 'outbound_click';
+      properties: {
+        product_id: string;
+        source: string;
+        price: number;
+        position: 'detail' | number;
+      };
+    }
   | { name: 'share_card_generated'; properties: { product_id: string } };
 
 export type EventName = AnalyticsEvent['name'];
