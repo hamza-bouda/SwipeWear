@@ -9,6 +9,8 @@ import { apiPost } from '../api/client';
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
@@ -62,7 +64,7 @@ export function useNotifications(onNavigate?: (screen: string, params?: Record<s
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
       if (data?.type === 'drop') {
-        onNavigate('MainTabs', { screen: 'Drop' });
+        onNavigate('Main', { screen: 'Drop' });
       } else if (data?.product_id) {
         onNavigate('ProductDetail', { productId: data.product_id as string });
       }

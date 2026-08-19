@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   soldOutOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(255,255,255,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
