@@ -35,7 +35,7 @@ export function useAlerts() {
   const { token } = useAuth();
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [missedDeals, setMissedDeals] = useState(0);
-  const [freeLimit, setFreeLimit] = useState(3);
+  const [freeLimit, setFreeLimit] = useState(1);
   const [loading, setLoading] = useState(true);
 
   const getToken = useCallback((): string => {

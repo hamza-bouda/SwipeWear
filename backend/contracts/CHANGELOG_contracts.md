@@ -34,7 +34,7 @@
 ## v1.8 — 2026-07-23 — Hamza Bouda (KAN-69)
 - `contracts/alerts.py` (new): `Alert`, `AlertType` (specific_item | style),
   `AlertConstraints` (max_price_eur, sizes, min_condition), `AlertStatus` (active | paused).
-- `FREE_ALERT_LIMIT = 3` constant (free tier cap, Premium argument).
+- `FREE_ALERT_LIMIT = 1` constant (MVP free-tier cap; the second alert triggers Premium).
 - Non-breaking addition — no existing contracts modified.
 
 All breaking changes to shared schemas must be recorded here.
