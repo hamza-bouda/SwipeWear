@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Product } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost } from './client';
+import { apiGet } from './client';
 
 interface ApiFeedItem {
   product: {
@@ -50,24 +50,21 @@ function mapApiProduct(item: ApiFeedItem): Product {
 }
 
 export function useDrop() {
-  const { userId, token } = useAuth();
+  const { token } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchToken = useCallback(async (): Promise<string> => {
+  const fetchToken = useCallback((): string => {
     if (token) return token;
-    const resp = await apiPost<{ access_token: string }>('/auth/token', {
-      user_id: userId,
-    });
-    return resp.access_token;
-  }, [token, userId]);
+    throw new Error('Session indisponible');
+  }, [token]);
 
   const loadDrop = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const authToken = await fetchToken();
+      const authToken = fetchToken();
       const data = await apiGet<ApiFeedResponse>('/drop', {
         token: authToken,
       });

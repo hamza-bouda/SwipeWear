@@ -62,24 +62,21 @@ function mapProduct(p: ApiProduct): Product {
  * read it back. It now loads from GET /saves and records both directions.
  */
 export function SavesProvider({ children }: { children: React.ReactNode }) {
-  const { token, userId } = useAuth();
+  const { token } = useAuth();
   const [savedProducts, setSavedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const getToken = useCallback(async (): Promise<string> => {
+  const getToken = useCallback((): string => {
     if (token) return token;
-    const resp = await apiPost<{ access_token: string }>('/auth/token', {
-      user_id: userId,
-    });
-    return resp.access_token;
-  }, [token, userId]);
+    throw new Error('Session indisponible');
+  }, [token]);
 
   const reload = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const authToken = await getToken();
+      const authToken = getToken();
       const data = await apiGet<{ products: ApiProduct[] }>('/saves', {
         token: authToken,
       });
@@ -108,7 +105,7 @@ export function SavesProvider({ children }: { children: React.ReactNode }) {
       wasSaved ? prev.filter((p) => p.id !== product.id) : [product, ...prev],
     );
     try {
-      const authToken = await getToken();
+      const authToken = getToken();
       await apiPost(
         '/events',
         {

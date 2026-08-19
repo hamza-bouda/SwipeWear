@@ -10,23 +10,17 @@ type EventType =
   | 'open';
 
 export function usePostEvent() {
-  const { userId, token } = useAuth();
+  const { token } = useAuth();
 
   return useCallback(
     (productId: string, eventType: EventType) => {
       const doPost = async () => {
         try {
-          let authToken = token;
-          if (!authToken) {
-            const resp = await apiPost<{ access_token: string }>('/auth/token', {
-              user_id: userId,
-            });
-            authToken = resp.access_token;
-          }
+          if (!token) return;
           await apiPost(
             '/events',
             { product_id: productId, event_type: eventType },
-            { token: authToken },
+            { token },
           );
         } catch {
           // fire-and-forget: log failures silently
@@ -34,6 +28,6 @@ export function usePostEvent() {
       };
       doPost();
     },
-    [userId, token],
+    [token],
   );
 }
