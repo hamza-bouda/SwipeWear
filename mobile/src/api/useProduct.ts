@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Product } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost } from './client';
+import { apiGet } from './client';
 
 interface ApiProduct {
   id: string;
@@ -44,25 +44,22 @@ function mapProduct(p: ApiProduct): Product {
  * common path from the feed: no request, no spinner.
  */
 export function useProduct(productId: string, skip = false) {
-  const { token, userId } = useAuth();
+  const { token } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(!skip);
   const [error, setError] = useState<string | null>(null);
 
-  const getToken = useCallback(async (): Promise<string> => {
+  const getToken = useCallback((): string => {
     if (token) return token;
-    const resp = await apiPost<{ access_token: string }>('/auth/token', {
-      user_id: userId,
-    });
-    return resp.access_token;
-  }, [token, userId]);
+    throw new Error('Session indisponible');
+  }, [token]);
 
   const load = useCallback(async () => {
     if (skip) return;
     setLoading(true);
     setError(null);
     try {
-      const authToken = await getToken();
+      const authToken = getToken();
       const data = await apiGet<ApiProduct>(
         `/products/${encodeURIComponent(productId)}`,
         { token: authToken },
