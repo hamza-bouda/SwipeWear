@@ -21,9 +21,14 @@ export function useSubmitOnboarding() {
   const { token } = useAuth();
 
   return useCallback(
-    async (payload: OnboardingPayload, imageUris: string[] = []): Promise<void> => {
-      if (!token) throw new Error('Session anonyme indisponible');
-      await apiPost('/onboarding/styles', payload, { token });
+    async (
+      payload: OnboardingPayload,
+      imageUris: string[] = [],
+      sessionToken?: string,
+    ): Promise<void> => {
+      const activeToken = sessionToken ?? token;
+      if (!activeToken) throw new Error('Session anonyme indisponible');
+      await apiPost('/onboarding/styles', payload, { token: activeToken });
       if (imageUris.length === 0) return;
 
       const form = new FormData();
@@ -34,7 +39,7 @@ export function useSubmitOnboarding() {
           type: 'image/jpeg',
         } as unknown as Blob);
       });
-      await apiPostForm('/onboarding/images/upload', form, { token });
+      await apiPostForm('/onboarding/images/upload', form, { token: activeToken });
     },
     [token],
   );

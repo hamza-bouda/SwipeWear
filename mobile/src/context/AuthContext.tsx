@@ -19,6 +19,7 @@ interface AuthContextValue extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: (idToken: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
+  retryAnonymousSession: () => Promise<string>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
 }
@@ -100,6 +101,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(next));
   }, []);
 
+  const retryAnonymousSession = useCallback(async (): Promise<string> => {
+    // A web preview may load before its local API has started. Retrying here
+    // lets onboarding recover without asking the user to restart the app.
+    await AsyncStorage.removeItem(ANONYMOUS_SESSION_KEY);
+    const fresh = await restoreOrCreateAnonymousSession();
+    await AsyncStorage.setItem(ANONYMOUS_SESSION_KEY, JSON.stringify(fresh));
+    setAnonymousSession(fresh);
+    setState((current) => current.isAuthenticated ? current : {
+      userId: fresh.user_id,
+      token: fresh.access_token,
+      email: null,
+      isAuthenticated: false,
+    });
+    return fresh.access_token;
+  }, [restoreOrCreateAnonymousSession]);
+
   const login = useCallback(async (email: string, password: string) => {
     const user = await authApi.login(email, password);
     await persist(user);
@@ -147,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ ...state, ready, login, loginWithGoogle, register, logout, deleteAccount }}
+      value={{ ...state, ready, login, loginWithGoogle, register, retryAnonymousSession, logout, deleteAccount }}
     >
       {children}
     </AuthContext.Provider>
