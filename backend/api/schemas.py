@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
@@ -29,6 +30,17 @@ class EventRequest(BaseModel):
 
 
 class EventResponse(BaseModel):
+    event_id: UUID
+    accepted: bool = True
+
+
+class AnalyticsEventRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=80, pattern=r"^[a-z][a-z0-9_]*$")
+    properties: dict = Field(default_factory=dict)
+    occurred_at: datetime
+
+
+class AnalyticsEventResponse(BaseModel):
     event_id: UUID
     accepted: bool = True
 
