@@ -20,6 +20,12 @@ import { useSaves } from '../context/SavesContext';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const CATEGORIES = ['Tout', 'Hauts', 'Bas', 'Chaussures', 'Accessoires'];
+const AVAILABILITY_OPTIONS = [
+  { key: 'all', label: 'Toutes' },
+  { key: 'available', label: 'Disponibles' },
+  { key: 'sold', label: 'Vendues' },
+] as const;
+type AvailabilityFilter = typeof AVAILABILITY_OPTIONS[number]['key'];
 type SortMode = 'recent' | 'price_asc' | 'price_desc';
 const SORT_OPTIONS: { key: SortMode; label: string }[] = [
   { key: 'recent', label: 'Récent' },
@@ -45,6 +51,11 @@ function sortProducts(products: Product[], mode: SortMode): Product[] {
   return sorted;
 }
 
+function availabilityMatch(product: Product, filter: AvailabilityFilter): boolean {
+  if (filter === 'all') return true;
+  return filter === 'available' ? product.available !== false : product.available === false;
+}
+
 function ProductCard({ product, onPress, onRemove }: { product: Product; onPress: () => void; onRemove: () => void }) {
   const soldOut = product.available === false;
   return (
@@ -65,7 +76,7 @@ function ProductCard({ product, onPress, onRemove }: { product: Product; onPress
       <View style={[styles.cardInfo, soldOut && styles.cardInfoSoldOut]}>
         <Text style={[styles.cardTitle, soldOut && styles.textSoldOut]} numberOfLines={1}>{product.title}</Text>
         <Text style={[styles.cardPrice, soldOut && styles.textSoldOut]}>{product.price} {product.currency}</Text>
-        <Text style={styles.cardMeta}>{product.source}</Text>
+        <Text style={styles.cardMeta}>{soldOut ? 'Vendu — crée une alerte' : product.source}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -76,14 +87,18 @@ export function SavesScreen() {
   const navigation = useNavigation<Nav>();
   const { savedProducts, toggleSave } = useSaves();
   const [activeFilter, setActiveFilter] = useState('Tout');
+  const [availabilityFilter, setAvailabilityFilter] = useState<AvailabilityFilter>('all');
   const [sortMode, setSortMode] = useState<SortMode>('recent');
 
   const filtered = useMemo(
     () => sortProducts(
-      savedProducts.filter(p => categoryMatch(p, activeFilter)),
+      savedProducts.filter(
+        (product) => categoryMatch(product, activeFilter)
+          && availabilityMatch(product, availabilityFilter),
+      ),
       sortMode,
     ),
-    [savedProducts, activeFilter, sortMode],
+    [savedProducts, activeFilter, availabilityFilter, sortMode],
   );
 
   const totalValue = savedProducts.reduce((sum, p) => sum + p.price, 0);
@@ -140,6 +155,25 @@ export function SavesScreen() {
           >
             <Text style={[styles.filterText, activeFilter === cat && styles.filterTextActive]}>
               {cat}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.availabilityRow}
+      >
+        {AVAILABILITY_OPTIONS.map((option) => (
+          <TouchableOpacity
+            key={option.key}
+            style={[styles.sortChip, availabilityFilter === option.key && styles.sortChipActive]}
+            onPress={() => setAvailabilityFilter(option.key)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.sortText, availabilityFilter === option.key && styles.sortTextActive]}>
+              {option.label}
             </Text>
           </TouchableOpacity>
         ))}
@@ -265,6 +299,11 @@ const styles = StyleSheet.create({
   sortRow: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
+    gap: spacing.xs,
+  },
+  availabilityRow: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
     gap: spacing.xs,
   },
   sortChip: {
