@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import os
 from uuid import uuid4
 
+import requests
 from fastapi import APIRouter, Depends, Header
 
 from api.auth import create_token, get_current_user_id, get_optional_principal
@@ -10,6 +12,7 @@ from api.schemas import (
     AuthUserResponse,
     DeleteAccountResponse,
     LoginRequest,
+    GoogleLoginRequest,
     RegisterRequest,
     AnonymousSessionResponse,
 )
@@ -23,6 +26,40 @@ from api.store import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+_GOOGLE_TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo"
+
+
+def _verify_google_identity(id_token: str) -> str:
+    """Return the verified Google email address for an OpenID Connect token."""
+    client_id = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "").strip()
+    if not client_id:
+        error_response(
+            503,
+            "GOOGLE_LOGIN_UNAVAILABLE",
+            "Google sign-in is not configured on this deployment.",
+        )
+    try:
+        response = requests.get(
+            _GOOGLE_TOKENINFO_URL,
+            params={"id_token": id_token},
+            timeout=5,
+        )
+        response.raise_for_status()
+        claims = response.json()
+    except (requests.RequestException, ValueError):
+        error_response(401, "INVALID_GOOGLE_TOKEN", "Google token could not be verified.")
+
+    if (
+        claims.get("aud") != client_id
+        or claims.get("iss") not in {"accounts.google.com", "https://accounts.google.com"}
+        or str(claims.get("email_verified", "")).lower() != "true"
+    ):
+        error_response(401, "INVALID_GOOGLE_TOKEN", "Google token is not valid for this app.")
+    email = claims.get("email")
+    if not isinstance(email, str) or not email:
+        error_response(401, "INVALID_GOOGLE_TOKEN", "Google token has no verified email.")
+    return email.lower()
 
 
 @router.post("/anonymous", response_model=AnonymousSessionResponse, status_code=201)
@@ -86,6 +123,22 @@ def login(body: LoginRequest):
         user_id=user.user_id,
         email=user.email,
         access_token=token,
+    )
+
+
+@router.post("/google", response_model=AuthUserResponse)
+def login_with_google(body: GoogleLoginRequest):
+    email = _verify_google_identity(body.id_token)
+    user = get_user_by_email(email)
+    if user is None:
+        # Google has already verified possession of the email. A random local
+        # password keeps the existing account schema and means password login
+        # is never accidentally enabled for an OAuth-only account.
+        user = create_user(uuid4(), email, uuid4().hex + uuid4().hex)
+    return AuthUserResponse(
+        user_id=user.user_id,
+        email=user.email,
+        access_token=create_token(user.user_id),
     )
 
 

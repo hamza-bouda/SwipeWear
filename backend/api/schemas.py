@@ -112,6 +112,10 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class GoogleLoginRequest(BaseModel):
+    id_token: str = Field(min_length=1)
+
+
 class AuthUserResponse(BaseModel):
     user_id: UUID
     email: str

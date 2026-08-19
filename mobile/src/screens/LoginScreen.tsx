@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 import {
   View,
   Text,
@@ -18,15 +20,25 @@ import { ApiError } from '../api/client';
 import { colors, typography, spacing } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
 
+WebBrowser.maybeCompleteAuthSession();
+
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim() ?? '';
+
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
 export function LoginScreen() {
   const navigation = useNavigation<Nav>();
-  const { login, register } = useAuth();
+  const { login, loginWithGoogle, register } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleRequest, , promptGoogle] = Google.useIdTokenAuthRequest({
+    webClientId: GOOGLE_WEB_CLIENT_ID || undefined,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() || GOOGLE_WEB_CLIENT_ID || undefined,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?.trim() || GOOGLE_WEB_CLIENT_ID || undefined,
+    selectAccount: true,
+  });
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
@@ -66,6 +78,26 @@ export function LoginScreen() {
 
   const handleSkip = () => {
     navigation.replace('Main');
+  };
+
+  const handleGoogle = async () => {
+    if (!GOOGLE_WEB_CLIENT_ID) {
+      Alert.alert('Google indisponible', 'La connexion Google n’est pas encore configurée.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await promptGoogle();
+      if (result.type !== 'success') return;
+      const idToken = result.params.id_token;
+      if (!idToken) throw new Error('Google n’a pas renvoyé de jeton d’identité.');
+      await loginWithGoogle(idToken);
+      navigation.replace('Main');
+    } catch {
+      Alert.alert('Connexion Google impossible', 'Réessaie dans quelques instants.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -125,9 +157,10 @@ export function LoginScreen() {
         />
         <Button
           title="Continuer avec Google"
-          onPress={() => Alert.alert('Bientôt disponible', 'La connexion avec Google arrive bientôt.')}
+          onPress={handleGoogle}
           variant="outline"
           style={styles.socialButton}
+          disabled={loading || !googleRequest}
         />
 
         <TouchableOpacity
