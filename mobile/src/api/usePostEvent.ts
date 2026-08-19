@@ -13,13 +13,13 @@ export function usePostEvent() {
   const { token } = useAuth();
 
   return useCallback(
-    (productId: string, eventType: EventType) => {
+    (productId: string, eventType: EventType, payload: Record<string, unknown> = {}) => {
       const doPost = async () => {
         try {
           if (!token) return;
           await apiPost(
             '/events',
-            { product_id: productId, event_type: eventType },
+            { product_id: productId, event_type: eventType, payload },
             { token },
           );
         } catch {

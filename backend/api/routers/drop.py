@@ -27,6 +27,15 @@ router = APIRouter(prefix="/drop", tags=["drop"])
 _DROP_LIMIT = 15
 _FRESHNESS_WINDOW_HOURS = 48
 
+_COUNT_VIEWED_DROP_ITEMS_SQL = """\
+SELECT COUNT(DISTINCT product_id)
+FROM interaction_events
+WHERE user_id = %(user_id)s
+  AND event_type = 'open'
+  AND payload->>'surface' = 'drop'
+  AND timestamp >= date_trunc('day', now())
+"""
+
 _PRODUCT_COLUMNS = [
     "id", "source", "source_record_id", "title", "brand", "model", "gender",
     "price", "condition", "size_raw", "size_eu",
@@ -86,6 +95,13 @@ def get_drop(
         if profile.is_cold_start or not profile.vectors.positive:
             return FeedResponse(items=[], next_cursor=None, fallback_used=True)
 
+        with conn.cursor() as cur:
+            cur.execute(_COUNT_VIEWED_DROP_ITEMS_SQL, {"user_id": str(user_id)})
+            viewed_today = int(cur.fetchone()[0])
+        remaining = max(0, _DROP_LIMIT - viewed_today)
+        if remaining == 0:
+            return FeedResponse(items=[], next_cursor=None, fallback_used=False)
+
         from retrieval.filters import apply_hard_filters
         from retrieval.watcher_filter import get_disabled_watcher_sources
 
@@ -131,7 +147,7 @@ def get_drop(
             scored.append((drop_score, row_dict, similarity))
 
         scored.sort(key=lambda x: x[0], reverse=True)
-        top = scored[:_DROP_LIMIT]
+        top = scored[:remaining]
 
         items: list[RankedItem] = []
         for rank, (drop_score, row_dict, similarity) in enumerate(top, start=1):
@@ -160,7 +176,13 @@ def get_drop(
             ))
 
         elapsed_ms = (time.monotonic() - start) * 1000
-        _LOG.info("Drop for user %s: %d items in %.0f ms", user_id, len(items), elapsed_ms)
+        _LOG.info(
+            "Drop for user %s: %d items, %d viewed today in %.0f ms",
+            user_id,
+            len(items),
+            viewed_today,
+            elapsed_ms,
+        )
 
         return FeedResponse(items=items, next_cursor=None, fallback_used=False)
 

@@ -81,5 +81,9 @@ export function useDrop() {
     loadDrop();
   }, [loadDrop]);
 
-  return { products, loading, error, reload: loadDrop };
+  const markViewed = useCallback((productId: string) => {
+    setProducts((current) => current.filter((product) => product.id !== productId));
+  }, []);
+
+  return { products, loading, error, reload: loadDrop, markViewed };
 }
