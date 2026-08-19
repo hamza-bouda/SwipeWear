@@ -11,6 +11,8 @@ import {
   ActivityIndicator,
   Share,
 } from 'react-native';
+import { Directory, File, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -67,6 +69,17 @@ export function PriceLadderScreen({ navigation, route }: Props) {
     const pct = savingsPct ? Math.round(savingsPct) : 0;
     const shareUrl = `${API_BASE_URL}/share/${productId}${pct > 0 ? `?savings_pct=${pct}` : ''}`;
     try {
+      if (await Sharing.isAvailableAsync()) {
+        const destination = new Directory(Paths.cache, 'swipewear-share');
+        destination.create({ idempotent: true, intermediates: true });
+        const image = await File.downloadFileAsync(shareUrl, destination);
+        await Sharing.shareAsync(image.uri, {
+          mimeType: 'image/png',
+          dialogTitle: 'Partager ma pépite SwipeWear',
+        });
+        return;
+      }
+
       await Share.share({
         message: pct > 0
           ? `J'ai trouvé cette pièce avec -${pct}% vs le neuf sur SwipeWear ! ${shareUrl}`
