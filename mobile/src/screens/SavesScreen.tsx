@@ -74,9 +74,12 @@ function ProductCard({ product, onPress, onRemove }: { product: Product; onPress
         </TouchableOpacity>
       </View>
       <View style={[styles.cardInfo, soldOut && styles.cardInfoSoldOut]}>
-        <Text style={[styles.cardTitle, soldOut && styles.textSoldOut]} numberOfLines={1}>{product.title}</Text>
-        <Text style={[styles.cardPrice, soldOut && styles.textSoldOut]}>{product.price} {product.currency}</Text>
-        <Text style={styles.cardMeta}>{soldOut ? 'Vendu — crée une alerte' : product.source}</Text>
+        <Text style={[styles.cardBrand, soldOut && styles.textSoldOut]} numberOfLines={1}>{product.brand || product.source}</Text>
+        <Text style={[styles.cardTitle, soldOut && styles.textSoldOut]} numberOfLines={2}>{product.title}</Text>
+        <View style={styles.cardFooter}>
+          <Text style={[styles.cardPrice, soldOut && styles.textSoldOut]}>{product.price.toFixed(0)} €</Text>
+          <Text style={styles.cardMeta}>{soldOut ? 'Vendu' : 'Disponible'}</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -114,7 +117,7 @@ export function SavesScreen() {
             <Ionicons name="shirt-outline" size={32} color={colors.disabled} />
           </View>
           <Text style={styles.emptyTitle}>Dressing vide</Text>
-          <Text style={styles.emptySub}>Swipe à droite ou appuie sur le cœur pour ajouter des pièces ici</Text>
+          <Text style={styles.emptySub}>Balaye vers le haut ou appuie sur le cœur pour garder tes pièces préférées.</Text>
         </View>
       </View>
     );
@@ -123,21 +126,21 @@ export function SavesScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <Text style={styles.eyebrow}>Ta sélection</Text>
         <Text style={styles.title}>Mon dressing</Text>
       </View>
 
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{savedProducts.length}</Text>
-          <Text style={styles.statLabel}>pièces</Text>
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryIcon}>
+          <Ionicons name="shirt" size={20} color={colors.accentText} />
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{totalValue.toFixed(0)} €</Text>
-          <Text style={styles.statLabel}>valeur totale</Text>
+        <View style={styles.summaryCopy}>
+          <Text style={styles.summaryTitle}>{savedProducts.length} {savedProducts.length === 1 ? 'pièce sauvegardée' : 'pièces sauvegardées'}</Text>
+          <Text style={styles.summarySub}>Tes trouvailles, au même endroit.</Text>
         </View>
-        <View style={[styles.statCard, styles.statCardAccent]}>
-          <Text style={[styles.statValue, styles.statValueAccent]}>{(totalValue * 0.6).toFixed(0)} €</Text>
-          <Text style={styles.statLabel}>économisés</Text>
+        <View style={styles.summaryValueWrap}>
+          <Text style={styles.summaryValue}>{totalValue.toFixed(0)} €</Text>
+          <Text style={styles.summaryValueLabel}>valeur</Text>
         </View>
       </View>
 
@@ -160,11 +163,7 @@ export function SavesScreen() {
         ))}
       </ScrollView>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.availabilityRow}
-      >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.controlsRow}>
         {AVAILABILITY_OPTIONS.map((option) => (
           <TouchableOpacity
             key={option.key}
@@ -177,13 +176,7 @@ export function SavesScreen() {
             </Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.sortRow}
-      >
+        <View style={styles.controlDivider} />
         {SORT_OPTIONS.map(opt => (
           <TouchableOpacity
             key={opt.key}
@@ -229,54 +222,71 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  eyebrow: {
+    ...typography.label,
+    color: colors.accentDark,
+    marginBottom: 2,
   },
   title: {
     ...typography.h1,
     color: colors.textPrimary,
     letterSpacing: -0.5,
   },
-  statsRow: {
+  summaryCard: {
     flexDirection: 'row',
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    padding: spacing.sm,
     alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.textPrimary,
+    borderRadius: borderRadius.md,
   },
-  statCardAccent: {
-    backgroundColor: colors.accentLight,
-    borderWidth: 1,
-    borderColor: colors.accentDark,
+  summaryIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.md,
   },
-  statValue: {
+  summaryCopy: {
+    flex: 1,
+    marginLeft: spacing.sm,
+  },
+  summaryTitle: {
+    ...typography.captionBold,
+    color: colors.textInverse,
+  },
+  summarySub: {
+    ...typography.caption,
+    color: '#B9B5AA',
+    marginTop: 1,
+  },
+  summaryValueWrap: {
+    alignItems: 'flex-end',
+    marginRight: spacing.md,
+  },
+  summaryValue: {
     ...typography.h3,
-    color: colors.textPrimary,
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  statValueAccent: {
     color: colors.accent,
   },
-  statLabel: {
+  summaryValueLabel: {
     ...typography.caption,
-    color: colors.textSecondary,
-    fontSize: 10,
-    marginTop: 2,
+    color: '#B9B5AA',
+    fontSize: 11,
   },
   filterRow: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-    gap: spacing.xs,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
   },
   filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
     borderRadius: borderRadius.full,
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -296,19 +306,15 @@ const styles = StyleSheet.create({
     color: colors.accentText,
     fontWeight: '700',
   },
-  sortRow: {
+  controlsRow: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
-    gap: spacing.xs,
-  },
-  availabilityRow: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-    gap: spacing.xs,
+    gap: spacing.sm,
+    alignItems: 'center',
   },
   sortChip: {
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingVertical: 8,
     borderRadius: borderRadius.full,
     backgroundColor: colors.background,
     borderWidth: 1,
@@ -321,29 +327,38 @@ const styles = StyleSheet.create({
   sortText: {
     ...typography.label,
     color: colors.textSecondary,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '500',
   },
   sortTextActive: {
     color: colors.textInverse,
     fontWeight: '600',
   },
+  controlDivider: {
+    height: 26,
+    width: 1,
+    backgroundColor: colors.borderStrong,
+    marginHorizontal: 2,
+  },
   grid: {
     paddingHorizontal: spacing.lg,
     paddingBottom: 120,
   },
   row: {
-    gap: spacing.sm,
+    justifyContent: 'space-between',
     marginBottom: spacing.sm,
   },
   card: {
-    flex: 1,
-    backgroundColor: colors.surface,
+    width: '48.5%',
+    flexGrow: 0,
+    backgroundColor: colors.surfaceElevated,
     borderRadius: borderRadius.md,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   cardImageWrap: {
-    height: 140,
+    height: 210,
     position: 'relative',
     backgroundColor: colors.cardBg,
   },
@@ -381,7 +396,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardInfo: {
-    padding: spacing.sm,
+    padding: spacing.md,
   },
   cardInfoSoldOut: {
     opacity: 0.5,
@@ -389,19 +404,31 @@ const styles = StyleSheet.create({
   cardTitle: {
     ...typography.caption,
     color: colors.textPrimary,
-    fontWeight: '600',
+    fontWeight: '500',
+    lineHeight: 17,
+    marginTop: 2,
+    minHeight: 34,
+  },
+  cardBrand: {
+    ...typography.label,
+    color: colors.textSecondary,
+    fontSize: 10,
+  },
+  cardFooter: {
+    marginTop: spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   cardPrice: {
     ...typography.bodyBold,
     color: colors.accent,
-    fontSize: 14,
-    marginTop: 2,
+    fontSize: 15,
   },
   cardMeta: {
     ...typography.caption,
     color: colors.textSecondary,
     fontSize: 10,
-    marginTop: 1,
   },
   textSoldOut: {
     textDecorationLine: 'line-through',
