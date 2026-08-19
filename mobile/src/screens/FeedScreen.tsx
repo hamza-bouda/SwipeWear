@@ -99,9 +99,10 @@ export function FeedScreen() {
 
   const handleSave = useCallback((product: Product) => {
     trackEvent({ name: 'save', properties: { product_id: product.id } });
-    postEvent(product.id, 'save');
+    // toggleSave is the single persistence path for saves. Sending a second
+    // event here used to create duplicate `save` events.
     toggleSave(product);
-  }, [toggleSave, postEvent]);
+  }, [toggleSave]);
 
   useEffect(() => {
     if (!alertToast) return;
@@ -166,11 +167,11 @@ export function FeedScreen() {
           products={products}
           onSwipeRight={handleSwipeRight}
           onSwipeLeft={handleSwipeLeft}
+          onSwipeUp={handleSave}
           onTap={handleTap}
           onSave={handleSave}
           onDeckEmpty={handleDeckEmpty}
           onAlert={handleAlert}
-          onSwipeUp={handleAlert}
         />
       )}
 

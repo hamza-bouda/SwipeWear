@@ -29,7 +29,7 @@ interface SwipeDeckProps {
   products: Product[];
   onSwipeRight: (product: Product) => void;
   onSwipeLeft: (product: Product) => void;
-  /** Swipe up — create an alert for this product. */
+  /** Swipe up — save this product to the Dressing. */
   onSwipeUp?: (product: Product) => void;
   onTap: (product: Product) => void;
   onSave: (product: Product) => void;
