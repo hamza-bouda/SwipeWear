@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Share,
+  TextInput,
 } from 'react-native';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -35,6 +36,13 @@ const conditionLabels: Record<string, { text: string; variant: 'success' | 'defa
   fair: { text: 'État correct', variant: 'warning' },
 };
 
+const conditionRank: Record<string, number> = {
+  fair: 0,
+  good: 1,
+  like_new: 2,
+  new: 3,
+};
+
 export function PriceLadderScreen({ navigation, route }: Props) {
   const { productId } = route.params;
   // The list used to be invented from MOCK_PRODUCTS: two fabricated offers
@@ -43,6 +51,10 @@ export function PriceLadderScreen({ navigation, route }: Props) {
   const { create: createAlert } = useAlerts();
   const [alertLabel, setAlertLabel] = useState('Créer une alerte');
   const [alertDone, setAlertDone] = useState(false);
+  const [selectedSources, setSelectedSources] = useState<string[]>([]);
+  const [minimumCondition, setMinimumCondition] = useState<string>('');
+  const [minimumPrice, setMinimumPrice] = useState('');
+  const [maximumPrice, setMaximumPrice] = useState('');
 
   useEffect(() => {
     trackEvent({ name: 'ladder_viewed', properties: { product_id: productId } });
@@ -108,11 +120,39 @@ export function PriceLadderScreen({ navigation, route }: Props) {
     Linking.openURL(entry.affiliateUrl);
   }, []);
 
-  // Entries arrive sorted by price, so the ends are the range. The saving
-  // comes from the server rather than being recomputed here — one definition,
-  // one number, whatever the client does with the list.
-  const minPrice = entries.length > 0 ? entries[0].price : 0;
-  const maxPrice = entries.length > 0 ? entries[entries.length - 1].price : 0;
+  const sources = useMemo(
+    () => [...new Set(entries.map((entry) => entry.source))].sort(),
+    [entries],
+  );
+  const filteredEntries = useMemo(() => {
+    const min = Number(minimumPrice.replace(',', '.'));
+    const max = Number(maximumPrice.replace(',', '.'));
+    const hasMin = minimumPrice.trim() !== '' && Number.isFinite(min);
+    const hasMax = maximumPrice.trim() !== '' && Number.isFinite(max);
+    const minRank = minimumCondition ? conditionRank[minimumCondition] : undefined;
+    return entries.filter((entry) => (
+      (selectedSources.length === 0 || selectedSources.includes(entry.source))
+      && (minRank === undefined || (conditionRank[entry.condition] ?? -1) >= minRank)
+      && (!hasMin || entry.price >= min)
+      && (!hasMax || entry.price <= max)
+    ));
+  }, [entries, maximumPrice, minimumCondition, minimumPrice, selectedSources]);
+
+  const minPrice = filteredEntries.length > 0 ? filteredEntries[0].price : 0;
+  const maxPrice = filteredEntries.length > 0 ? filteredEntries[filteredEntries.length - 1].price : 0;
+  const toggleSource = useCallback((source: string) => {
+    setSelectedSources((current) => (
+      current.includes(source)
+        ? current.filter((value) => value !== source)
+        : [...current, source]
+    ));
+  }, []);
+  const resetFilters = useCallback(() => {
+    setSelectedSources([]);
+    setMinimumCondition('');
+    setMinimumPrice('');
+    setMaximumPrice('');
+  }, []);
 
   const renderItem = ({ item, index }: { item: LadderEntry; index: number }) => {
     const cond = conditionLabels[item.condition] ?? { text: item.condition, variant: 'default' as const };
@@ -157,7 +197,9 @@ export function PriceLadderScreen({ navigation, route }: Props) {
       {entries.length > 0 && (
         <View style={styles.summary}>
           <Text style={styles.summaryText}>
-            De {minPrice.toFixed(2)} € à {maxPrice.toFixed(2)} €{savingsPct ? ` — jusqu'à ${Math.round(savingsPct)} % d'économie` : ''}
+            {filteredEntries.length > 0
+              ? `De ${minPrice.toFixed(2)} € à ${maxPrice.toFixed(2)} €${savingsPct ? ` — jusqu'à ${Math.round(savingsPct)} % d'économie` : ''}`
+              : 'Aucune offre ne correspond aux filtres'}
           </Text>
         </View>
       )}
@@ -192,11 +234,69 @@ export function PriceLadderScreen({ navigation, route }: Props) {
         </View>
       ) : (
         <FlatList
-          data={entries}
+          data={filteredEntries}
           renderItem={renderItem}
           keyExtractor={(item) => item.productId}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            <View style={styles.filters}>
+              <Text style={styles.filterTitle}>Filtrer les offres</Text>
+              <View style={styles.filterRow}>
+                {sources.map((source) => {
+                  const active = selectedSources.includes(source);
+                  return (
+                    <TouchableOpacity
+                      key={source}
+                      onPress={() => toggleSource(source)}
+                      style={[styles.filterChip, active && styles.filterChipActive]}
+                    >
+                      <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{source.toUpperCase()}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <View style={styles.filterRow}>
+                {['', 'good', 'like_new', 'new'].map((condition) => {
+                  const active = minimumCondition === condition;
+                  const label = condition ? `État min. ${conditionLabels[condition].text}` : 'Tout état';
+                  return (
+                    <TouchableOpacity
+                      key={condition || 'all'}
+                      onPress={() => setMinimumCondition(condition)}
+                      style={[styles.filterChip, active && styles.filterChipActive]}
+                    >
+                      <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <View style={styles.priceFilterRow}>
+                <TextInput
+                  value={minimumPrice}
+                  onChangeText={setMinimumPrice}
+                  keyboardType="decimal-pad"
+                  placeholder="Prix min."
+                  placeholderTextColor={colors.textSecondary}
+                  style={styles.priceInput}
+                />
+                <TextInput
+                  value={maximumPrice}
+                  onChangeText={setMaximumPrice}
+                  keyboardType="decimal-pad"
+                  placeholder="Prix max."
+                  placeholderTextColor={colors.textSecondary}
+                  style={styles.priceInput}
+                />
+                <TouchableOpacity onPress={resetFilters} style={styles.resetFilters}>
+                  <Text style={styles.resetFiltersText}>Réinitialiser</Text>
+                </TouchableOpacity>
+              </View>
+              {filteredEntries.length === 0 && (
+                <Text style={styles.noFilteredEntries}>Aucune offre avec ces filtres.</Text>
+              )}
+            </View>
+          }
           refreshControl={
             <RefreshControl refreshing={loading} onRefresh={reload} tintColor={colors.primary} />
           }
@@ -245,6 +345,67 @@ const styles = StyleSheet.create({
     ...typography.bodyBold,
     color: colors.textPrimary,
     textAlign: 'center',
+  },
+  filters: {
+    marginBottom: spacing.md,
+  },
+  filterTitle: {
+    ...typography.bodyBold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  filterChip: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+  },
+  filterChipActive: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accent,
+  },
+  filterChipText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
+  filterChipTextActive: {
+    color: colors.accentText,
+  },
+  priceFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  priceInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.sm,
+    color: colors.textPrimary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 7,
+    ...typography.caption,
+  },
+  resetFilters: {
+    paddingVertical: 7,
+  },
+  resetFiltersText: {
+    ...typography.caption,
+    color: colors.accentDark,
+    textDecorationLine: 'underline',
+  },
+  noFilteredEntries: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
   },
   list: {
     paddingHorizontal: spacing.md,

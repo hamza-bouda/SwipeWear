@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from api.auth import get_current_user_id
 from api.db import get_conn, put_conn
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/ladder", tags=["ladder"])
 @router.get("/{product_id}", response_model=PriceLadder)
 def get_price_ladder(
     product_id: str,
-    max_results: int = 15,
+    max_results: int = Query(default=20, ge=1, le=20),
     user_id=Depends(get_current_user_id),
 ):
     conn = None
