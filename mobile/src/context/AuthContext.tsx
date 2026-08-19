@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as authApi from '../api/auth';
+import { setAnalyticsSession } from '../analytics';
 
 const SESSION_KEY = '@swipewear/session';
 const ANONYMOUS_SESSION_KEY = '@swipewear/anonymous-session';
@@ -33,6 +34,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
   const [anonymousSession, setAnonymousSession] = useState<authApi.AnonymousSession | null>(null);
   const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setAnalyticsSession(state.userId || 'anonymous', state.token);
+  }, [state.userId, state.token]);
 
   const restoreOrCreateAnonymousSession = useCallback(async () => {
     const stored = await AsyncStorage.getItem(ANONYMOUS_SESSION_KEY);

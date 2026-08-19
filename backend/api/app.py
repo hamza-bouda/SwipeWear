@@ -10,7 +10,7 @@ from api.config import app_env
 from api.db import close_pool, get_conn, init_pool, put_conn
 from api.errors import unhandled_exception_handler
 from api.routers import (
-    alerts, auth, billing, debug, drop, events, feed,
+    alerts, analytics, auth, billing, debug, drop, events, feed,
     ladder, notifications, onboarding, products, profile, saves,
     share, watcher_admin,
 )
@@ -43,6 +43,7 @@ app.add_middleware(
 app.add_exception_handler(Exception, unhandled_exception_handler)
 
 app.include_router(auth.router)
+app.include_router(analytics.router)
 app.include_router(billing.router)
 app.include_router(alerts.router)
 app.include_router(notifications.router)
