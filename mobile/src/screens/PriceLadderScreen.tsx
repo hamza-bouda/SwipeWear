@@ -63,7 +63,7 @@ export function PriceLadderScreen({ navigation, route }: Props) {
     } catch (e) {
       setAlertLabel(
         e instanceof ApiError && e.status === 403
-          ? 'Limite de 3 alertes atteinte'
+          ? 'Ton alerte gratuite est déjà active'
           : 'Échec — réessayer',
       );
     }
