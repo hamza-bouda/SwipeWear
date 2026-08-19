@@ -1,5 +1,6 @@
 /**
- * Paywall screen — shown when a free user tries to create a 4th alert
+ * Paywall screen — shown after a concrete Premium moment (second alert,
+ * missed deal or completed daily Drop).
  * or activate instant-priority notifications (KAN-73).
  *
  * Never presented as an interstitial on first launch. Only triggered by a
