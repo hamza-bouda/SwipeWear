@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius } from '../theme';
 import { useDrop } from '../api';
+import { usePostEvent } from '../api';
 import { Product } from '../types';
 import { RootStackParamList } from '../navigation/types';
 
@@ -40,11 +41,14 @@ function DropCard({ product, onPress }: { product: Product; onPress: () => void 
 export function DropScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const { products: dropProducts, loading, reload } = useDrop();
+  const { products: dropProducts, loading, reload, markViewed } = useDrop();
+  const postEvent = usePostEvent();
 
   const handlePress = useCallback((product: Product) => {
+    postEvent(product.id, 'open', { surface: 'drop' });
+    markViewed(product.id);
     navigation.navigate('ProductDetail', { productId: product.id, product });
-  }, [navigation]);
+  }, [markViewed, navigation, postEvent]);
 
   return (
     <View style={styles.container}>
@@ -62,7 +66,7 @@ export function DropScreen() {
             <View style={styles.progressBg}>
               <View style={[styles.progressFill, { width: `${(dropProducts.length / 15) * 100}%` as any }]} />
             </View>
-            <Text style={styles.progressLabel}>{dropProducts.length} / 15 PÉPITES</Text>
+            <Text style={styles.progressLabel}>{dropProducts.length} PÉPITES À DÉCOUVRIR</Text>
           </View>
         )}
       </View>
