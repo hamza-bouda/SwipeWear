@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Product } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost } from './client';
+import { apiGet } from './client';
 
 interface ApiFeedItem {
   product: {
@@ -52,26 +52,18 @@ function mapApiProduct(item: ApiFeedItem): Product {
 }
 
 export function useFeed() {
-  const { userId, token } = useAuth();
+  const { token } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchToken = useCallback(async (): Promise<string> => {
-    if (token) return token;
-    const resp = await apiPost<{ access_token: string }>('/auth/token', {
-      user_id: userId,
-    });
-    return resp.access_token;
-  }, [token, userId]);
 
   const loadFeed = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const authToken = await fetchToken();
+      if (!token) throw new Error('Session anonyme indisponible');
       const data = await apiGet<ApiFeedResponse>('/feed', {
-        token: authToken,
+        token,
         params: { n_results: '30' },
       });
       // No mock substitution. Falling back to fabricated products made a
@@ -85,7 +77,7 @@ export function useFeed() {
     } finally {
       setLoading(false);
     }
-  }, [fetchToken]);
+  }, [token]);
 
   useEffect(() => {
     loadFeed();

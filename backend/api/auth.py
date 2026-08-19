@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json
 import time
+from dataclasses import dataclass
 from uuid import UUID
 
 from fastapi import Header
@@ -35,10 +36,16 @@ def _b64url_decode(s: str) -> bytes:
     return base64.urlsafe_b64decode(s + "=" * padding)
 
 
-def create_token(user_id: UUID) -> str:
+@dataclass(frozen=True)
+class TokenPrincipal:
+    user_id: UUID
+    kind: str
+
+
+def create_token(user_id: UUID, *, kind: str = "account") -> str:
     header = _b64url_encode(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
     payload = _b64url_encode(json.dumps({
-        "sub": str(user_id),
+        "sub": str(user_id), "kind": kind,
         "iat": int(time.time()),
         "exp": int(time.time()) + TOKEN_TTL_SECONDS,
     }).encode())
@@ -69,6 +76,29 @@ def _decode_token(token: str) -> dict:
     return payload
 
 
+def get_optional_principal(authorization: str | None) -> TokenPrincipal | None:
+    """Decode a supplied bearer token, or return None when absent.
+
+    Registration accepts no credential for a direct sign-up, but when a
+    visitor does supply one it must be a valid anonymous identity: the client
+    never gets to nominate the profile it wants to take over.
+    """
+    if not authorization:
+        return None
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        error_response(401, "INVALID_AUTH", "Expected 'Bearer <token>' header.")
+    payload = _decode_token(token)
+    try:
+        return TokenPrincipal(
+            user_id=UUID(payload["sub"]),
+            kind=str(payload.get("kind", "account")),
+        )
+    except (KeyError, ValueError):
+        error_response(401, "INVALID_TOKEN", "Token missing valid 'sub' claim.")
+        raise  # unreachable, keeps type checker happy
+
+
 def get_current_user_id(authorization: str | None = Header(default=None)) -> UUID:
     # A required Header makes FastAPI answer 422 when it is absent, which says
     # "your request is malformed" for what is plainly a missing credential.
@@ -76,12 +106,6 @@ def get_current_user_id(authorization: str | None = Header(default=None)) -> UUI
     # to special-case 422 alongside 401.
     if not authorization:
         error_response(401, "MISSING_AUTH", "Authorization header is required.")
-    scheme, _, token = authorization.partition(" ")
-    if scheme.lower() != "bearer" or not token:
-        error_response(401, "INVALID_AUTH", "Expected 'Bearer <token>' header.")
-    payload = _decode_token(token)
-    try:
-        return UUID(payload["sub"])
-    except (KeyError, ValueError):
-        error_response(401, "INVALID_TOKEN", "Token missing valid 'sub' claim.")
-        raise  # unreachable, keeps type checker happy
+    principal = get_optional_principal(authorization)
+    assert principal is not None
+    return principal.user_id

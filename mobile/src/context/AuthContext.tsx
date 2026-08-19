@@ -3,20 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as authApi from '../api/auth';
 
 const SESSION_KEY = '@swipewear/session';
-/**
- * The anonymous id is stored separately from the session: it must survive a
- * logout, otherwise signing out and back in would strand the profile built
- * while browsing without an account.
- */
-const ANONYMOUS_ID_KEY = '@swipewear/anonymous-id';
-
-function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
+const ANONYMOUS_SESSION_KEY = '@swipewear/anonymous-session';
 
 interface AuthState {
   userId: string;
@@ -37,16 +24,29 @@ interface AuthContextValue extends AuthState {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // The id is replaced by the persisted one as soon as storage resolves; the
-  // generated value only covers a genuinely first launch.
-  const [state, setState] = useState<AuthState>(() => ({
-    userId: generateUUID(),
+  const [state, setState] = useState<AuthState>({
+    userId: '',
     token: null,
     email: null,
     isAuthenticated: false,
-  }));
-  const [anonymousId, setAnonymousId] = useState<string>(state.userId);
+  });
+  const [anonymousSession, setAnonymousSession] = useState<authApi.AnonymousSession | null>(null);
   const [ready, setReady] = useState(false);
+
+  const restoreOrCreateAnonymousSession = useCallback(async () => {
+    const stored = await AsyncStorage.getItem(ANONYMOUS_SESSION_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as authApi.AnonymousSession;
+        if (parsed.user_id && parsed.access_token) return parsed;
+      } catch {
+        // A corrupted cache is replaced by a new server-issued identity.
+      }
+    }
+    const created = await authApi.createAnonymousSession();
+    await AsyncStorage.setItem(ANONYMOUS_SESSION_KEY, JSON.stringify(created));
+    return created;
+  }, []);
 
   useEffect(() => {
     // Everything was previously held in useState alone, so closing the app
@@ -54,17 +54,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // the alerts were all orphaned on every launch.
     (async () => {
       try {
-        const [storedSession, storedAnonymousId] = await Promise.all([
+        const [storedSession, anonymous] = await Promise.all([
           AsyncStorage.getItem(SESSION_KEY),
-          AsyncStorage.getItem(ANONYMOUS_ID_KEY),
+          restoreOrCreateAnonymousSession(),
         ]);
-
-        let anonymous = storedAnonymousId;
-        if (!anonymous) {
-          anonymous = generateUUID();
-          await AsyncStorage.setItem(ANONYMOUS_ID_KEY, anonymous);
-        }
-        setAnonymousId(anonymous);
+        setAnonymousSession(anonymous);
 
         if (storedSession) {
           const session = JSON.parse(storedSession) as AuthState;
@@ -74,16 +68,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
         setState({
-          userId: anonymous, token: null, email: null, isAuthenticated: false,
+          userId: anonymous.user_id,
+          token: anonymous.access_token,
+          email: null,
+          isAuthenticated: false,
         });
       } catch {
-        // A corrupt entry must not brick the app: fall back to anonymous.
-        setState((prev) => ({ ...prev, token: null, isAuthenticated: false }));
+        // Do not manufacture an identity locally: a network failure is safer
+        // than reintroducing the client-controlled token vulnerability.
+        setState({ userId: '', token: null, email: null, isAuthenticated: false });
       } finally {
         setReady(true);
       }
     })();
-  }, []);
+  }, [restoreOrCreateAnonymousSession]);
 
   const persist = useCallback(async (user: authApi.AuthUser) => {
     const next: AuthState = {
@@ -102,16 +100,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [persist]);
 
   const register = useCallback(async (email: string, password: string) => {
-    const user = await authApi.register(email, password, anonymousId);
+    const user = await authApi.register(email, password, anonymousSession?.access_token);
     await persist(user);
-  }, [persist, anonymousId]);
+  }, [persist, anonymousSession]);
 
   const logout = useCallback(async () => {
     await AsyncStorage.removeItem(SESSION_KEY);
+    if (!anonymousSession) throw new Error('Session anonyme indisponible');
     setState({
-      userId: anonymousId, token: null, email: null, isAuthenticated: false,
+      userId: anonymousSession.user_id,
+      token: anonymousSession.access_token,
+      email: null,
+      isAuthenticated: false,
     });
-  }, [anonymousId]);
+  }, [anonymousSession]);
 
   const deleteAccount = useCallback(async () => {
     if (state.token) {
@@ -121,10 +123,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await authApi.deleteAccount(state.token);
     }
     await AsyncStorage.removeItem(SESSION_KEY);
-    const fresh = generateUUID();
-    await AsyncStorage.setItem(ANONYMOUS_ID_KEY, fresh);
-    setAnonymousId(fresh);
-    setState({ userId: fresh, token: null, email: null, isAuthenticated: false });
+    const fresh = await authApi.createAnonymousSession();
+    await AsyncStorage.setItem(ANONYMOUS_SESSION_KEY, JSON.stringify(fresh));
+    setAnonymousSession(fresh);
+    setState({
+      userId: fresh.user_id,
+      token: fresh.access_token,
+      email: null,
+      isAuthenticated: false,
+    });
   }, [state.token]);
 
   return (
