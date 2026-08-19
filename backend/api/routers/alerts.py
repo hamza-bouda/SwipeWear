@@ -24,6 +24,13 @@ from notifications.notification_store import count_missed_deals
 
 _LOG = logging.getLogger("swipewear.api.alerts")
 
+_FETCH_PRODUCT_EMBEDDING_SQL = """\
+SELECT embedding
+FROM product_embeddings
+WHERE product_id = %s
+LIMIT 1
+"""
+
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
 
@@ -67,6 +74,29 @@ def _to_response(alert: Alert) -> AlertResponse:
     )
 
 
+def _load_reference_embedding(conn, product_id: str | None) -> list[float] | None:
+    """Use the catalogue vector for an alert created from a product card.
+
+    The mobile client deliberately never sends 768-dimensional embeddings. An
+    alert without this vector cannot be picked up by the matcher, so resolve
+    it beside the catalogue instead of silently creating a non-functional
+    alert.
+    """
+    if not product_id:
+        return None
+    with conn.cursor() as cur:
+        cur.execute(_FETCH_PRODUCT_EMBEDDING_SQL, (product_id,))
+        row = cur.fetchone()
+    if row is None or row[0] is None:
+        return None
+    raw = row[0]
+    if isinstance(raw, str):
+        values = [float(value) for value in raw.strip("[]").split(",") if value]
+    else:
+        values = [float(value) for value in raw]
+    return values or None
+
+
 @router.post("", response_model=AlertResponse, status_code=201)
 def create_alert_endpoint(
     body: AlertCreateRequest,
@@ -84,12 +114,16 @@ def create_alert_endpoint(
                     " Upgrade to Premium for unlimited alerts."
                 ),
             )
+        reference_embedding = body.reference_embedding or _load_reference_embedding(
+            conn,
+            body.reference_product_id,
+        )
         alert = Alert(
             user_id=user_id,
             alert_type=body.alert_type,
             label=body.label,
             reference_product_id=body.reference_product_id,
-            reference_embedding=body.reference_embedding,
+            reference_embedding=reference_embedding,
             constraints=body.constraints,
         )
         create_alert(conn, alert)

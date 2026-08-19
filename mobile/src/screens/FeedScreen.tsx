@@ -79,6 +79,10 @@ export function FeedScreen() {
         alert_type: 'specific_item',
         label: product.title,
         reference_product_id: product.id,
+        constraints: {
+          sizes: product.size ? [product.size] : [],
+          max_price_eur: Math.max(1, Math.floor(product.price * 0.8)),
+        },
       });
       trackEvent({ name: 'alert_created', properties: { product_id: product.id } });
       setAlertToast(`Alerte créée pour « ${product.title.slice(0, 30)} »`);

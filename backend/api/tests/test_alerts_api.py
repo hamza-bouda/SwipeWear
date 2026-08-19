@@ -69,6 +69,7 @@ class TestCreateAlert:
         with patch("api.routers.alerts.get_conn") as mock_get, \
              patch("api.routers.alerts.put_conn"), \
              patch("api.routers.alerts.count_active_alerts", return_value=1), \
+             patch("api.routers.alerts._load_reference_embedding", return_value=[0.1, 0.2]), \
              patch("api.routers.alerts.create_alert") as mock_create:
             mock_get.return_value = _mock_conn()
             mock_create.side_effect = lambda conn, alert: alert
@@ -84,6 +85,7 @@ class TestCreateAlert:
             )
         assert resp.status_code == 201
         assert resp.json()["reference_product_id"] == "ebay-42"
+        assert mock_create.call_args.args[1].reference_embedding == [0.1, 0.2]
 
     def test_free_tier_cap_at_3_active(self, client, user_id, auth_headers):
         with patch("api.routers.alerts.get_conn") as mock_get, \
