@@ -11,7 +11,7 @@ export type RootStackParamList = {
   PriceLadder: { productId: string };
   Login: undefined;
   Algorithm: undefined;
-  Paywall: undefined;
+  Paywall: { trigger: 'alert_limit' | 'profile' };
 };
 
 export type MainTabParamList = {

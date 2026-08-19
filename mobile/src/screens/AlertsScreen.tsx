@@ -23,6 +23,7 @@ import { useAlerts } from '../api';
 import type { AlertItem } from '../api/useAlerts';
 import type { RootStackParamList } from '../navigation/types';
 import { ApiError } from '../api/client';
+import { trackEvent } from '../analytics';
 
 export function AlertsScreen() {
   const insets = useSafeAreaInsets();
@@ -38,7 +39,7 @@ export function AlertsScreen() {
   const activeCount = alerts.filter(a => a.status === 'active').length;
   const atLimit = activeCount >= freeLimit;
 
-  const goToPaywall = () => nav.navigate('Paywall' as never);
+  const goToPaywall = () => nav.navigate({ name: 'Paywall', params: { trigger: 'alert_limit' } } as never);
 
   const handleCreate = async () => {
     if (!newLabel.trim()) return;
@@ -54,6 +55,7 @@ export function AlertsScreen() {
         label: newLabel.trim(),
         constraints: parsedMaxPrice === null ? {} : { max_price_eur: parsedMaxPrice },
       });
+      trackEvent({ name: 'alert_created', properties: { alert_type: 'style' } });
       setShowCreate(false);
       setNewLabel('');
       setMaxPrice('');
@@ -78,7 +80,15 @@ export function AlertsScreen() {
       `Supprimer "${item.label}" ?`,
       [
         { text: 'Annuler', style: 'cancel' },
-        { text: 'Supprimer', style: 'destructive', onPress: () => remove(item.alert_id) },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: () => {
+            void remove(item.alert_id).then(() => {
+              trackEvent({ name: 'alert_deleted', properties: { alert_id: item.alert_id } });
+            }).catch(() => undefined);
+          },
+        },
       ],
     );
   };

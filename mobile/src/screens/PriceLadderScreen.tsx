@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -44,6 +44,10 @@ export function PriceLadderScreen({ navigation, route }: Props) {
   const [alertLabel, setAlertLabel] = useState('Créer une alerte');
   const [alertDone, setAlertDone] = useState(false);
 
+  useEffect(() => {
+    trackEvent({ name: 'ladder_viewed', properties: { product_id: productId } });
+  }, [productId]);
+
   // The button in the empty state was onPress={() => {}} — no comparable offer
   // today is exactly when someone wants to be told about one later.
   const handleCreateAlert = useCallback(async () => {
@@ -53,6 +57,7 @@ export function PriceLadderScreen({ navigation, route }: Props) {
         label: `Offre pour ${productId}`,
         reference_product_id: productId,
       });
+      trackEvent({ name: 'alert_created', properties: { alert_type: 'specific_item', product_id: productId } });
       setAlertLabel('Alerte créée');
       setAlertDone(true);
     } catch (e) {
