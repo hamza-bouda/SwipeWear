@@ -94,11 +94,10 @@ class OnboardingResponse(BaseModel):
     profile_initialized: bool = True
 
 
-class TokenRequest(BaseModel):
+class AnonymousSessionResponse(BaseModel):
+    """A server-minted identity for a visitor who has not signed up yet."""
+
     user_id: UUID
-
-
-class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
@@ -106,7 +105,6 @@ class TokenResponse(BaseModel):
 class RegisterRequest(BaseModel):
     email: str = Field(min_length=3)
     password: str = Field(min_length=8)
-    anonymous_user_id: UUID | None = None
 
 
 class LoginRequest(BaseModel):

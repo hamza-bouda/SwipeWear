@@ -7,7 +7,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.app import app
-from api.auth import create_token
 from api import store
 
 
@@ -177,8 +176,9 @@ class TestDeleteAccount:
 
 class TestAnonymousToSignup:
     def test_anonymous_profile_migrated_on_register(self, client):
-        anon_id = uuid4()
-        anon_token = create_token(anon_id)
+        session = client.post("/auth/anonymous")
+        assert session.status_code == 201
+        anon_token = session.json()["access_token"]
         anon_headers = {"Authorization": f"Bearer {anon_token}"}
 
         client.post(
@@ -195,8 +195,8 @@ class TestAnonymousToSignup:
             json={
                 "email": "alice@example.com",
                 "password": "securepass123",
-                "anonymous_user_id": str(anon_id),
             },
+            headers=anon_headers,
         )
         assert reg.status_code == 200
         body = reg.json()
@@ -207,10 +207,30 @@ class TestAnonymousToSignup:
         assert migrated.json()["hard_constraints"]["sizes"] == ["L"]
         assert migrated.json()["hard_constraints"]["max_price_eur"] == 120.0
 
-    def test_register_without_anonymous_id(self, client):
+    def test_register_without_anonymous_session(self, client):
         reg = client.post(
             "/auth/register",
             json={"email": "bob@example.com", "password": "securepass123"},
+        )
+        assert reg.status_code == 200
+        assert reg.json()["profile_migrated"] is False
+
+    def test_client_cannot_nominate_profile_to_migrate(self, client):
+        victim = client.post("/auth/anonymous").json()
+        victim_headers = {"Authorization": f"Bearer {victim['access_token']}"}
+        client.post(
+            "/onboarding/styles",
+            json={"sizes": ["L"]},
+            headers=victim_headers,
+        )
+
+        reg = client.post(
+            "/auth/register",
+            json={
+                "email": "attacker@example.com",
+                "password": "securepass123",
+                "anonymous_user_id": victim["user_id"],
+            },
         )
         assert reg.status_code == 200
         assert reg.json()["profile_migrated"] is False
