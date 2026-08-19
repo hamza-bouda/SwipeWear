@@ -34,6 +34,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.full,
     alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   text: {
     ...typography.captionBold,
