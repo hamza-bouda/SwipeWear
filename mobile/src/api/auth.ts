@@ -43,6 +43,10 @@ export function login(email: string, password: string): Promise<AuthUser> {
   return apiPost<AuthUser>('/auth/login', { email, password });
 }
 
+export function loginWithGoogle(idToken: string): Promise<AuthUser> {
+  return apiPost<AuthUser>('/auth/google', { id_token: idToken });
+}
+
 export function deleteAccount(token: string): Promise<void> {
   return apiDelete('/auth/account', { token });
 }

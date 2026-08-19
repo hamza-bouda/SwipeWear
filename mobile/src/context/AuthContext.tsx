@@ -16,6 +16,7 @@ interface AuthContextValue extends AuthState {
   /** False until storage has been read, so we never sign a returning user out. */
   ready: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
@@ -99,6 +100,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await persist(user);
   }, [persist]);
 
+  const loginWithGoogle = useCallback(async (idToken: string) => {
+    const user = await authApi.loginWithGoogle(idToken);
+    await persist(user);
+  }, [persist]);
+
   const register = useCallback(async (email: string, password: string) => {
     const user = await authApi.register(email, password, anonymousSession?.access_token);
     await persist(user);
@@ -136,7 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ ...state, ready, login, register, logout, deleteAccount }}
+      value={{ ...state, ready, login, loginWithGoogle, register, logout, deleteAccount }}
     >
       {children}
     </AuthContext.Provider>
