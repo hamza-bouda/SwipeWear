@@ -21,7 +21,7 @@ from contracts.product import ProductCondition, ProductRecord, ProductSource
 _LOG = logging.getLogger("swipewear.retrieval.ladder")
 
 DEFAULT_MIN_SIMILARITY = float(os.getenv("LADDER_MIN_SIMILARITY", "0.70"))
-DEFAULT_MAX_RESULTS = 15
+DEFAULT_MAX_RESULTS = 20
 LATENCY_BUDGET_MS = 800
 
 # Only columns that exist in the products table (see backend/migrations/).
