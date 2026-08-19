@@ -67,6 +67,20 @@ export async function apiPost<T>(
   return resp.json();
 }
 
+export async function apiPostForm<T>(
+  path: string,
+  body: FormData,
+  options: RequestOptions = {},
+): Promise<T> {
+  const url = new URL(path, API_BASE_URL);
+  const headers: Record<string, string> = { 'Accept': 'application/json' };
+  if (options.token) headers['Authorization'] = `Bearer ${options.token}`;
+
+  const resp = await fetch(url.toString(), { method: 'POST', headers, body });
+  if (!resp.ok) throw new ApiError(resp.status, resp.statusText);
+  return resp.json();
+}
+
 export async function apiPatch<T>(
   path: string,
   body: unknown,
