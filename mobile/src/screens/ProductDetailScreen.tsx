@@ -20,6 +20,7 @@ import { Badge, Button } from '../components';
 import { Product } from '../types';
 import { useSaves } from '../context/SavesContext';
 import { usePostEvent, useProduct } from '../api';
+import { trackEvent } from '../analytics';
 
 const { width } = Dimensions.get('window');
 
@@ -82,6 +83,15 @@ export function ProductDetailScreen({ navigation, route }: Props) {
     // number — every Buy tap landed on a 404. The API returns the seller's
     // real listing URL, affiliate-wrapped when that is switched on.
     if (!product.url) return;
+    trackEvent({
+      name: 'outbound_click',
+      properties: {
+        product_id: product.id,
+        source: product.source,
+        price: product.price,
+        position: 'detail',
+      },
+    });
     Linking.openURL(product.url);
   };
 
@@ -153,6 +163,7 @@ export function ProductDetailScreen({ navigation, route }: Props) {
           disabled={!product.url}
           style={styles.buyButton}
         />
+        {product.url && <Text style={styles.partnerDisclosure}>Lien partenaire</Text>}
       </View>
     </View>
   );
@@ -256,6 +267,12 @@ const styles = StyleSheet.create({
   },
   buyButton: {
     marginTop: spacing.sm,
+  },
+  partnerDisclosure: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.xs,
   },
   soldBanner: {
     backgroundColor: colors.error,
