@@ -240,6 +240,19 @@ class TestBuildPriceLadderResults:
 
         assert len(result.entries) <= 5
 
+    def test_default_returns_up_to_twenty_entries(self) -> None:
+        source_row = _make_product_row("src")
+        embedding = [0.1] * 768
+        candidates = [
+            _make_candidate_row(f"c{i}", 0.95 - i * 0.001, price=10.0 + i)
+            for i in range(25)
+        ]
+        conn = _mock_conn_for_ladder(source_row, embedding, candidates)
+
+        result = build_price_ladder("src", lambda: conn)
+
+        assert len(result.entries) == 20
+
     def test_latency_recorded(self) -> None:
         source_row = _make_product_row("src")
         embedding = [0.1] * 768
