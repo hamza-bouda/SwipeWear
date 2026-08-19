@@ -18,6 +18,7 @@ import { usePostEvent } from '../api';
 import { Product } from '../types';
 import { RootStackParamList } from '../navigation/types';
 import { trackEvent } from '../analytics';
+import { usePremium } from '../billing';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -44,7 +45,9 @@ export function DropScreen() {
   const navigation = useNavigation<Nav>();
   const { products: dropProducts, loading, reload, markViewed } = useDrop();
   const postEvent = usePostEvent();
+  const { isActive: isPremium } = usePremium();
   const hasTrackedOpen = useRef(false);
+  const [dropCompleted, setDropCompleted] = React.useState(false);
 
   useEffect(() => {
     if (!loading && !hasTrackedOpen.current) {
@@ -56,11 +59,17 @@ export function DropScreen() {
   const handlePress = useCallback((product: Product) => {
     if (dropProducts.length === 1) {
       trackEvent({ name: 'drop_completed' });
+      setDropCompleted(true);
     }
     postEvent(product.id, 'open', { surface: 'drop' });
     markViewed(product.id);
     navigation.navigate('ProductDetail', { productId: product.id, product });
   }, [dropProducts.length, markViewed, navigation, postEvent]);
+
+  const handleReload = useCallback(() => {
+    setDropCompleted(false);
+    reload();
+  }, [reload]);
 
   return (
     <View style={styles.container}>
@@ -98,17 +107,33 @@ export function DropScreen() {
           renderItem={({ item }) => (
             <DropCard product={item} onPress={() => handlePress(item)} />
           )}
-          ListEmptyComponent={
+          ListEmptyComponent={dropCompleted ? (
+            <View style={styles.center}>
+              <View style={styles.emptyIconWrap}>
+                <Ionicons name="checkmark" size={32} color={colors.accent} />
+              </View>
+              <Text style={styles.emptyText}>Drop terminé pour aujourd'hui</Text>
+              <Text style={styles.completedSub}>Passe Gold pour recevoir tes alertes en premier.</Text>
+              {!isPremium && (
+                <TouchableOpacity
+                  style={styles.reloadBtn}
+                  onPress={() => navigation.navigate('Paywall', { trigger: 'drop_completed' })}
+                >
+                  <Text style={styles.reloadText}>Découvrir Gold</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
             <View style={styles.center}>
               <View style={styles.emptyIconWrap}>
                 <Ionicons name="flash-outline" size={32} color={colors.disabled} />
               </View>
               <Text style={styles.emptyText}>Le Drop arrive ce soir à 19h</Text>
-              <TouchableOpacity style={styles.reloadBtn} onPress={reload}>
+              <TouchableOpacity style={styles.reloadBtn} onPress={handleReload}>
                 <Text style={styles.reloadText}>Actualiser</Text>
               </TouchableOpacity>
             </View>
-          }
+          )}
           ListFooterComponent={dropProducts.length > 0 ? (
             <View style={styles.footer}>
               <View style={styles.footerRow}>
@@ -280,6 +305,12 @@ const styles = StyleSheet.create({
   emptyText: {
     ...typography.h3,
     color: colors.textPrimary,
+    marginBottom: spacing.lg,
+  },
+  completedSub: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
     marginBottom: spacing.lg,
   },
   reloadBtn: {
