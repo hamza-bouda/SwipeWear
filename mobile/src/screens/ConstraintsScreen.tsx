@@ -14,6 +14,7 @@ import { colors, typography, spacing, borderRadius } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { useSubmitOnboarding } from '../api';
 import { usePreferences } from '../context/PreferencesContext';
+import { useAuth } from '../context/AuthContext';
 
 const AVAILABLE_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const MIN_BUDGET = 10;
@@ -33,6 +34,7 @@ export function ConstraintsScreen({ navigation, route }: Props) {
   const [error, setError] = useState<string | null>(null);
   const submitOnboarding = useSubmitOnboarding();
   const { gender, completeOnboarding } = usePreferences();
+  const { token, retryAnonymousSession } = useAuth();
 
   const toggleSize = (size: string) => {
     setSelectedSizes((prev) => {
@@ -48,21 +50,26 @@ export function ConstraintsScreen({ navigation, route }: Props) {
 
   const handleSubmit = async () => {
     setLoading(true);
+    let recoveringSession = false;
     try {
       // This was a setTimeout pretending to be a request, so every choice made
       // during onboarding — styles, sizes, budget — was discarded on the way to
       // the feed, and the first deck ignored all of it.
+      recoveringSession = !token;
+      const activeToken = token ?? await retryAnonymousSession();
       await submitOnboarding({
         style_ids: selectedStyles ?? [],
         sizes: Array.from(selectedSizes),
         max_price_eur: maxBudget,
         gender,
-      }, imageUris ?? []);
+      }, imageUris ?? [], activeToken);
     } catch (e) {
       // A profile that failed to save is worth saying out loud: the feed would
       // otherwise open with none of the preferences the user just set.
       setError(
-        e instanceof Error ? e.message : 'Impossible d\'enregistrer tes préférences',
+        recoveringSession
+          ? 'Connexion au serveur indisponible. Démarre le backend puis réessaie.'
+          : 'Impossible d’enregistrer tes préférences. Réessaie dans un instant.',
       );
       setLoading(false);
       return;
