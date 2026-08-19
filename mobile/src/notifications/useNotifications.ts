@@ -5,6 +5,7 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { useAuth } from '../context/AuthContext';
 import { apiPost } from '../api/client';
+import { trackEvent } from '../analytics';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -63,14 +64,25 @@ export function useNotifications(onNavigate?: (screen: string, params?: Record<s
 
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
-      if (data?.type === 'drop') {
+      const productId = typeof data?.product_id === 'string' ? data.product_id : undefined;
+      const queueId = typeof data?.queue_id === 'string' ? data.queue_id : undefined;
+      const isDrop = data?.type === 'drop';
+      trackEvent({
+        name: 'push_opened',
+        properties: { product_id: productId, notification_type: isDrop ? 'drop' : 'alert' },
+      });
+      if (queueId && authToken) {
+        void apiPost('/notifications/opened', { queue_id: queueId }, { token: authToken })
+          .catch(() => undefined);
+      }
+      if (isDrop) {
         onNavigate('Main', { screen: 'Drop' });
-      } else if (data?.product_id) {
-        onNavigate('ProductDetail', { productId: data.product_id as string });
+      } else if (productId) {
+        onNavigate('ProductDetail', { productId });
       }
     });
     return () => sub.remove();
-  }, [onNavigate]);
+  }, [authToken, onNavigate]);
 
   if (Platform.OS === 'android') {
     Notifications.setNotificationChannelAsync('default', {
