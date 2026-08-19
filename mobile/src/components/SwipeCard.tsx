@@ -41,6 +41,7 @@ export function SwipeCard({ product, onTap, onSave }: SwipeCardProps) {
       />
       <View style={styles.overlay}>
         <View style={styles.badges}>
+          <Badge label={product.source.toUpperCase()} />
           <Badge
             label={conditionLabels[product.condition] ?? product.condition}
             variant={product.condition === 'new' ? 'success' : 'default'}
