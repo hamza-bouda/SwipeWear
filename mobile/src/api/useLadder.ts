@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { apiGet, apiPost } from './client';
+import { apiGet } from './client';
 
 export interface LadderEntry {
   productId: string;
@@ -64,25 +64,22 @@ function mapEntry(e: ApiLadderEntry): LadderEntry {
  * /ladder endpoint computes from the catalogue.
  */
 export function useLadder(productId: string) {
-  const { token, userId } = useAuth();
+  const { token } = useAuth();
   const [entries, setEntries] = useState<LadderEntry[]>([]);
   const [savingsPct, setSavingsPct] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const getToken = useCallback(async (): Promise<string> => {
+  const getToken = useCallback((): string => {
     if (token) return token;
-    const resp = await apiPost<{ access_token: string }>('/auth/token', {
-      user_id: userId,
-    });
-    return resp.access_token;
-  }, [token, userId]);
+    throw new Error('Session indisponible');
+  }, [token]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const authToken = await getToken();
+      const authToken = getToken();
       const data = await apiGet<ApiLadder>(
         `/ladder/${encodeURIComponent(productId)}`,
         { token: authToken },
