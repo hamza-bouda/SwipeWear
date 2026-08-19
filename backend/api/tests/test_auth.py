@@ -99,6 +99,22 @@ class TestLogin:
         assert resp.status_code == 401
 
 
+class TestGoogleLogin:
+    def test_google_login_creates_then_reuses_account(self, client, monkeypatch):
+        monkeypatch.setattr(
+            "api.routers.auth._verify_google_identity",
+            lambda token: "google@example.com",
+        )
+
+        first = client.post("/auth/google", json={"id_token": "verified-token"})
+        second = client.post("/auth/google", json={"id_token": "verified-token"})
+
+        assert first.status_code == 200
+        assert second.status_code == 200
+        assert first.json()["email"] == "google@example.com"
+        assert first.json()["user_id"] == second.json()["user_id"]
+
+
 @pytest.fixture()
 def catalogue_product_id():
     """A product id that exists — interaction_events references products."""
