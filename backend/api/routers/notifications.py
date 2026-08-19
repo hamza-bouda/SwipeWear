@@ -84,7 +84,8 @@ def update_prefs(
     user_id: UUID = Depends(get_current_user_id),
 ):
     if body.preference not in _VALID_PREFS:
-        raise HTTPException(status_code=422, detail=f"Must be one of: {', '.join(sorted(_VALID_PREFS))}")
+        allowed = ", ".join(sorted(_VALID_PREFS))
+        raise HTTPException(status_code=422, detail=f"Must be one of: {allowed}")
     conn = None
     try:
         conn = get_conn()

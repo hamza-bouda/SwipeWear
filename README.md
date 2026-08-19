@@ -23,6 +23,36 @@ backend/
 mobile/               ← React Native / Expo (ticket KAN-xx)
 ```
 
+## Unités de déploiement
+
+Les modules métier restent isolés dans le code, mais seuls les domaines ayant
+un cycle de vie ou un profil de charge différent deviennent des conteneurs :
+
+- `api` : requêtes synchrones et pipeline du feed ; seul service backend exposé.
+- `ingestion-worker` : collecte et normalisation du catalogue (profil Compose
+  `ingestion`).
+- `ai-indexer` : embeddings CPU et index pgvector, avec une image contenant les
+  dépendances IA (profil Compose `ai`).
+- `alert-matcher`, `notification-dispatcher`, `daily-drop` : traitements
+  périodiques indépendants.
+- `migrations` : job idempotent terminé avant le démarrage des autres services.
+- `db` : PostgreSQL + pgvector ; les conteneurs y accèdent seulement par le
+  réseau de données (le port hôte reste publié pour le développement local).
+
+Les workers communiquent par PostgreSQL. Cette frontière évite des appels HTTP
+internes et permet de redémarrer ou dimensionner chaque unité séparément. Une
+file de messages ne sera ajoutée que lorsqu'un besoin de traitement temps réel
+ou de back-pressure sera mesuré.
+
+```bash
+# API et workers légers
+docker compose up --build
+
+# Ajouter l'ingestion ou l'indexation IA
+docker compose --profile ingestion up --build
+docker compose --profile ai up --build
+```
+
 ## Règles d'architecture (blueprint §11)
 
 1. **Contracts first** — modifier `contracts/interfaces.py` avant d'implémenter.

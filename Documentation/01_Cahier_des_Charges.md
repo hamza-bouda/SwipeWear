@@ -101,7 +101,7 @@ Le swipe reste l'interface d'entraînement (et le format viral TikTok) ; les ale
 ## 4. Exigences Fonctionnelles (MVP)
 
 ### 4.1 Onboarding & Profiling
-* **F01 — Inscription :** Email / Google (Firebase Auth). Durée cible < 60 secondes. Identité anonyme pour la navigation sans compte.
+* **F01 — Inscription :** Email / Google. Durée cible < 60 secondes. Identité anonyme pour la navigation sans compte.
 * **F02 — Calibrage de style (Cold Start) :** sélection genre + tailles + choix d'archétypes de style (8 clusters : streetwear, minimaliste, Y2K, workwear, grunge, bohème, sport, classique) ou import d'images d'inspiration pour initialiser le vecteur de goût avant le premier feed réel.
 
 ### 4.2 Swipe Deck (entraînement)

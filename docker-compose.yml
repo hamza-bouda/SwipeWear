@@ -1,3 +1,19 @@
+x-backend: &backend
+  build:
+    context: ./backend
+    target: runtime
+  environment:
+    DATABASE_URL: postgresql://${POSTGRES_USER:-swipewear}:${POSTGRES_PASSWORD:-swipewear_dev}@db:5432/${POSTGRES_DB:-swipewear}
+  networks:
+    - data
+  restart: unless-stopped
+
+x-after-migrations: &after-migrations
+  db:
+    condition: service_healthy
+  migrations:
+    condition: service_completed_successfully
+
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -9,12 +25,97 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/migrations:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-swipewear}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-swipewear} -d ${POSTGRES_DB:-swipewear}"]
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - data
+    restart: unless-stopped
+
+  migrations:
+    <<: *backend
+    command: ["python", "scripts/run_migrations.py"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    <<: *backend
+    command: ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    depends_on: *after-migrations
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-swipewear}:${POSTGRES_PASSWORD:-swipewear_dev}@db:5432/${POSTGRES_DB:-swipewear}
+      APP_ENV: ${APP_ENV:-development}
+      JWT_SECRET: ${JWT_SECRET:-}
+      PASSWORD_SALT: ${PASSWORD_SALT:-}
+      REVENUECAT_WEBHOOK_SECRET: ${REVENUECAT_WEBHOOK_SECRET:-}
+      LADDER_MIN_SIMILARITY: ${LADDER_MIN_SIMILARITY:-0.70}
+      AFFILIATE_LINKS_ENABLED: ${AFFILIATE_LINKS_ENABLED:-false}
+      EPN_PROGRAM_ID: ${EPN_PROGRAM_ID:-}
+      EPN_CAMPAIGN_ID: ${EPN_CAMPAIGN_ID:-}
+      AWIN_PUBLISHER_ID: ${AWIN_PUBLISHER_ID:-}
+      CJ_PUBLISHER_ID: ${CJ_PUBLISHER_ID:-}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - edge
+      - data
+
+  alert-matcher:
+    <<: *backend
+    command: ["python", "scripts/run_service.py", "interval", "--seconds", "${ALERT_MATCH_INTERVAL_SECONDS:-3600}", "--", "python", "scripts/run_alert_matcher.py"]
+    depends_on: *after-migrations
+
+  notification-dispatcher:
+    <<: *backend
+    command: ["python", "scripts/run_service.py", "interval", "--seconds", "${NOTIFICATION_INTERVAL_SECONDS:-60}", "--", "python", "scripts/run_notifications_cron.py"]
+    depends_on: *after-migrations
+
+  daily-drop:
+    <<: *backend
+    command: ["python", "scripts/run_service.py", "daily", "--at", "${DROP_LOCAL_TIME:-19:00}", "--timezone", "${APP_TIMEZONE:-Europe/Paris}", "--", "python", "scripts/run_drop_notification.py"]
+    depends_on: *after-migrations
+
+  ingestion-worker:
+    <<: *backend
+    profiles: ["ingestion"]
+    command: ["python", "scripts/run_service.py", "interval", "--seconds", "${INGEST_INTERVAL_SECONDS:-21600}", "--", "python", "scripts/ingest_catalogue.py", "--target", "${INGEST_TARGET:-5000}", "--resume"]
+    depends_on: *after-migrations
+    volumes:
+      - ingestion_state:/app/.runtime
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-swipewear}:${POSTGRES_PASSWORD:-swipewear_dev}@db:5432/${POSTGRES_DB:-swipewear}
+      INGEST_STATE_PATH: /app/.runtime/ingest_state.json
+      EBAY_CLIENT_ID: ${EBAY_CLIENT_ID:-}
+      EBAY_CLIENT_SECRET: ${EBAY_CLIENT_SECRET:-}
+      EBAY_ENV: ${EBAY_ENV:-sandbox}
+      EBAY_IMAGE_SIZE: ${EBAY_IMAGE_SIZE:-500}
+
+  ai-indexer:
+    <<: *backend
+    profiles: ["ai"]
+    build:
+      context: ./backend
+      target: runtime-ai
+    command: ["python", "scripts/run_service.py", "interval", "--seconds", "${INDEX_INTERVAL_SECONDS:-300}", "--", "python", "scripts/run_indexer.py", "--limit", "${INDEX_BATCH_SIZE:-200}", "--workers", "${INDEX_DOWNLOAD_WORKERS:-8}"]
+    depends_on: *after-migrations
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-swipewear}:${POSTGRES_PASSWORD:-swipewear_dev}@db:5432/${POSTGRES_DB:-swipewear}
+      FASHIONSIGLIP_MODEL: ${FASHIONSIGLIP_MODEL:-hf-hub:Marqo/marqo-fashionSigLIP}
 
 volumes:
   postgres_data:
+  ingestion_state:
+
+networks:
+  edge:
+  data:
+    internal: true
