@@ -68,7 +68,7 @@ class TestCreateAlert:
     def test_create_specific_item_alert(self, client, user_id, auth_headers):
         with patch("api.routers.alerts.get_conn") as mock_get, \
              patch("api.routers.alerts.put_conn"), \
-             patch("api.routers.alerts.count_active_alerts", return_value=1), \
+             patch("api.routers.alerts.count_active_alerts", return_value=0), \
              patch("api.routers.alerts._load_reference_embedding", return_value=[0.1, 0.2]), \
              patch("api.routers.alerts.create_alert") as mock_create:
             mock_get.return_value = _mock_conn()
@@ -87,10 +87,10 @@ class TestCreateAlert:
         assert resp.json()["reference_product_id"] == "ebay-42"
         assert mock_create.call_args.args[1].reference_embedding == [0.1, 0.2]
 
-    def test_free_tier_cap_at_3_active(self, client, user_id, auth_headers):
+    def test_free_tier_cap_at_one_active(self, client, user_id, auth_headers):
         with patch("api.routers.alerts.get_conn") as mock_get, \
              patch("api.routers.alerts.put_conn"), \
-             patch("api.routers.alerts.count_active_alerts", return_value=3), \
+             patch("api.routers.alerts.count_active_alerts", return_value=1), \
              patch("api.routers.alerts.is_user_premium", return_value=False):
             mock_get.return_value = _mock_conn()
 
@@ -123,7 +123,7 @@ class TestListAlerts:
         data = resp.json()
         assert len(data["alerts"]) == 2
         assert data["active_count"] == 2
-        assert data["free_limit"] == 3
+        assert data["free_limit"] == 1
 
     def test_empty_list(self, client, user_id, auth_headers):
         with patch("api.routers.alerts.get_conn") as mock_get, \

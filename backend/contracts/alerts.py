@@ -8,7 +8,8 @@ from pydantic import BaseModel, Field
 
 SCHEMA_VERSION = 1
 
-FREE_ALERT_LIMIT = 3
+# The MVP deliberately reaches the Premium decision on a user's second alert.
+FREE_ALERT_LIMIT = 1
 
 
 class AlertType(str, Enum):

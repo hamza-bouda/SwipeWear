@@ -47,7 +47,7 @@ class TestAlertDefaults:
         assert a.reference_embedding is None
 
     def test_free_alert_limit_constant(self):
-        assert FREE_ALERT_LIMIT == 3
+        assert FREE_ALERT_LIMIT == 1
 
     def test_pause_status(self):
         a = Alert(

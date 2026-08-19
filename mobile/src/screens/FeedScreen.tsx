@@ -91,7 +91,7 @@ export function FeedScreen() {
       // traffic and has to be readable rather than silent.
       setAlertToast(
         e instanceof ApiError && e.status === 403
-          ? 'Limite de 3 alertes atteinte — passe en Premium ou supprime-en une.'
+          ? 'Ton alerte gratuite est déjà active — passe en Premium ou supprime-la.'
           : "L'alerte n'a pas pu être créée.",
       );
     }
