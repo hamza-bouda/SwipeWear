@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { useDrop } from '../api';
 import { usePostEvent } from '../api';
 import { Product } from '../types';
 import { RootStackParamList } from '../navigation/types';
+import { trackEvent } from '../analytics';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -43,12 +44,23 @@ export function DropScreen() {
   const navigation = useNavigation<Nav>();
   const { products: dropProducts, loading, reload, markViewed } = useDrop();
   const postEvent = usePostEvent();
+  const hasTrackedOpen = useRef(false);
+
+  useEffect(() => {
+    if (!loading && !hasTrackedOpen.current) {
+      hasTrackedOpen.current = true;
+      trackEvent({ name: 'drop_opened', properties: { available_count: dropProducts.length } });
+    }
+  }, [dropProducts.length, loading]);
 
   const handlePress = useCallback((product: Product) => {
+    if (dropProducts.length === 1) {
+      trackEvent({ name: 'drop_completed' });
+    }
     postEvent(product.id, 'open', { surface: 'drop' });
     markViewed(product.id);
     navigation.navigate('ProductDetail', { productId: product.id, product });
-  }, [markViewed, navigation, postEvent]);
+  }, [dropProducts.length, markViewed, navigation, postEvent]);
 
   return (
     <View style={styles.container}>
