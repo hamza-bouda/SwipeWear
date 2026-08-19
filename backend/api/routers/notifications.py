@@ -109,7 +109,7 @@ def notification_opened(
     conn = None
     try:
         conn = get_conn()
-        mark_notification_opened(conn, body.queue_id)
+        mark_notification_opened(conn, body.queue_id, user_id)
     except Exception:
         _LOG.warning("Failed to mark notification opened: %s", body.queue_id)
     finally:
