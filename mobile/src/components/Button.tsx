@@ -72,7 +72,7 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    height: 50,
+    minHeight: 52,
     borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -98,14 +98,19 @@ const styles = StyleSheet.create({
 const variantStyles: Record<ButtonVariant, ViewStyle> = {
   primary: {
     backgroundColor: colors.accent,
+    shadowColor: colors.accentDark,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 3,
   },
   secondary: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceElevated,
     borderWidth: 1,
     borderColor: colors.border,
   },
   outline: {
-    backgroundColor: 'transparent',
+    backgroundColor: colors.surfaceElevated,
     borderWidth: 1.5,
     borderColor: colors.borderStrong,
   },
