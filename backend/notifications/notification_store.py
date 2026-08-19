@@ -71,12 +71,14 @@ def get_device_tokens(conn: Any, user_id: UUID) -> list[str]:
         return [row[0] for row in cur.fetchall()]
 
 
-def mark_notification_opened(conn: Any, queue_id: str) -> None:
-    """Record that a user opened a push notification (for tracking)."""
+def mark_notification_opened(conn: Any, queue_id: str, user_id: UUID) -> None:
+    """Record an open only on a notification owned by the authenticated user."""
     with conn.cursor() as cur:
         cur.execute(
-            "UPDATE notification_log SET opened_at = NOW() WHERE queue_id = %s",
-            (queue_id,),
+            """UPDATE notification_log
+               SET opened_at = NOW()
+               WHERE queue_id = %s AND user_id = %s""",
+            (queue_id, str(user_id)),
         )
     conn.commit()
 

@@ -10,6 +10,7 @@ export type AnalyticsEvent =
   | { name: 'ladder_viewed'; properties: { product_id: string } }
   | { name: 'drop_opened'; properties: { available_count: number } }
   | { name: 'drop_completed' }
+  | { name: 'push_opened'; properties: { product_id?: string; notification_type: 'drop' | 'alert' } }
   | { name: 'paywall_viewed'; properties: { trigger: 'alert_limit' | 'profile' | 'drop_completed' } }
   | { name: 'subscribe'; properties: { trigger: 'alert_limit' | 'profile' | 'drop_completed' } }
   | {
