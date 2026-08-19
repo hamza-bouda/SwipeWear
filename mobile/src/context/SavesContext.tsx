@@ -35,6 +35,7 @@ interface ApiProduct {
   size_raw: string | null;
   image_urls: string[];
   affiliate_url: string | null;
+  available: boolean;
 }
 
 function mapProduct(p: ApiProduct): Product {
@@ -50,6 +51,7 @@ function mapProduct(p: ApiProduct): Product {
     imageUrls: p.image_urls,
     source: p.source,
     url: p.affiliate_url ?? undefined,
+    available: p.available,
   };
 }
 
