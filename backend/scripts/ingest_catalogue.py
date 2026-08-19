@@ -39,7 +39,12 @@ from ingestion.sources.ebay import MAX_LIMIT, MAX_OFFSET, EbaySource  # noqa: E4
 _LOG = logging.getLogger("swipewear.scripts.ingest_catalogue")
 
 _ENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
-_STATE_PATH = Path(__file__).resolve().parent.parent / ".ingest_state.json"
+_STATE_PATH = Path(
+    os.environ.get(
+        "INGEST_STATE_PATH",
+        str(Path(__file__).resolve().parent.parent / ".ingest_state.json"),
+    )
+)
 
 _PAGE_SIZE = MAX_LIMIT
 _FLUSH_EVERY = 500
@@ -172,6 +177,7 @@ def _load_state(resume: bool) -> set[str]:
 
 
 def _save_state(done: set[str]) -> None:
+    _STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     _STATE_PATH.write_text(json.dumps(sorted(done)), encoding="utf-8")
 
 
