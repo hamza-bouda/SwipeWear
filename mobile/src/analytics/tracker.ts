@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { apiPost } from '../api/client';
 import type { AnalyticsEvent } from './events';
 
 const APP_VERSION = '1.0.0';
@@ -11,9 +12,11 @@ interface CommonProperties {
 }
 
 let _userId = 'anonymous';
+let _token: string | null = null;
 
-export function setAnalyticsUserId(userId: string) {
+export function setAnalyticsSession(userId: string, token: string | null) {
   _userId = userId;
+  _token = token;
 }
 
 function getCommonProperties(): CommonProperties {
@@ -34,6 +37,13 @@ export function trackEvent(event: AnalyticsEvent) {
     console.log('[Analytics]', event.name, JSON.stringify(payload, null, 2));
   }
 
-  // PostHog integration point:
-  // posthog.capture(event.name, { ...common, ...properties });
+  // Metrics are best-effort by design: analytics must never block the user
+  // journey or turn a temporary network failure into a product failure.
+  if (_token) {
+    void apiPost('/analytics/events', {
+      name: event.name,
+      properties: payload,
+      occurred_at: common.timestamp,
+    }, { token: _token }).catch(() => undefined);
+  }
 }
