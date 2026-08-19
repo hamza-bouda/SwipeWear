@@ -42,12 +42,17 @@ export function AlertsScreen() {
 
   const handleCreate = async () => {
     if (!newLabel.trim()) return;
+    const parsedMaxPrice = maxPrice.trim() ? Number(maxPrice.replace(',', '.')) : null;
+    if (parsedMaxPrice !== null && (!Number.isFinite(parsedMaxPrice) || parsedMaxPrice <= 0)) {
+      RNAlert.alert('Budget invalide', 'Indique un montant supérieur à zéro.');
+      return;
+    }
     setCreating(true);
     try {
       await create({
         alert_type: 'style',
         label: newLabel.trim(),
-        constraints: maxPrice ? { max_price: parseFloat(maxPrice) } : {},
+        constraints: parsedMaxPrice === null ? {} : { max_price_eur: parsedMaxPrice },
       });
       setShowCreate(false);
       setNewLabel('');
@@ -86,7 +91,7 @@ export function AlertsScreen() {
       <View style={styles.alertInfo}>
         <Text style={styles.alertLabel} numberOfLines={1}>{item.label}</Text>
         <Text style={styles.alertSub}>
-          {item.constraints?.max_price ? `Max ${item.constraints.max_price} €` : 'Pas de budget max'}
+          {item.constraints?.max_price_eur ? `Max ${item.constraints.max_price_eur} €` : 'Pas de budget max'}
           {' · '}{item.status === 'active' ? 'Active' : 'En pause'}
         </Text>
       </View>
