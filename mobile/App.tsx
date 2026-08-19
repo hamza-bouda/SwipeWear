@@ -11,7 +11,10 @@ import { useNotifications } from './src/notifications/useNotifications';
 
 function NotificationHandler({ navRef }: { navRef: React.RefObject<NavigationContainerRef<any> | null> }) {
   const navigate = useCallback((screen: string, params?: Record<string, string>) => {
-    navRef.current?.navigate(screen as never, params as never);
+    const navigation = navRef.current as {
+      navigate: (target: string, options?: Record<string, string>) => void;
+    } | null;
+    navigation?.navigate(screen, params);
   }, [navRef]);
   useNotifications(navigate);
   return null;
