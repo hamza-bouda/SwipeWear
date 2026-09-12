@@ -10,6 +10,7 @@ from contracts.product import ProductRecord
 _LOG = logging.getLogger("swipewear.policy.exploration")
 
 EXPLORATION_MARKER = "exploration"
+FRESHNESS_24H_MARKER = "freshness_24h"
 
 
 def epsilon_greedy_inject(
@@ -60,3 +61,66 @@ def epsilon_greedy_inject(
     )
 
     return feed.model_copy(update={"items": new_items})
+
+
+def compose_feed(
+    feed: RankedFeed,
+    limit: int,
+) -> RankedFeed:
+    """Compose the visible page according to the product rule F06.
+
+    The ranker and epsilon injector deliberately over-fetch. This final
+    selection is where the user-visible page gets its 70% exploitation, 15%
+    exploration and 15% freshness mix. If one bucket is unavailable (for
+    example a small catalogue has no listing younger than 24 hours), its slots
+    are filled from the other buckets instead of returning a short feed.
+    """
+    if limit <= 0 or not feed.items:
+        return feed.model_copy(update={"items": []})
+
+    page_size = min(limit, len(feed.items))
+    exploitation: list[RankedItem] = []
+    exploration: list[RankedItem] = []
+    freshness: list[RankedItem] = []
+
+    for item in feed.items:
+        if item.score_breakdown.get(EXPLORATION_MARKER, 0.0) > 0:
+            exploration.append(item)
+        elif item.score_breakdown.get(FRESHNESS_24H_MARKER, 0.0) > 0:
+            freshness.append(item)
+        else:
+            exploitation.append(item)
+
+    # Use floor for the two explicit 15% buckets and give the rounding
+    # remainder to freshness. For a 30-card page this is 21 / 4 / 5.
+    target_exploitation = int(page_size * 0.70)
+    target_exploration = int(page_size * 0.15)
+    target_freshness = page_size - target_exploitation - target_exploration
+
+    selected = (
+        exploitation[:target_exploitation]
+        + exploration[:target_exploration]
+        + freshness[:target_freshness]
+    )
+    selected_ids = {item.product.id for item in selected}
+
+    # A missing bucket must not make the deck smaller. Keep the original
+    # ranking order as the deterministic fill order.
+    for item in feed.items:
+        if len(selected) >= page_size:
+            break
+        if item.product.id not in selected_ids:
+            selected.append(item)
+            selected_ids.add(item.product.id)
+
+    selected = [
+        item.model_copy(update={"rank": rank})
+        for rank, item in enumerate(selected[:page_size], start=1)
+    ]
+    _LOG.info(
+        "Feed composition: %d exploitation, %d exploration, %d freshness",
+        sum(1 for item in selected if item.product.id in {x.product.id for x in exploitation}),
+        sum(1 for item in selected if item.product.id in {x.product.id for x in exploration}),
+        sum(1 for item in selected if item.product.id in {x.product.id for x in freshness}),
+    )
+    return feed.model_copy(update={"items": selected})

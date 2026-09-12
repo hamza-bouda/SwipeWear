@@ -15,8 +15,10 @@ deterministic placeholder vectors with a warning rather than crashing
 onboarding -- a real style-vector mismatch is better caught by product
 review than by a hard failure at import time.
 
-Ids are kept in sync with mobile/src/data/styleArchetypes.ts so a style
-selected in the app resolves to the right entry here.
+The mobile app exposes the eight product archetypes from the specification.
+The existing embedding catalogue also contains a few internal archetypes used
+by earlier clients; aliases below keep those embeddings compatible without
+making the mobile UI expose a second, conflicting vocabulary.
 
 build_profile_from_images takes an injected EmbeddingService rather than
 importing embeddings.fashionsiglip directly -- preferences/ may only import
@@ -58,6 +60,14 @@ STYLE_ARCHETYPE_IDS = [
     "techwear",
     "casual",
 ]
+
+# Public names from Documentation/07_Specifications_Fonctionnelles.md. The
+# closest existing reference vector is used until dedicated Y2K and classic
+# FashionSigLIP reference sets are introduced.
+STYLE_ID_ALIASES = {
+    "y2k": "vintage",
+    "classic": "preppy",
+}
 
 _DATA_FILE = Path(__file__).parent / "data" / "style_archetype_embeddings.json"
 
@@ -105,9 +115,9 @@ def build_profile_from_styles(selected_style_ids: list[str]) -> UserPreferencePr
     vector, caller falls back to a popularity-based feed).
     """
     embeddings = [
-        ARCHETYPE_EMBEDDINGS[style_id]
+        ARCHETYPE_EMBEDDINGS[STYLE_ID_ALIASES.get(style_id, style_id)]
         for style_id in selected_style_ids
-        if style_id in ARCHETYPE_EMBEDDINGS
+        if STYLE_ID_ALIASES.get(style_id, style_id) in ARCHETYPE_EMBEDDINGS
     ]
 
     if not embeddings:

@@ -33,3 +33,10 @@ Thumbs.db
 # Local runtime artefacts
 backend/uvicorn.log
 backend/.ingest_state.json
+
+# Local emulator and visual QA captures
+/mobile-*.png
+/mobile-*.xml
+mobile/emulator-*.png
+mobile/mobile-final-*.png
+mobile/ui*.xml

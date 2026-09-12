@@ -52,7 +52,7 @@ Le swipe reste l'interface d'entraînement (et le format viral TikTok) ; les ale
 ## 2. Périmètre du Projet
 
 ### 2.1 Dans le périmètre — MVP (V1)
-* **Application mobile** React Native / Expo (iOS + Android).
+* **Application mobile** Flutter / Dart (iOS + Android), avec une base de code unique.
 * **Swipe Deck d'entraînement :** deck de cartes (Droite = J'aime, Gauche = Je rejette, Haut = Créer une alerte sur cette pièce).
 * **Moteur de style vectoriel :** embeddings CLIP + recherche de similarité pgvector, profil de goût mis à jour à chaque swipe.
 * **Échelle de Prix (niveau "même style") :** pour chaque article aimé, liste d'articles visuellement similaires triés par prix croissant, toutes sources confondues (occasion + neuf), avec badges de provenance et calcul d'économie vs le neuf.
@@ -131,7 +131,7 @@ Le swipe reste l'interface d'entraînement (et le format viral TikTok) ; les ale
 * **Latence :** échelle de prix < 400 ms (recherche pgvector HNSW pré-indexée) ; carte de swipe < 200 ms.
 * **Fraîcheur :** re-scan des sources API toutes les 15-60 min selon quota ; purge des annonces mortes par vérification différée + signalement communautaire.
 * **Coût d'inférence :** Marqo-FashionSigLIP (768 dimensions) sur CPU (≈350 ms/image à l'ingestion) ; aucun GPU requis au MVP.
-* **Push :** Expo Notifications ; file de priorité stricte Premium > Gratuit.
+* **Push :** notifications natives iOS/Android derrière un service de push serveur ; file de priorité stricte Premium > Gratuit.
 
 ### 5.2 Principe d'architecture non négociable : survivre sans Vinted
 Aucun composant critique (catalogue, échelle de prix, drop, revenus) ne dépend de Vinted. Vinted n'apparaît que dans la surveillance user-initiated (F12), conçue pour être coupée sans casser le produit. **Tout développement qui violerait ce principe est refusé en revue de code.**

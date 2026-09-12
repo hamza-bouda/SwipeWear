@@ -37,7 +37,8 @@ _PRODUCT_COLUMNS = [
 # top-ranked products stay top-ranked no matter how many times you see them.
 _QUERY_TEMPLATE = """\
 SELECT {columns},
-       1 - (e.embedding <=> %(style_vector)s::vector) AS similarity_score
+       1 - (e.embedding <=> %(style_vector)s::vector) AS similarity_score,
+       p.created_at AS product_created_at
 FROM products AS p
 JOIN product_embeddings AS e ON e.product_id = p.id
 {where}
@@ -108,14 +109,19 @@ class VectorRetriever:
 
         candidates: list[CandidateItem] = []
         for rank, row in enumerate(rows, start=1):
+            created_at = row[len(_PRODUCT_COLUMNS) + 1] if len(row) > len(_PRODUCT_COLUMNS) + 1 else None
             row_dict = dict(
-                zip([*_PRODUCT_COLUMNS, "similarity_score"], row),
+                zip(_PRODUCT_COLUMNS, row[:len(_PRODUCT_COLUMNS)]),
             )
-            similarity = float(row_dict.pop("similarity_score"))
+            similarity = float(row[len(_PRODUCT_COLUMNS)])
             row_dict["source"] = ProductSource(row_dict["source"])
             row_dict["condition"] = ProductCondition(row_dict["condition"])
             row_dict["price"] = float(row_dict["price"])
             row_dict["image_urls"] = list(row_dict["image_urls"] or [])
+            if created_at is not None:
+                row_dict["enriched_attrs"] = {
+                    "created_at": created_at.isoformat(),
+                }
             # The column holds the raw seller URL; affiliate deep links are
             # derived from it at serve time.
             row_dict["affiliate_url"] = row_dict.pop("listing_url", None)

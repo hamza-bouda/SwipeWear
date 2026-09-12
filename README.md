@@ -5,6 +5,32 @@
 Application mobile B2C de découverte de mode seconde main par swipe.
 Le cerveau IA est modulaire, parallélisable, et 100 % CPU au MVP.
 
+> État actuel : l'application mobile est migrée vers Flutter/Dart. Le code
+> React Native/Expo historique a été supprimé du répertoire `mobile/`.
+
+## Démarrage en 5 minutes
+
+Prérequis détaillés : [REQUIREMENTS.md](REQUIREMENTS.md).
+
+```bash
+git clone https://github.com/hamza-bouda/SwipeWear.git
+cd SwipeWear
+cp .env.example .env
+docker compose up --build
+```
+
+Dans un second terminal :
+
+```bash
+cd mobile
+flutter pub get
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
+```
+
+Sous Windows PowerShell, remplacer `cp .env.example .env` par
+`Copy-Item .env.example .env`. Pour un simulateur iOS, utiliser
+`http://localhost:8000` comme adresse de l'API.
+
 ## Architecture
 
 ```
@@ -20,7 +46,7 @@ backend/
   explainability/     ← tags éditables + phrase fondée sur le profil
   evaluation/         ← golden scenario (CI regression guard)
   orchestration/      ← séquenceur uniquement, zero logique métier
-mobile/               ← React Native / Expo (ticket KAN-xx)
+mobile/               ← Flutter / Dart (Android + iOS)
 ```
 
 ## Unités de déploiement
@@ -51,7 +77,12 @@ docker compose up --build
 # Ajouter l'ingestion ou l'indexation IA
 docker compose --profile ingestion up --build
 docker compose --profile ai up --build
+docker compose --profile watcher up --build
 ```
+
+Le profil `watcher` surveille les alertes via les APIs officielles eBay/Etsy/Awin
+et réutilise le pipeline de normalisation et de matching. Le prototype Vinted
+reste isolé, désactivé et soumis à validation juridique.
 
 ## Règles d'architecture (blueprint §11)
 
@@ -73,6 +104,36 @@ pip install -e ".[dev]"
 python lint_imports.py   # vérifier les frontières d'imports
 pytest                   # lancer les tests
 ```
+
+Pour lancer l’application mobile Flutter :
+
+```bash
+cd mobile
+flutter pub get
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
+```
+
+Les livrables Android et iOS se construisent avec `flutter build appbundle`
+et `flutter build ipa`. Les identifiants Firebase, Google Sign-In et
+RevenueCat restent injectés par environnement ; aucun secret mobile n’est
+stocké dans le dépôt.
+
+## Validation
+
+```bash
+cd backend
+python -m pip install -e ".[dev]"
+pytest
+
+cd ../mobile
+flutter analyze --no-pub
+flutter test --no-pub
+flutter build apk --debug --no-pub
+```
+
+Le détail des variables, des émulateurs, des builds signés et des prérequis
+de production se trouve dans [REQUIREMENTS.md](REQUIREMENTS.md) et
+[mobile/README.md](mobile/README.md).
 
 ## Gouvernance
 

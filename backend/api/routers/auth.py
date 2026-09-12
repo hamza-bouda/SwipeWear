@@ -19,7 +19,6 @@ from api.schemas import (
 from api.store import (
     create_user,
     delete_user,
-    get_user,
     get_user_by_email,
     migrate_anonymous_profile,
     verify_password,
@@ -127,25 +126,36 @@ def login(body: LoginRequest):
 
 
 @router.post("/google", response_model=AuthUserResponse)
-def login_with_google(body: GoogleLoginRequest):
+def login_with_google(
+    body: GoogleLoginRequest,
+    authorization: str | None = Header(default=None),
+):
     email = _verify_google_identity(body.id_token)
+    anonymous = get_optional_principal(authorization)
+    if anonymous is not None and anonymous.kind != "anonymous":
+        error_response(
+            409,
+            "ALREADY_AUTHENTICATED",
+            "An account session cannot be replaced by Google sign-in.",
+        )
     user = get_user_by_email(email)
+    profile_migrated = False
     if user is None:
         # Google has already verified possession of the email. A random local
         # password keeps the existing account schema and means password login
         # is never accidentally enabled for an OAuth-only account.
         user = create_user(uuid4(), email, uuid4().hex + uuid4().hex)
+    if anonymous is not None:
+        profile_migrated = migrate_anonymous_profile(anonymous.user_id, user.user_id)
     return AuthUserResponse(
         user_id=user.user_id,
         email=user.email,
         access_token=create_token(user.user_id),
+        profile_migrated=profile_migrated,
     )
 
 
 @router.delete("/account", response_model=DeleteAccountResponse)
 def delete_account(user_id=Depends(get_current_user_id)):
-    user = get_user(user_id)
-    if user is None:
-        error_response(404, "USER_NOT_FOUND", "Account not found.")
     delete_user(user_id)
     return DeleteAccountResponse(user_id=user_id)

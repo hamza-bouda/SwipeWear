@@ -61,7 +61,7 @@ PHASE 3 (Mois 6+) ─────── V1.5 (matching exact) + creusement du mo
 * **Continu (B) :** 2-3 TikToks/semaine (build in public — la liste d'attente doit grandir pendant la construction).
 
 ### 📅 Mois 2 — Application mobile
-* **A :** Expo/React Native — onboarding + calibrage (F01-F02), Swipe Deck avec pre-fetching (F03-F06), écran Échelle de prix + redirection affiliée (F07-F08), dressing (F16).
+* **A :** Flutter/Dart — onboarding + calibrage (F01-F02), Swipe Deck avec pre-fetching (F03-F06), écran Échelle de prix + redirection affiliée (F07-F08), dressing (F16).
 * **B :** règle de composition du feed (70/15/15), qualité de l'échelle de prix (pertinence des similaires), carte de partage (F09).
 * ⚠️ **Semaines 6-8 = période d'examens : vélocité réduite à ~4 h/semaine cumulées, planifiée dès maintenant** (le calendrier absorbe 2 semaines creuses sans glisser).
 

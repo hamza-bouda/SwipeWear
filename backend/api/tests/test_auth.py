@@ -11,7 +11,12 @@ from api import store
 
 
 @pytest.fixture(autouse=True)
-def _clean_store():
+def _clean_store(request, database_available):
+    if request.node.get_closest_marker("requires_db") is None:
+        yield
+        return
+    if not database_available:
+        pytest.skip("no reachable PostgreSQL instance")
     store.reset()
     yield
     store.reset()
@@ -22,6 +27,7 @@ def client():
     return TestClient(app)
 
 
+@pytest.mark.requires_db
 class TestRegister:
     def test_register_success(self, client):
         resp = client.post(
@@ -65,6 +71,7 @@ class TestRegister:
         assert resp.status_code == 422
 
 
+@pytest.mark.requires_db
 class TestLogin:
     def test_login_success(self, client):
         client.post(
@@ -99,6 +106,7 @@ class TestLogin:
         assert resp.status_code == 401
 
 
+@pytest.mark.requires_db
 class TestGoogleLogin:
     def test_google_login_creates_then_reuses_account(self, client, monkeypatch):
         monkeypatch.setattr(
@@ -189,7 +197,34 @@ class TestDeleteAccount:
         resp = client.delete("/auth/account")
         assert resp.status_code == 401
 
+    def test_delete_anonymous_session_erases_its_profile(self, client):
+        session = client.post("/auth/anonymous")
+        token = session.json()["access_token"]
+        user_id = session.json()["user_id"]
+        headers = {"Authorization": f"Bearer {token}"}
 
+        profile = client.get("/profile", headers=headers)
+        assert profile.status_code == 200
+
+        resp = client.delete("/auth/account", headers=headers)
+        assert resp.status_code == 200
+        assert resp.json()["deleted"] is True
+
+        from api.db import get_conn, put_conn
+
+        conn = get_conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT 1 FROM user_profiles WHERE user_id = %s",
+                    (user_id,),
+                )
+                assert cur.fetchone() is None
+        finally:
+            put_conn(conn)
+
+
+@pytest.mark.requires_db
 class TestAnonymousToSignup:
     def test_anonymous_profile_migrated_on_register(self, client):
         session = client.post("/auth/anonymous")

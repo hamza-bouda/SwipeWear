@@ -37,7 +37,7 @@ Gates business (doc 08) restent au-dessus du backlog : **Gate 1** (300 waitlist 
 | E4 | Profil utilisateur vivant | 🟩 | UserPreferenceProfile + apprentissage par swipe | P0 |
 | E5 | Retrieval | 🟦 | pgvector : bons candidats dans le top set | P0 |
 | E6 | Ranking & feed policy | 🟩 | Ordre + diversité (MMR, epsilon-greedy) | P1 |
-| E7 | App mobile (swipe + onboarding) | ⬜ | React Native/Expo, écrans cœur | P1 |
+| E7 | App mobile (swipe + onboarding) | ⬜ | Flutter/Dart, écrans cœur | P1 |
 | E8 | Échelle de prix & affiliation | 🟦 | Le différenciateur business (F07) | P1 |
 | E9 | "Your Algorithm" & explicabilité | 🟩 | Préférences inspectables/éditables | P1 |
 | E10 | Observabilité & évaluation | ⬜ | Trace par module, golden scenario, fallbacks | P1 |
@@ -119,7 +119,7 @@ Gates business (doc 08) restent au-dessus du backlog : **Gate 1** (300 waitlist 
 
 | ID | Item | User story / valeur | Taille | Dépend de | Statut |
 |----|------|---------------------|--------|-----------|--------|
-| E7-01 | Setup Expo + navigation + design system | Base des écrans (reprendre le prototype HTML/Figma) | M | — | 📥 |
+| E7-01 | Setup Flutter + navigation + design system | Base des écrans (reprendre le prototype HTML/Figma) | M | — | 📥 |
 | E7-02 | Écran swipe (deck de cartes) | Cœur de l'expérience ; gestes + 2 types de left (pas mon style / trop cher) | M | E7-01 | 📥 |
 | E7-03 | Écrans onboarding (routes A et B) | Connectés à E4-03/04 | M | E7-01 | 📥 |
 | E7-04 | API FastAPI : feed, swipe, profil | L'app consomme l'orchestrateur | M | E1-07, E6-01 | 📥 |

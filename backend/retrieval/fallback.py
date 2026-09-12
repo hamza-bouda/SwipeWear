@@ -27,7 +27,7 @@ _DB_COLUMNS = [
 # Degraded, not broken: the fallback still owes the user a deck that advances,
 # so it excludes already-seen products exactly like the vector path does.
 _FALLBACK_QUERY = """\
-SELECT {columns}
+SELECT {columns}, p.created_at AS product_created_at
 FROM products AS p
 {where}
   AND NOT EXISTS (
@@ -72,11 +72,16 @@ class FallbackRetriever:
 
         candidates: list[CandidateItem] = []
         for rank, row in enumerate(rows, start=1):
-            row_dict = dict(zip(_DB_COLUMNS, row))
+            row_dict = dict(zip(_DB_COLUMNS, row[:len(_DB_COLUMNS)]))
+            created_at = row[len(_DB_COLUMNS)] if len(row) > len(_DB_COLUMNS) else None
             row_dict["source"] = ProductSource(row_dict["source"])
             row_dict["condition"] = ProductCondition(row_dict["condition"])
             row_dict["price"] = float(row_dict["price"])
             row_dict["image_urls"] = list(row_dict["image_urls"] or [])
+            if created_at is not None:
+                row_dict["enriched_attrs"] = {
+                    "created_at": created_at.isoformat(),
+                }
             # The column holds the raw seller URL; affiliate deep links are
             # derived from it at serve time.
             row_dict["affiliate_url"] = row_dict.pop("listing_url", None)

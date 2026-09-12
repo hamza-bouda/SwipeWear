@@ -73,7 +73,7 @@ Trois promesses, une hiérarchie claire :
 * **Le taste graph (propriétaire) :** millions de jugements esthétiques horodatés — l'actif qui se creuse avec l'usage et que ni Vinted ni un copieur ne possèdent au jour 1.
 * **Le catalogue de référence des produits iconiques (propriétaire) :** 100-200 fiches vérifiées permettant le matching "même pièce" — lent à construire, donc lent à copier.
 * **Compétences fondatrices :** full-stack + IA — le produit est exactement à leur intersection.
-* **Briques ouvertes :** CLIP, pgvector, Expo — coût nul, maturité élevée.
+* **Briques ouvertes :** CLIP, pgvector, Flutter — coût nul, maturité élevée.
 
 ### 1.7 Activités Clés
 1. Ingestion et normalisation multi-sources (la qualité du catalogue EST le produit).

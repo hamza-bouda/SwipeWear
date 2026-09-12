@@ -4,7 +4,7 @@ import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from api.auth import get_current_user_id
 from api.db import get_conn, put_conn
@@ -21,8 +21,17 @@ router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 
 class DeviceTokenRequest(BaseModel):
-    expo_token: str
+    # `expo_token` stays accepted for existing installations. Flutter sends a
+    # native FCM token through `device_token`.
+    expo_token: str | None = None
+    device_token: str | None = None
     platform: str = "unknown"
+
+    @model_validator(mode="after")
+    def token_is_present(self):
+        if not self.expo_token and not self.device_token:
+            raise ValueError("A device token is required")
+        return self
 
 
 class DeviceTokenResponse(BaseModel):
@@ -46,12 +55,15 @@ def register_token(
     body: DeviceTokenRequest,
     user_id: UUID = Depends(get_current_user_id),
 ):
-    if not body.expo_token.startswith("ExponentPushToken["):
+    token = body.expo_token or body.device_token
+    if body.expo_token and not body.expo_token.startswith("ExponentPushToken["):
         raise HTTPException(status_code=400, detail="Invalid Expo push token format")
+    if body.device_token and len(body.device_token) < 20:
+        raise HTTPException(status_code=400, detail="Invalid device token format")
     conn = None
     try:
         conn = get_conn()
-        register_device_token(conn, user_id, body.expo_token, body.platform)
+        register_device_token(conn, user_id, token, body.platform)
         return DeviceTokenResponse()
     except HTTPException:
         raise

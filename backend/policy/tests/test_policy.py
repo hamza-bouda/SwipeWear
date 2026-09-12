@@ -9,7 +9,12 @@ import pytest
 from contracts.pipeline import RankedFeed, RankedItem
 from contracts.product import ProductCondition, ProductRecord, ProductSource
 from policy.diversity import mmr_rerank
-from policy.exploration import EXPLORATION_MARKER, epsilon_greedy_inject
+from policy.exploration import (
+    EXPLORATION_MARKER,
+    FRESHNESS_24H_MARKER,
+    compose_feed,
+    epsilon_greedy_inject,
+)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -35,11 +40,12 @@ def _make_ranked_item(
         size_raw="M",
         size_eu="M",
     )
+    score_breakdown = overrides.pop("score_breakdown", {"similarity": score})
     return RankedItem(
         product=product,
         final_score=score,
         rank=rank,
-        score_breakdown={"similarity": score},
+        score_breakdown=score_breakdown,
         **overrides,
     )
 
@@ -329,3 +335,43 @@ class TestEpsilonGreedyInjection:
         result = epsilon_greedy_inject(feed, catalogue, epsilon=0.5, rng=random.Random(42))
         assert len(result.items) == 1
         assert result.items[0].product.id == "p-1"
+
+
+class TestFeedComposition:
+    def test_visible_page_uses_70_15_15_buckets_when_available(self):
+        items = [
+            _make_ranked_item(f"exploit-{i}", rank=i + 1)
+            for i in range(20)
+        ]
+        items.extend(
+            _make_ranked_item(
+                f"explore-{i}",
+                rank=21 + i,
+                score_breakdown={EXPLORATION_MARKER: 1.0},
+            )
+            for i in range(5)
+        )
+        items.extend(
+            _make_ranked_item(
+                f"fresh-{i}",
+                rank=26 + i,
+                score_breakdown={FRESHNESS_24H_MARKER: 1.0},
+            )
+            for i in range(5)
+        )
+
+        result = compose_feed(_make_feed(*items), 20)
+        assert len(result.items) == 20
+        assert sum(EXPLORATION_MARKER in item.score_breakdown for item in result.items) == 3
+        assert sum(FRESHNESS_24H_MARKER in item.score_breakdown for item in result.items) == 3
+        assert sum(
+            EXPLORATION_MARKER not in item.score_breakdown
+            and FRESHNESS_24H_MARKER not in item.score_breakdown
+            for item in result.items
+        ) == 14
+
+    def test_missing_freshness_bucket_fills_the_page(self):
+        items = [_make_ranked_item(f"p-{i}", rank=i + 1) for i in range(5)]
+        result = compose_feed(_make_feed(*items), 10)
+        assert len(result.items) == 5
+        assert [item.rank for item in result.items] == [1, 2, 3, 4, 5]

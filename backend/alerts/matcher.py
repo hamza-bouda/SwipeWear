@@ -37,7 +37,16 @@ WHERE p.available = true
 ORDER BY e.embedding <=> %(ref_embedding)s::vector
 LIMIT %(k)s"""
 
-_CONDITION_RANK = {"new": 3, "very_good": 2, "good": 1, "fair": 0}
+# Keep the matcher aligned with contracts.product.ProductCondition. The
+# ingestion layer normalises VERY_GOOD to like_new before this point, but the
+# legacy spelling is retained as a tolerant input for older rows.
+_CONDITION_RANK = {
+    "new": 3,
+    "like_new": 2,
+    "very_good": 2,
+    "good": 1,
+    "fair": 0,
+}
 
 
 def _to_pgvector_literal(vector: list[float]) -> str:
@@ -81,18 +90,28 @@ def _passes_constraints(
     constraints: dict,
 ) -> bool:
     max_price = constraints.get("max_price_eur")
-    if max_price is not None and price is not None:
-        if float(price) > float(max_price):
+    if max_price is not None:
+        # A hard budget constraint cannot be verified when the catalogue did
+        # not provide a price. Never notify the user about an unverifiable
+        # match.
+        if price is None or float(price) > float(max_price):
             return False
 
     sizes = constraints.get("sizes", [])
-    if sizes and size_eu is not None:
-        if size_eu not in sizes:
+    if sizes:
+        # Alert sizes are exact hard constraints. An unknown candidate size is
+        # not a match, otherwise a "M only" alert would notify on any
+        # unnormalised listing.
+        if size_eu is None or size_eu not in sizes:
             return False
 
     min_condition = constraints.get("min_condition")
-    if min_condition and condition:
-        if _CONDITION_RANK.get(condition, -1) < _CONDITION_RANK.get(min_condition, -1):
+    if min_condition:
+        if (
+            condition is None
+            or _CONDITION_RANK.get(condition, -1)
+            < _CONDITION_RANK.get(min_condition, -1)
+        ):
             return False
 
     return True

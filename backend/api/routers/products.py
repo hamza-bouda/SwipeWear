@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from api.auth import get_current_user_id
 from api.db import get_conn, put_conn
 from contracts.product import ProductCondition, ProductRecord, ProductSource
+from ingestion.interfaces import ClickContext, build_affiliate_url
 
 _LOG = logging.getLogger("swipewear.api.products")
 
@@ -39,7 +40,10 @@ def get_product(product_id: str, _user_id=Depends(get_current_user_id)):
     conn = None
     try:
         conn = get_conn()
-        query = _QUERY.format(columns=", ".join(f"p.{c}" for c in _COLUMNS))
+        query = _QUERY.format(
+            columns=", ".join(f"p.{c}" for c in _COLUMNS)
+            + ", p.created_at AS product_created_at",
+        )
         with conn.cursor() as cur:
             cur.execute(query, {"product_id": product_id})
             row = cur.fetchone()
@@ -52,6 +56,10 @@ def get_product(product_id: str, _user_id=Depends(get_current_user_id)):
                 },
             )
         data = dict(zip(_COLUMNS, row))
+        if len(row) > len(_COLUMNS) and row[len(_COLUMNS)] is not None:
+            data["enriched_attrs"] = {
+                "created_at": row[len(_COLUMNS)].isoformat(),
+            }
         data["source"] = ProductSource(data["source"])
         data["condition"] = ProductCondition(data["condition"])
         data["price"] = float(data["price"])
@@ -59,7 +67,9 @@ def get_product(product_id: str, _user_id=Depends(get_current_user_id)):
         # The column holds the raw seller URL; affiliate deep links are derived
         # from it at serve time.
         data["affiliate_url"] = data.pop("listing_url", None)
-        return ProductRecord(**data)
+        product = ProductRecord(**data)
+        affiliate_url = build_affiliate_url(product, ClickContext.detail)
+        return product.model_copy(update={"affiliate_url": affiliate_url})
     except HTTPException:
         raise
     except Exception:

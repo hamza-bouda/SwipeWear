@@ -97,7 +97,11 @@ class TransparentRanker:
         brand = ci.product.brand
         brand_boost = 1.0 if brand and brand.lower() in liked_brands else 0.0
 
-        indexed_at_str = ci.product.enriched_attrs.get("indexed_at")
+        indexed_at_str = (
+            ci.product.enriched_attrs.get("created_at")
+            or ci.product.enriched_attrs.get("indexed_at")
+        )
+        freshness_24h = 0.0
         if indexed_at_str:
             try:
                 indexed_at = datetime.fromisoformat(indexed_at_str)
@@ -107,6 +111,7 @@ class TransparentRanker:
                 freshness = math.exp(
                     -0.693 * age_days / FRESHNESS_HALF_LIFE_DAYS
                 )
+                freshness_24h = 1.0 if 0 <= age_days < 1.0 else 0.0
             except (ValueError, TypeError):
                 freshness = 0.5
         else:
@@ -117,4 +122,5 @@ class TransparentRanker:
             "price_fit": round(price_fit, 6),
             "brand_boost": round(brand_boost, 6),
             "freshness": round(freshness, 6),
+            "freshness_24h": freshness_24h,
         }

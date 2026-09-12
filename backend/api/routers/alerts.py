@@ -21,6 +21,7 @@ from api.db import get_conn, put_conn
 from billing.subscription_store import is_user_premium
 from contracts.alerts import FREE_ALERT_LIMIT, Alert, AlertConstraints, AlertStatus, AlertType
 from notifications.notification_store import count_missed_deals
+from preferences.store import ProfileStore
 
 _LOG = logging.getLogger("swipewear.api.alerts")
 
@@ -30,6 +31,10 @@ FROM product_embeddings
 WHERE product_id = %s
 LIMIT 1
 """
+
+# The free plan is intentionally limited to one active alert. Gold removes
+# that friction, but the product still needs a hard anti-abuse ceiling.
+MAX_ACTIVE_ALERTS = 50
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
@@ -106,6 +111,13 @@ def create_alert_endpoint(
     try:
         conn = get_conn()
         active = count_active_alerts(conn, user_id)
+        if active >= MAX_ACTIVE_ALERTS:
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    f"A maximum of {MAX_ACTIVE_ALERTS} active alerts is allowed."
+                ),
+            )
         if active >= FREE_ALERT_LIMIT and not is_user_premium(conn, user_id):
             raise HTTPException(
                 status_code=403,
@@ -114,10 +126,19 @@ def create_alert_endpoint(
                     " Upgrade to Premium for unlimited alerts."
                 ),
             )
-        reference_embedding = body.reference_embedding or _load_reference_embedding(
-            conn,
-            body.reference_product_id,
-        )
+        reference_embedding = body.reference_embedding
+        if reference_embedding is None:
+            reference_embedding = _load_reference_embedding(
+                conn,
+                body.reference_product_id,
+            )
+        # A style alert created from the profile has no source product to
+        # resolve. Use the current positive taste vector so the alert is
+        # actually picked up by the matcher instead of becoming a silent,
+        # non-functional row.
+        if reference_embedding is None and body.alert_type == AlertType.style:
+            profile = ProfileStore(lambda: conn).load(user_id)
+            reference_embedding = profile.vectors.positive or None
         alert = Alert(
             user_id=user_id,
             alert_type=body.alert_type,
@@ -173,6 +194,17 @@ def patch_alert_endpoint(
             if body.status == AlertStatus.active:
                 active = count_active_alerts(conn, user_id)
                 current = get_alert(conn, alert_id, user_id)
+                if (
+                    current
+                    and current.status != AlertStatus.active
+                    and active >= MAX_ACTIVE_ALERTS
+                ):
+                    raise HTTPException(
+                        status_code=429,
+                        detail=(
+                            f"A maximum of {MAX_ACTIVE_ALERTS} active alerts is allowed."
+                        ),
+                    )
                 if (
                     current
                     and current.status != AlertStatus.active

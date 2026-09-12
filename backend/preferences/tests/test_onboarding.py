@@ -24,6 +24,7 @@ from preferences.onboarding import (
     ARCHETYPE_EMBEDDINGS,
     MAX_ONBOARDING_IMAGE_BYTES,
     MAX_ONBOARDING_IMAGES,
+    STYLE_ID_ALIASES,
     STYLE_ARCHETYPE_IDS,
     build_profile_from_images,
     build_profile_from_styles,
@@ -94,6 +95,14 @@ class TestSingleStyle:
         profile = build_profile_from_styles(["vintage"])
         norm = math.sqrt(sum(v * v for v in profile.vectors.positive))
         assert norm == pytest.approx(1.0)
+
+    def test_public_spec_names_resolve_to_existing_vectors(self) -> None:
+        for public_name in ("y2k", "classic"):
+            profile = build_profile_from_styles([public_name])
+            canonical_name = STYLE_ID_ALIASES[public_name]
+            assert profile.vectors.positive == pytest.approx(
+                ARCHETYPE_EMBEDDINGS[canonical_name],
+            )
 
 
 class TestMultipleStyles:

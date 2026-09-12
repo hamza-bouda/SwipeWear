@@ -10,9 +10,9 @@
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                    MOBILE APP (React Native / Expo)          │
+│                    MOBILE APP (Flutter / Dart)              │
 │  Swipe Deck · Échelle de Prix · Alertes · Drop quotidien     │
-│  Push Notifications (Expo Notifications)                     │
+│  Push Notifications (FCM / APNs)                             │
 └───────────────────────────┬──────────────────────────────────┘
                             │ HTTPS (REST)
                             ▼
@@ -59,7 +59,7 @@
 | :--- | :--- | :--- |
 | Serveur API + workers (Railway/Scaleway) | 2 vCPU / 4 Go | 15-25€ |
 | PostgreSQL managé + pgvector | 100K articles ≈ 2-3 Go avec vecteurs | 10-15€ |
-| Push notifications (Expo) | < 100K/mois | 0€ |
+| Push notifications (FCM / APNs) | < 100K/mois | 0€ |
 | Supabase Auth | < 50K MAU | 0€ |
 | Apple Developer / Google Play | 99€/an + 25$ une fois | ~10€ amorti |
 | **Total** | | **≈ 35-50€/mois** |
@@ -97,7 +97,7 @@ La v1.0 annonçait 60h de MVP : irréaliste d'un facteur 3-5. Estimation corrig�
 
 ### 2.3 Multiplicateurs
 * Assistants de codage IA (boilerplate, SQL, composants UI) : facteur ×2 réaliste sur les lots standards (pas sur le matching exact ni la normalisation, qui demandent du jugement).
-* Stack volontairement banale (FastAPI + Postgres + Expo) : documentation abondante, zéro exotisme à déboguer.
+* Stack volontairement banale (FastAPI + Postgres + Flutter) : documentation abondante, zéro exotisme à déboguer.
 
 ---
 

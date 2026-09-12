@@ -53,9 +53,14 @@ def enqueue_match_notification(
     is_digest = pref == "daily_digest" or should_send_as_digest(conn, user_id)
 
     scheduled_for = datetime.now(timezone.utc)
-    if not is_premium:
-        scheduled_for += timedelta(seconds=_FREE_TIER_DELAY_SECONDS)
-    scheduled_for = apply_quiet_hours(scheduled_for)
+    if is_premium:
+        # Gold sells priority: it must remain immediate even when the match
+        # arrives during the free-tier quiet-hours window.
+        pass
+    else:
+        scheduled_for = apply_quiet_hours(
+            scheduled_for + timedelta(seconds=_FREE_TIER_DELAY_SECONDS)
+        )
 
     # Batch: if there's already a pending notification for this alert within 1h,
     # update it with the latest product instead of creating a new entry.

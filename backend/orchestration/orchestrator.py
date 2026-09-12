@@ -19,6 +19,7 @@ from orchestration.interfaces import (
     RankerProtocol,
     RetrieverProtocol,
 )
+from policy.interfaces import compose_feed
 
 logger = logging.getLogger("swipewear.orchestration")
 
@@ -187,6 +188,7 @@ class RecoOrchestrator:
         t0 = time.perf_counter()
         try:
             ranked_feed = self._policy.apply(ranked_feed, profile)
+            ranked_feed = compose_feed(ranked_feed, request.n_results)
             traces.append(ModuleTrace(module="diversify", latency_ms=_elapsed_ms(t0), version="v1"))
         except Exception as exc:
             # blueprint §12: policy KO → ranked feed untouched

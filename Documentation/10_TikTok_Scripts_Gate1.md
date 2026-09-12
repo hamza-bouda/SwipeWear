@@ -99,7 +99,7 @@
 - Voix + texte : « L'app sort bientôt. Waitlist en bio. »
 
 **Détails de tournage**
-- Screen record du prototype React Native en qualité max
+- Screen record du prototype Flutter en qualité max
 - Aucune voix IA — ta propre voix, naturelle
 
 ---

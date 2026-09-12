@@ -19,6 +19,7 @@ from api.auth import get_current_user_id
 from api.db import get_conn, put_conn
 from api.schemas import SavesResponse
 from contracts.product import ProductCondition, ProductRecord, ProductSource
+from ingestion.interfaces import ClickContext, build_affiliate_url
 
 _LOG = logging.getLogger("swipewear.api.saves")
 
@@ -35,7 +36,7 @@ _COLUMNS = [
 # saves against unsaves would get the order wrong: save, unsave, save again
 # is one save, not a tie.
 _QUERY = """\
-SELECT {columns}
+SELECT {columns}, p.created_at AS product_created_at
 FROM (
     SELECT DISTINCT ON (ie.product_id) ie.product_id, ie.event_type, ie.timestamp
     FROM interaction_events AS ie
@@ -51,7 +52,11 @@ LIMIT %(limit)s"""
 
 
 def _row_to_product(row: tuple) -> ProductRecord:
-    data = dict(zip(_COLUMNS, row))
+    data = dict(zip(_COLUMNS, row[:len(_COLUMNS)]))
+    if len(row) > len(_COLUMNS) and row[len(_COLUMNS)] is not None:
+        data["enriched_attrs"] = {
+            "created_at": row[len(_COLUMNS)].isoformat(),
+        }
     data["source"] = ProductSource(data["source"])
     data["condition"] = ProductCondition(data["condition"])
     data["price"] = float(data["price"])
@@ -75,7 +80,12 @@ def get_saves(
         with conn.cursor() as cur:
             cur.execute(query, {"user_id": str(user_id), "limit": limit})
             rows = cur.fetchall()
-        return SavesResponse(products=[_row_to_product(r) for r in rows])
+        products = []
+        for row in rows:
+            product = _row_to_product(row)
+            affiliate_url = build_affiliate_url(product, ClickContext.detail)
+            products.append(product.model_copy(update={"affiliate_url": affiliate_url}))
+        return SavesResponse(products=products)
     except Exception:
         # An empty wardrobe and a failed query look identical to the client if
         # this returns [], and the user would think their saves were lost.

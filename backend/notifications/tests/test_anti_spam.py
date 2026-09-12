@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -121,17 +123,65 @@ class TestDispatcherEnqueue:
         delay = (inserted_rows["scheduled_for"] - now).total_seconds()
         assert delay < _FREE_TIER_DELAY_SECONDS
 
+    def test_global_preference_is_used_when_alert_has_no_override(self):
+        from notifications.anti_spam import get_preference
+        from uuid import uuid4
+
+        conn = MagicMock()
+        cur = conn.cursor.return_value.__enter__.return_value
+        cur.fetchone.side_effect = [None, ("disabled",)]
+        conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+
+        assert get_preference(conn, uuid4(), uuid4()) == "disabled"
+        assert cur.execute.call_count == 2
+
 
 class TestPushSender:
     def test_empty_batch_returns_empty(self):
         from notifications.push_sender import send_batch
         assert send_batch([]) == []
 
+    def test_native_tokens_prefer_fcm_http_v1(self):
+        from notifications.push_sender import PushMessage, PushReceipt, send_batch
+
+        message = PushMessage(
+            to="fcm-device-token-" + ("x" * 20),
+            title="Titre",
+            body="Corps",
+            data={"queue_id": "q1"},
+        )
+        account = {
+            "project_id": "swipewear-test",
+            "client_email": "firebase@example.com",
+            "private_key": "not-used-by-this-test",
+        }
+        with patch.dict(
+            os.environ,
+            {"FIREBASE_SERVICE_ACCOUNT_JSON": json.dumps(account)},
+            clear=False,
+        ), patch(
+            "notifications.push_sender._send_fcm_v1_batch",
+            return_value=[PushReceipt(token=message.to, status="ok")],
+        ) as modern:
+            send_batch([message])
+
+        modern.assert_called_once_with([message], account)
+
     def test_message_text_exact_tier(self):
         from notifications.notification_store import _build_message_text
         title, body = _build_message_text("exact", 45.0, is_digest=False)
         assert "pièce" in body.lower()
         assert "45" in body
+
+    def test_message_text_includes_product_context(self):
+        from notifications.notification_store import _build_message_text
+        _, body = _build_message_text(
+            "similar", 24.0, is_digest=False,
+            product_title="Carhartt Detroit", product_size="M",
+        )
+        assert "Carhartt Detroit" in body
+        assert "M" in body
+        assert "24" in body
 
     def test_message_text_digest(self):
         from notifications.notification_store import _build_message_text
@@ -174,3 +224,26 @@ class TestNotificationsApiRouter:
             )
         assert resp.status_code == 201
         assert mock_reg.called
+
+    def test_register_native_fcm_token_calls_store(self):
+        from fastapi.testclient import TestClient
+        from unittest.mock import patch
+        from api.app import app
+        from api.auth import create_token
+        from uuid import uuid4
+        client = TestClient(app)
+        user_id = uuid4()
+        token = create_token(user_id)
+        device_token = "fcm-device-token-" + ("x" * 20)
+        with patch("api.routers.notifications.get_conn") as mock_get, \
+             patch("api.routers.notifications.put_conn"), \
+             patch("api.routers.notifications.register_device_token") as mock_reg:
+            mock_get.return_value = MagicMock()
+            resp = client.post(
+                "/notifications/register",
+                json={"device_token": device_token, "platform": "android"},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        assert resp.status_code == 201
+        mock_reg.assert_called_once()
+        assert mock_reg.call_args.args[2] == device_token

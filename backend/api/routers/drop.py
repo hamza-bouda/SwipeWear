@@ -140,6 +140,11 @@ def get_drop(
             created_at = row_dict.pop("product_created_at")
             _ = row_dict.pop("product_price")
 
+            if created_at is not None:
+                row_dict["enriched_attrs"] = {
+                    "created_at": created_at.isoformat(),
+                }
+
             freshness = _freshness_score(created_at)
             value = _value_ratio(float(row_dict["price"]), median_price)
             drop_score = 0.5 * similarity + 0.3 * freshness + 0.2 * value

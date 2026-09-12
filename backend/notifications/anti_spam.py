@@ -50,14 +50,25 @@ def count_sent_today(conn: Any, user_id: UUID) -> int:
 
 
 def get_preference(conn: Any, user_id: UUID, alert_id: UUID) -> str:
-    """Return frequency preference: 'instant' | 'daily_digest' | 'disabled'."""
+    """Return the effective alert frequency.
+
+    An explicit per-alert choice wins. Otherwise the global preference edited
+    from the profile screen is applied to every alert owned by the user.
+    """
     with conn.cursor() as cur:
         cur.execute(
             "SELECT frequency FROM alert_notification_prefs WHERE user_id = %s AND alert_id = %s",
             (str(user_id), str(alert_id)),
         )
         row = cur.fetchone()
-    return row[0] if row else "instant"
+        if row:
+            return row[0]
+        cur.execute(
+            "SELECT preference FROM notification_preferences WHERE user_id = %s",
+            (str(user_id),),
+        )
+        global_row = cur.fetchone()
+    return global_row[0] if global_row else "instant"
 
 
 def find_pending_within_window(conn: Any, user_id: UUID, alert_id: UUID) -> str | None:

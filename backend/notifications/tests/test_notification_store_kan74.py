@@ -10,6 +10,8 @@ from notifications.notification_store import (
     _record_missed_deal,
     count_missed_deals,
     flush_due_notifications,
+    get_notification_preference,
+    set_notification_preference,
 )
 
 
@@ -55,6 +57,29 @@ class TestCountMissedDeals:
         conn, cur = _make_conn(fetchone_val=(7,))
         result = count_missed_deals(conn, UUID("00000000-0000-0000-0000-000000000001"))
         assert result == 7
+
+
+class TestGlobalNotificationPreference:
+    def test_missing_preference_defaults_to_instant(self):
+        from uuid import uuid4
+
+        conn, cur = _make_conn(fetchone_val=None)
+        assert get_notification_preference(conn, uuid4()) == "instant"
+        assert "notification_preferences" in cur.execute.call_args.args[0]
+
+    def test_reads_saved_preference(self):
+        from uuid import uuid4
+
+        conn, cur = _make_conn(fetchone_val=("daily_digest",))
+        assert get_notification_preference(conn, uuid4()) == "daily_digest"
+
+    def test_writes_to_global_preference_table(self):
+        from uuid import uuid4
+
+        conn, cur = _make_conn()
+        set_notification_preference(conn, uuid4(), "disabled")
+        assert "notification_preferences" in cur.execute.call_args.args[0]
+        assert conn.commit.called
 
 
 class TestFlushDueNotificationsMissedDeal:

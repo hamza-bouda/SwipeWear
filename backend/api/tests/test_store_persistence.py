@@ -7,6 +7,7 @@ from the first. These tests assert the data outlives the objects that wrote it.
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -139,6 +140,111 @@ class TestErasure:
     def test_deleting_an_unknown_account_reports_false(self):
         assert store.delete_user(uuid4()) is False
 
+    def test_delete_removes_account_scoped_notifications_and_billing(self, user_id):
+        from api.db import get_conn, put_conn
+
+        store.create_user(user_id, "erase-all@example.com", "hunter2")
+        alert_id = uuid4()
+        queue_id = uuid4()
+        token = f"fcm-token-{uuid4().hex}"
+        conn = get_conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO alerts
+                        (alert_id, user_id, alert_type, label, constraints)
+                    VALUES (%s, %s, 'style', 'erase me', '{}'::jsonb)
+                    """,
+                    (str(alert_id), str(user_id)),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO device_tokens (user_id, expo_token, platform)
+                    VALUES (%s, %s, 'android')
+                    """,
+                    (str(user_id), token),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO notification_queue
+                        (queue_id, user_id, alert_id, product_id, match_tier)
+                    VALUES (%s, %s, %s, 'erase-product', 'exact')
+                    """,
+                    (str(queue_id), str(user_id), str(alert_id)),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO notification_log (queue_id, user_id, expo_token)
+                    VALUES (%s, %s, %s)
+                    """,
+                    (str(queue_id), str(user_id), token),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO alert_notification_prefs (user_id, alert_id)
+                    VALUES (%s, %s)
+                    """,
+                    (str(user_id), str(alert_id)),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO missed_deals (user_id, alert_id, product_id)
+                    VALUES (%s, %s, 'erase-product')
+                    """,
+                    (str(user_id), str(alert_id)),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO notification_preferences (user_id)
+                    VALUES (%s)
+                    """,
+                    (str(user_id),),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO user_subscriptions
+                        (user_id, status, expires_at)
+                    VALUES (%s, 'active', now())
+                    """,
+                    (str(user_id),),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO analytics_events
+                        (event_id, user_id, event_name, occurred_at)
+                    VALUES (%s, %s, 'account_erasure_test', %s)
+                    """,
+                    (str(uuid4()), str(user_id), datetime.now(timezone.utc)),
+                )
+            conn.commit()
+        finally:
+            put_conn(conn)
+
+        assert store.delete_user(user_id) is True
+
+        conn = get_conn()
+        try:
+            with conn.cursor() as cur:
+                for table in (
+                    "alerts",
+                    "device_tokens",
+                    "notification_queue",
+                    "notification_log",
+                    "alert_notification_prefs",
+                    "missed_deals",
+                    "notification_preferences",
+                    "user_subscriptions",
+                    "analytics_events",
+                ):
+                    cur.execute(
+                        f"SELECT COUNT(*) FROM {table} WHERE user_id = %s",
+                        (str(user_id),),
+                    )
+                    assert cur.fetchone()[0] == 0, table
+        finally:
+            put_conn(conn)
+
 
 class TestAnonymousMigration:
     def test_profile_and_events_follow_the_new_identity(self, product_id):
@@ -169,7 +275,7 @@ class TestAnonymousMigration:
 
 class TestResetGuard:
     def test_reset_refuses_to_run_in_production(self):
-        """It used to clear four dicts; it now empties three tables."""
+        """A destructive test helper must never run against production."""
         with patch.dict(os.environ, {"APP_ENV": "production"}):
             with pytest.raises(RuntimeError, match="refusing to run in"):
                 store.reset()

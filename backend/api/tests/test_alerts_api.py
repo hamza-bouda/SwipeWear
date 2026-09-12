@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from api.app import app
 from api.auth import create_token
 from contracts.alerts import Alert, AlertStatus, AlertType
+from contracts.profile import StyleVectors, UserPreferenceProfile
 
 
 @pytest.fixture()
@@ -46,8 +47,12 @@ class TestCreateAlert:
         with patch("api.routers.alerts.get_conn") as mock_get, \
              patch("api.routers.alerts.put_conn"), \
              patch("api.routers.alerts.count_active_alerts", return_value=0), \
+             patch("api.routers.alerts.ProfileStore") as mock_store, \
              patch("api.routers.alerts.create_alert") as mock_create:
             mock_get.return_value = _mock_conn()
+            mock_store.return_value.load.return_value = UserPreferenceProfile(
+                user_id=user_id,
+            )
             mock_create.side_effect = lambda conn, alert: alert
 
             resp = client.post(
@@ -87,6 +92,29 @@ class TestCreateAlert:
         assert resp.json()["reference_product_id"] == "ebay-42"
         assert mock_create.call_args.args[1].reference_embedding == [0.1, 0.2]
 
+    def test_create_style_alert_uses_profile_vector(self, client, user_id, auth_headers):
+        profile = UserPreferenceProfile(
+            user_id=user_id,
+            vectors=StyleVectors(positive=[0.1, 0.2, 0.3]),
+        )
+        with patch("api.routers.alerts.get_conn") as mock_get, \
+             patch("api.routers.alerts.put_conn"), \
+             patch("api.routers.alerts.count_active_alerts", return_value=0), \
+             patch("api.routers.alerts.ProfileStore") as mock_store, \
+             patch("api.routers.alerts.create_alert") as mock_create:
+            mock_get.return_value = _mock_conn()
+            mock_store.return_value.load.return_value = profile
+            mock_create.side_effect = lambda conn, alert: alert
+
+            resp = client.post(
+                "/alerts",
+                json={"alert_type": "style", "label": "Mon style"},
+                headers=auth_headers,
+            )
+
+        assert resp.status_code == 201
+        assert mock_create.call_args.args[1].reference_embedding == [0.1, 0.2, 0.3]
+
     def test_free_tier_cap_at_one_active(self, client, user_id, auth_headers):
         with patch("api.routers.alerts.get_conn") as mock_get, \
              patch("api.routers.alerts.put_conn"), \
@@ -100,6 +128,20 @@ class TestCreateAlert:
                 headers=auth_headers,
             )
         assert resp.status_code == 403
+
+    def test_premium_cap_at_fifty_active(self, client, user_id, auth_headers):
+        with patch("api.routers.alerts.get_conn") as mock_get, \
+             patch("api.routers.alerts.put_conn"), \
+             patch("api.routers.alerts.count_active_alerts", return_value=50), \
+             patch("api.routers.alerts.is_user_premium", return_value=True):
+            mock_get.return_value = _mock_conn()
+
+            resp = client.post(
+                "/alerts",
+                json={"alert_type": "style", "label": "trop d'alertes"},
+                headers=auth_headers,
+            )
+        assert resp.status_code == 429
 
     def test_invalid_token_rejected(self, client):
         resp = client.post(

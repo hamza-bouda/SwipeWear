@@ -257,20 +257,33 @@ def delete_user(user_id: UUID) -> bool:
     """Erase the account and everything attached to it (GDPR right to erasure)."""
     with _Connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM users WHERE user_id = %s", (str(user_id),))
-            deleted = cur.rowcount > 0
-            # Not ON DELETE CASCADE: profiles and events are keyed by user_id
-            # without a foreign key onto users, because a user can browse and
-            # accumulate a profile before ever creating an account.
-            cur.execute(
-                "DELETE FROM interaction_events WHERE user_id = %s",
-                (str(user_id),),
-            )
-            cur.execute(
-                "DELETE FROM user_profiles WHERE user_id = %s", (str(user_id),),
-            )
+            params = (str(user_id),)
+            erased = False
+
+            # Delete dependent records explicitly. Most of the original MVP
+            # tables predate the users table and deliberately have no FK: an
+            # anonymous visitor can build a profile before registering. The
+            # explicit order also keeps notification_log.queue_id safe.
+            for table in (
+                "notification_log",
+                "notification_queue",
+                "alert_notification_prefs",
+                "missed_deals",
+                "notification_preferences",
+                "device_tokens",
+                "user_subscriptions",
+                "analytics_events",
+                "alerts",
+                "interaction_events",
+                "user_profiles",
+            ):
+                cur.execute(f"DELETE FROM {table} WHERE user_id = %s", params)
+                erased = erased or cur.rowcount > 0
+
+            cur.execute("DELETE FROM users WHERE user_id = %s", params)
+            erased = erased or cur.rowcount > 0
         conn.commit()
-    return deleted
+    return erased
 
 
 def migrate_anonymous_profile(anonymous_id: UUID, new_id: UUID) -> bool:
@@ -301,11 +314,12 @@ def migrate_anonymous_profile(anonymous_id: UUID, new_id: UUID) -> bool:
 
 
 def reset() -> None:
-    """Clear all accounts, profiles and events. Tests only.
+    """Clear all user-scoped data. Tests only.
 
     Guarded rather than trusted: this used to empty four dicts, and now it
-    empties three tables. Called against a production database it would delete
-    every customer.
+    empties the account, profile, event, alert, notification and billing
+    tables. Called against a production database it would delete every
+    customer.
     """
     if is_production():
         raise RuntimeError(
@@ -314,7 +328,19 @@ def reset() -> None:
         )
     with _Connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM interaction_events")
-            cur.execute("DELETE FROM user_profiles")
-            cur.execute("DELETE FROM users")
+            for table in (
+                "notification_log",
+                "notification_queue",
+                "alert_notification_prefs",
+                "missed_deals",
+                "notification_preferences",
+                "device_tokens",
+                "user_subscriptions",
+                "analytics_events",
+                "alerts",
+                "interaction_events",
+                "user_profiles",
+                "users",
+            ):
+                cur.execute(f"DELETE FROM {table}")
         conn.commit()

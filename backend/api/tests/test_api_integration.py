@@ -14,7 +14,9 @@ from api import trace_store
 
 
 @pytest.fixture(autouse=True)
-def _clean_store():
+def _clean_store(database_available):
+    if not database_available:
+        pytest.skip("no reachable PostgreSQL instance")
     store.reset()
     trace_store.reset()
     yield

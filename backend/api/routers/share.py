@@ -69,8 +69,8 @@ def _generate_card(product: dict, savings_pct: int | None) -> bytes:
         font_medium = font_large
         font_small = font_large
 
-    # Yellow accent bar at top
-    draw.rectangle([(0, 0), (_CARD_WIDTH, 120)], fill=(250, 204, 21))
+    # SwipeWear mint accent, shared with the Flutter design system.
+    draw.rectangle([(0, 0), (_CARD_WIDTH, 120)], fill=(23, 199, 132))
     draw.text(
         (_CARD_WIDTH // 2, 60), "SwipeWear",
         fill=(10, 10, 10), font=font_large, anchor="mm",
@@ -104,7 +104,7 @@ def _generate_card(product: dict, savings_pct: int | None) -> bytes:
         y += 100
         draw.rectangle(
             [(_CARD_WIDTH // 2 - 200, y - 40), (_CARD_WIDTH // 2 + 200, y + 40)],
-            fill=(250, 204, 21),
+            fill=(232, 248, 240),
         )
         draw.text(
             (_CARD_WIDTH // 2, y), f"-{savings_pct}% vs neuf",
@@ -116,7 +116,7 @@ def _generate_card(product: dict, savings_pct: int | None) -> bytes:
     draw.text(
         (_CARD_WIDTH // 2, _CARD_HEIGHT - 50),
         "swipewear.fr",
-        fill=(250, 204, 21), font=font_small, anchor="mm",
+        fill=(23, 199, 132), font=font_small, anchor="mm",
     )
 
     buf = io.BytesIO()
@@ -131,7 +131,7 @@ def _generate_svg_card(product: dict, savings_pct: int | None) -> bytes:
     savings_block = ""
     if savings_pct and savings_pct > 0:
         savings_block = f"""
-        <rect x="340" y="580" width="400" height="60" rx="8" fill="#facc15"/>
+        <rect x="340" y="580" width="400" height="60" rx="8" fill="#E8F8F0"/>
         <text x="540" y="618" text-anchor="middle"
               font-size="32" font-weight="bold" fill="#0A0A0A">-{savings_pct}% vs neuf</text>
         """
@@ -139,7 +139,7 @@ def _generate_svg_card(product: dict, savings_pct: int | None) -> bytes:
     svg = f"""<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
   <rect width="1080" height="1920" fill="#FFFFFF"/>
-  <rect width="1080" height="120" fill="#facc15"/>
+  <rect width="1080" height="120" fill="#17C784"/>
   <text x="540" y="75" text-anchor="middle"
         font-family="Arial,sans-serif" font-size="64" font-weight="bold"
         fill="#0A0A0A">SwipeWear</text>
@@ -156,7 +156,7 @@ def _generate_svg_card(product: dict, savings_pct: int | None) -> bytes:
   {savings_block}
   <rect y="1820" width="1080" height="100" fill="#0A0A0A"/>
   <text x="540" y="1880" text-anchor="middle"
-        font-family="Arial,sans-serif" font-size="36" fill="#facc15">swipewear.fr</text>
+        font-family="Arial,sans-serif" font-size="36" fill="#17C784">swipewear.fr</text>
 </svg>"""
     return svg.encode("utf-8")
 

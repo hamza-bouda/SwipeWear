@@ -17,6 +17,7 @@ from contracts.pipeline import (
     PriceLadderEntry,
 )
 from contracts.product import ProductCondition, ProductRecord, ProductSource
+from ingestion.interfaces import ClickContext, build_affiliate_url
 
 _LOG = logging.getLogger("swipewear.retrieval.ladder")
 
@@ -51,6 +52,7 @@ WHERE p.available = true
   AND p.id != %(source_id)s
   AND p.category = %(category)s
   AND (p.gender IS NULL OR %(gender)s IS NULL OR p.gender = %(gender)s)
+  AND (%(size_eu)s IS NULL OR p.size_eu IS NULL OR p.size_eu = %(size_eu)s)
   AND 1 - (e.embedding <=> %(style_vector)s::vector) >= %(min_similarity)s
 ORDER BY e.embedding <=> %(style_vector)s::vector
 LIMIT %(k)s"""
@@ -140,6 +142,10 @@ def build_price_ladder(
                 # mean what the screen says it means.
                 "category": source_product.category,
                 "gender": source_product.gender.value if source_product.gender else None,
+                # A ladder compares the same wearable size by default. Unknown
+                # candidate sizes remain visible so catalogue gaps do not hide
+                # otherwise useful offers.
+                "size_eu": source_product.size_eu,
                 "min_similarity": min_similarity,
                 "k": max_results * 3,
             },
@@ -153,15 +159,16 @@ def build_price_ladder(
         candidate = _row_to_product(col_values, _PRODUCT_COLUMNS)
 
         confidence = _compute_confidence(source_product, candidate)
+        affiliate_url = build_affiliate_url(candidate, ClickContext.ladder)
 
         entries.append(PriceLadderEntry(
             product_id=candidate.id,
-            url=candidate.affiliate_url or "",
+            url=affiliate_url,
             price_eur=candidate.price,
             source=candidate.source.value,
             condition=candidate.condition.value,
             is_new=candidate.condition == ProductCondition.new,
-            affiliate_url=candidate.affiliate_url,
+            affiliate_url=affiliate_url,
             confidence=confidence,
             similarity_score=round(similarity, 3),
             image_url=candidate.image_urls[0] if candidate.image_urls else None,
@@ -190,8 +197,11 @@ def build_price_ladder(
     min_price = min(prices) if prices else None
     max_price = max(prices) if prices else None
     savings_pct = None
-    if min_price is not None and max_price is not None and max_price > 0:
-        savings_pct = round((1 - min_price / max_price) * 100, 1)
+    if min_price is not None and prices:
+        new_prices = [entry.price_eur for entry in entries if entry.is_new]
+        reference_price = max(new_prices) if new_prices else max(prices)
+        if reference_price > 0:
+            savings_pct = round((1 - min_price / reference_price) * 100, 1)
 
     _LOG.debug(
         "Price ladder for %s: %d entries in %.1f ms",

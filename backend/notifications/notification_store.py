@@ -20,7 +20,7 @@ def get_notification_preference(conn: Any, user_id: UUID) -> str:
     """Return the user's notification preference (instant/daily_digest/disabled)."""
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT preference FROM alert_notification_prefs WHERE user_id = %s",
+            "SELECT preference FROM notification_preferences WHERE user_id = %s",
             (str(user_id),),
         )
         row = cur.fetchone()
@@ -32,7 +32,7 @@ def set_notification_preference(conn: Any, user_id: UUID, preference: str) -> No
     with conn.cursor() as cur:
         cur.execute(
             """
-            INSERT INTO alert_notification_prefs (user_id, preference)
+            INSERT INTO notification_preferences (user_id, preference)
             VALUES (%s, %s)
             ON CONFLICT (user_id) DO UPDATE SET preference = EXCLUDED.preference
             """,
@@ -131,7 +131,14 @@ def flush_due_notifications(conn: Any) -> int:
             _mark_sent(conn, str(queue_id))
             continue
 
-        title, body = _build_message_text(match_tier, product_price, is_digest)
+        product_title, product_size = _load_product_summary(conn, product_id)
+        title, body = _build_message_text(
+            match_tier,
+            product_price,
+            is_digest,
+            product_title=product_title,
+            product_size=product_size,
+        )
         messages = [
             PushMessage(
                 to=token,
@@ -166,6 +173,20 @@ def _is_product_available(conn: Any, product_id: str) -> bool:
     if row is None:
         return False  # product removed entirely
     return bool(row[0])
+
+
+def _load_product_summary(conn: Any, product_id: str) -> tuple[str | None, str | None]:
+    """Load only the public fields needed to make a push actionable."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """SELECT title, COALESCE(size_raw, size_eu)
+               FROM products WHERE id = %s""",
+            (product_id,),
+        )
+        row = cur.fetchone()
+    if not row:
+        return None, None
+    return row[0], row[1]
 
 
 def _record_missed_deal(conn: Any, user_id: str, alert_id: str, product_id: str) -> None:
@@ -215,7 +236,12 @@ def _log_receipts(conn: Any, queue_id: str, user_id: str, receipts) -> None:
 
 
 def _build_message_text(
-    match_tier: str, product_price: float | None, is_digest: bool
+    match_tier: str,
+    product_price: float | None,
+    is_digest: bool,
+    *,
+    product_title: str | None = None,
+    product_size: str | None = None,
 ) -> tuple[str, str]:
     label = _MATCH_TIER_LABELS.get(match_tier, "Une alerte a matché")
     if is_digest:
@@ -224,5 +250,9 @@ def _build_message_text(
     else:
         title = "SwipeWear — Nouvelle alerte"
         price_str = f" · {product_price:.0f} €" if product_price is not None else ""
-        body = f"{label}{price_str}"
+        if product_title:
+            size_str = f", {product_size}" if product_size else ""
+            body = f"🎯 Ta pépite : {product_title}{size_str}{price_str}"
+        else:
+            body = f"{label}{price_str}"
     return title, body

@@ -48,7 +48,8 @@ def _random_catalogue_sample(
         filter_result = apply_hard_filters(profile)
         with conn.cursor() as cur:
             cur.execute(
-                f"SELECT {', '.join('p.' + c for c in _SAMPLE_COLUMNS)}"
+                f"SELECT {', '.join('p.' + c for c in _SAMPLE_COLUMNS)},"
+                " p.created_at AS product_created_at"
                 " FROM products AS p"
                 f" {filter_result.where_sql}"
                 "   AND NOT EXISTS ("
@@ -73,11 +74,14 @@ def _random_catalogue_sample(
             rows = cur.fetchall()
         products = []
         for row in rows:
-            d = dict(zip(_SAMPLE_COLUMNS, row))
+            d = dict(zip(_SAMPLE_COLUMNS, row[:len(_SAMPLE_COLUMNS)]))
+            created_at = row[len(_SAMPLE_COLUMNS)] if len(row) > len(_SAMPLE_COLUMNS) else None
             d["source"] = ProductSource(d["source"])
             d["condition"] = ProductCondition(d["condition"])
             d["price"] = float(d["price"])
             d["image_urls"] = list(d["image_urls"] or [])
+            if created_at is not None:
+                d["enriched_attrs"] = {"created_at": created_at.isoformat()}
             # The column holds the raw seller URL; affiliate deep links are
             # derived from it at serve time.
             d["affiliate_url"] = d.pop("listing_url", None)

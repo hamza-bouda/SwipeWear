@@ -4,6 +4,9 @@ x-backend: &backend
     target: runtime
   environment:
     DATABASE_URL: postgresql://${POSTGRES_USER:-swipewear}:${POSTGRES_PASSWORD:-swipewear_dev}@db:5432/${POSTGRES_DB:-swipewear}
+    FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
+    FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON:-}
+    FCM_SERVER_KEY: ${FCM_SERVER_KEY:-}
   networks:
     - data
   restart: unless-stopped
@@ -58,6 +61,9 @@ services:
       EPN_CAMPAIGN_ID: ${EPN_CAMPAIGN_ID:-}
       AWIN_PUBLISHER_ID: ${AWIN_PUBLISHER_ID:-}
       CJ_PUBLISHER_ID: ${CJ_PUBLISHER_ID:-}
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON:-}
+      FCM_SERVER_KEY: ${FCM_SERVER_KEY:-}
     ports:
       - "${API_PORT:-8000}:8000"
     healthcheck:
@@ -98,6 +104,22 @@ services:
       EBAY_CLIENT_SECRET: ${EBAY_CLIENT_SECRET:-}
       EBAY_ENV: ${EBAY_ENV:-sandbox}
       EBAY_IMAGE_SIZE: ${EBAY_IMAGE_SIZE:-500}
+
+  official-watcher:
+    <<: *backend
+    profiles: ["watcher"]
+    command: ["python", "scripts/run_service.py", "interval", "--seconds", "${OFFICIAL_WATCHER_INTERVAL_SECONDS:-900}", "--", "python", "scripts/watch_official_sources.py", "--once"]
+    depends_on: *after-migrations
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-swipewear}:${POSTGRES_PASSWORD:-swipewear_dev}@db:5432/${POSTGRES_DB:-swipewear}
+      OFFICIAL_WATCHER_SOURCES: ${OFFICIAL_WATCHER_SOURCES:-ebay}
+      EBAY_CLIENT_ID: ${EBAY_CLIENT_ID:-}
+      EBAY_CLIENT_SECRET: ${EBAY_CLIENT_SECRET:-}
+      EBAY_ENV: ${EBAY_ENV:-sandbox}
+      EBAY_IMAGE_SIZE: ${EBAY_IMAGE_SIZE:-500}
+      ETSY_API_KEY: ${ETSY_API_KEY:-}
+      AWIN_API_TOKEN: ${AWIN_API_TOKEN:-}
+      AWIN_PUBLISHER_ID: ${AWIN_PUBLISHER_ID:-}
 
   ai-indexer:
     <<: *backend

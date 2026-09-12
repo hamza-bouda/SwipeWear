@@ -19,40 +19,47 @@ router = APIRouter(prefix="/events", tags=["events"])
 
 _updater = FallbackUpdater()
 
-_FETCH_EMBEDDING_SQL = """\
-SELECT embedding FROM product_embeddings WHERE product_id = %(product_id)s
+_FETCH_PRODUCT_SIGNALS_SQL = """\
+SELECT e.embedding, p.brand, p.price
+FROM products AS p
+LEFT JOIN product_embeddings AS e ON e.product_id = p.id
+WHERE p.id = %(product_id)s
 LIMIT 1"""
 
 
-def _load_product_embedding(conn, product_id: str) -> list[float] | None:
-    """Fetch the swiped product's vector so the swipe can move the profile.
+def _load_product_signals(conn, product_id: str) -> dict:
+    """Fetch catalogue signals needed to apply a mobile swipe.
 
-    preferences/updater.py reads the embedding from the event payload, which
-    meant the mobile client was expected to upload 768 floats with every
-    swipe. It does not, so vectors.positive stayed empty however much a user
-    swiped: the profile never left cold start and the feed ran on the
-    fallback retriever forever — no personalisation at all.
+    The mobile client deliberately sends only the product id. Resolve the
+    embedding, brand and price beside the catalogue so the client cannot forge
+    learning signals and does not need to upload 768 floats per swipe.
 
-    It is deliberately not written back into interaction_events. The log keeps
-    product_id and a replay re-reads the vector from product_embeddings, so
-    re-indexing the catalogue under a new embedding version stays possible
-    without rewriting history (blueprint §3.6, §5).
+    Brand and price are persisted in the event payload for replay. The vector
+    remains an apply-time enrichment: re-indexing the catalogue under a new
+    embedding version can then rebuild the dense profile without rewriting the
+    interaction log.
     """
     try:
         with conn.cursor() as cur:
-            cur.execute(_FETCH_EMBEDDING_SQL, {"product_id": product_id})
+            cur.execute(_FETCH_PRODUCT_SIGNALS_SQL, {"product_id": product_id})
             row = cur.fetchone()
     except Exception:  # noqa: BLE001 - a swipe must be recorded regardless
-        _LOG.warning(
-            "Could not load embedding for %s", product_id, exc_info=True,
-        )
-        return None
-    if row is None or row[0] is None:
-        return None
-    raw = row[0]
-    if isinstance(raw, str):
-        return [float(v) for v in raw.strip("[]").split(",") if v]
-    return [float(v) for v in raw]
+        _LOG.warning("Could not load product signals for %s", product_id, exc_info=True)
+        return {}
+    if row is None:
+        return {}
+
+    embedding = row[0]
+    if isinstance(embedding, str):
+        embedding = [float(v) for v in embedding.strip("[]").split(",") if v]
+    elif embedding is not None:
+        embedding = [float(v) for v in embedding]
+
+    return {
+        "product_embedding": embedding,
+        "brand": row[1],
+        "product_price_eur": float(row[2]) if row[2] is not None else None,
+    }
 
 
 _INSERT_EVENT_SQL = """\
@@ -96,14 +103,23 @@ def post_event(
     conn = None
     try:
         conn = get_conn()
-        _persist_event(conn, event)
+        signals = _load_product_signals(conn, event.product_id)
+        persisted_payload = dict(event.payload)
+        for key in ("brand", "product_price_eur"):
+            if signals.get(key) is not None:
+                persisted_payload[key] = signals[key]
+        persisted_event = event.model_copy(update={"payload": persisted_payload})
+        _persist_event(conn, persisted_event)
 
-        embedding = _load_product_embedding(conn, event.product_id)
+        embedding = signals.get("product_embedding")
         if embedding is not None:
-            # Enriched only for the updater, not for the stored row.
-            event = event.model_copy(update={
-                "payload": {**event.payload, "product_embedding": embedding},
+            # The vector is used by the updater but not stored in the event
+            # log; the product id lets a replay use the current vector version.
+            event = persisted_event.model_copy(update={
+                "payload": {**persisted_payload, "product_embedding": embedding},
             })
+        else:
+            event = persisted_event
 
         store = ProfileStore(lambda: conn)
         profile = store.load(user_id)
