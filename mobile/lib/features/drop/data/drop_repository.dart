@@ -3,21 +3,30 @@ import '../../../core/storage/session_store.dart';
 import '../../auth/data/session.dart';
 import '../../feed/data/feed_repository.dart';
 
+class DropSnapshot {
+  const DropSnapshot({required this.items, this.isOffline = false});
+
+  final List<FeedItem> items;
+  final bool isOffline;
+}
+
 class DropRepository {
   DropRepository(this._api, this._store);
 
   final ApiClient _api;
   final SessionStore _store;
 
-  Future<List<FeedItem>> get(Session session) async {
+  Future<DropSnapshot> get(Session session) async {
     try {
       final json = await _api.getJson('/drop', token: session.accessToken);
       await _store.writeCachedJson('drop', session.userId, json);
-      return _items(json);
+      return DropSnapshot(items: _items(json));
     } catch (error) {
       if (error is ApiException && error.statusCode < 500) rethrow;
       final cached = await _store.readCachedJson('drop', session.userId);
-      if (cached != null) return _items(cached);
+      if (cached != null) {
+        return DropSnapshot(items: _items(cached), isOffline: true);
+      }
       rethrow;
     }
   }

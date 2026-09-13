@@ -37,7 +37,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         ref
             .read(savesProvider)
             .valueOrNull
-            ?.any((item) => item.id == widget.product.id) ??
+            ?.products
+            .any((item) => item.id == widget.product.id) ??
         false;
     await ref
         .read(savesRepositoryProvider)
@@ -181,7 +182,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         ref
             .watch(savesProvider)
             .valueOrNull
-            ?.any((item) => item.id == product.id) ??
+            ?.products
+            .any((item) => item.id == product.id) ??
         false;
     return Scaffold(
       // This route is pushed above AppShell, so it must provide its own

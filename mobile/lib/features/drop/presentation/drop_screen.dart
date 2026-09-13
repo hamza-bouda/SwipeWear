@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/analytics/providers.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/offline_banner.dart';
 import '../../auth/providers.dart';
 import '../../billing/presentation/paywall_screen.dart';
 import '../../feed/presentation/product_detail_screen.dart';
@@ -64,7 +65,8 @@ class _DropScreenState extends ConsumerState<DropScreen> {
                   'Actualise quand les nouvelles pépites sont disponibles.',
                 ),
               ),
-          data: (items) {
+          data: (snapshot) {
+            final items = snapshot.items;
             final unseen =
                 items
                     .where((item) => !_seen.contains(item.product.id))
@@ -121,6 +123,8 @@ class _DropScreenState extends ConsumerState<DropScreen> {
                       )
                       : CustomScrollView(
                         slivers: [
+                          if (snapshot.isOffline)
+                            const SliverToBoxAdapter(child: OfflineBanner()),
                           SliverToBoxAdapter(
                             child: SectionHeader(
                               eyebrow: l.t('Chaque jour à 19 h'),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/widgets/offline_banner.dart';
 import '../../auth/providers.dart';
 import '../../feed/presentation/product_detail_screen.dart';
 import '../../shared/widgets/product_tile.dart';
@@ -69,7 +70,8 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                   ),
                 ),
               ),
-          data: (products) {
+          data: (snapshot) {
+            final products = snapshot.products;
             final filtered =
                 products
                     .where(
@@ -91,6 +93,8 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
               },
               child: CustomScrollView(
                 slivers: [
+                  if (snapshot.isOffline)
+                    const SliverToBoxAdapter(child: OfflineBanner()),
                   SliverToBoxAdapter(
                     child: SectionHeader(
                       eyebrow: l.t('Ta sélection'),
